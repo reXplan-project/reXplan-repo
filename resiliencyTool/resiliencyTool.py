@@ -320,20 +320,14 @@ class Sim:
 	#TODO: time class for maanging time and eventDuration > simTime
 	def __init__(self, 
 				history, 
-				simStartTime,
-				simTime, 
-				eventDuration, 
-				timeStep,
+				start,
+				duration, 
+				event
 				):
 
 		self.history = history
-		self.simTime = simTime
-		self.eventDuration = eventDuration
-		self.timeStep = timeStep
-		# self.numCrew = numCrew
-		# self.crewLocation = crewLocation
-		# self.availableCrew = numCrew
-		# self.crew = crew
+		self.time = Time(start, duration)
+		self.event = event
 
 	def countAvailableCrew(self):
 		'''
@@ -392,18 +386,15 @@ class Sim:
 		Add description of create_outages function
 		'''
 		failureCandidates = network.get_failure_candidates()
-		crews = network.crews
-		eventTimeSteps = int(self.eventDuration/self.timeStep) # integer TODO: time class to manage time in Sim
-		timeSteps = int(self.simTime/self.timeStep) # integer TODO: time class to manage time in Sim
+		# crews = network.crews
+
 		failureProbability = np.array([x.failureProb for x in failureCandidates.values()])
 		randomNumber = 1
 		while  (randomNumber > failureProbability).all(): # random until a failure happens
 			randomNumber = np.random.rand()
-
-		failure = np.where((randomNumber <= failureProbability), np.random.randint(0,[eventTimeSteps]*len(failureCandidates)), timeSteps)
-		crewSchedule = pd.DataFrame([[1]*len(crews)]*timeSteps, columns = [x.ID for x in crews])
-		outagesSchedule = pd.DataFrame([[STATUS['on']]*len(failureCandidates)]*timeSteps, columns = failureCandidates.keys(), index = range(0, timeSteps))
-
+		failure = np.where((randomNumber <= failureProbability), np.random.randint(self.event.time.start,[self.event.time.stop]*len(failureCandidates)), self.time.stop)
+		crewSchedule = pd.DataFrame([[1]*len(network.crews)]*self.time.duration, columns = [x.ID for x in network.crews], index = self.time.interval)
+		outagesSchedule = pd.DataFrame([[STATUS['on']]*len(failureCandidates)]*self.time.duration, columns = failureCandidates.keys(), index = self.time.interval)
 		for index, column in zip(failure, outagesSchedule):
 			# outagesSchedule[column].loc[(outagesSchedule.index >= failure[i])] = STATUS['off']
 			outagesSchedule[column].loc[index:] = STATUS['off']
@@ -431,9 +422,13 @@ class Sim:
 			if (len(elementsToRepair)>0):
 				breakpoint()			
 			'''
-			if not outagesSchedule.loc[index+1:].isin([STATUS['off']]).any().any():
-				print(f'Finished at ime step: {index}')
+			if not outagesSchedule.loc[index+1:].isin([STATUS['on']]).any().any():
+				print(failureCandidates.keys())
+				print(failure)
+				print(f'Finished at time step: {index}')
 				print(outagesSchedule.join(crewSchedule))
+				breakpoint()
+				
 				return outagesSchedule
 		return outagesSchedule
 
@@ -754,3 +749,44 @@ class Crew:
 			self.geodata = geodata
 	# def get_crew_waiting_time():
 		# return 0
+		
+class Event():
+	def __init__(self, start, duration):
+			self.time = Time(start,duration)
+
+
+class Time():
+	#TODO: error raising for uncompatible times
+	def __init__(self,
+				start,
+				duration
+				):
+		self.start = start
+		self.duration = duration
+		self.stop = duration + start
+		self.interval = list(range(start, duration + start))
+
+'''			
+class Time():
+	#TODO: error raising for uncompatible times
+	def __init__(self,
+				simStart,
+				simDuration, 
+				eventStart,
+				eventDuration):
+		self.simStart = simStart
+		self.simDuration = simDuration
+		self.simStop = simDuration + simStart
+		self.simInterval = list(range(simStart, simDuration + simStart))
+		self.eventStart = eventStart
+		self.eventDuration = eventDuration
+		self.eventStop = eventStart + eventDuration
+		self.enventInterval = list(range(eventStart, eventDuration + eventStart))
+		# self.adjust_event_times(range(eventStart, eventDuration + eventStart), self.simInterval) 
+
+	def adjust_event_times(self, enventInterval, simInterval):
+		self.enventInterval = list(set(enventInterval).intersection(simInterval))
+		self.eventStart = self.enventInterval[0]
+		self.eventDuration = len(self.enventInterval)
+		if set(enventInterval) is not set(self.enventInterval): print('Event times adjusted according to simulation times')
+'''
