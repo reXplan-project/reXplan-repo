@@ -35,9 +35,8 @@ for i in range(nCrew):
 simulation = rt.Sim(history = None,
 				start = simStart,
 				duration = simDuration, 
-				event = rt.Event(eventStart,eventDuration),
+				hazardTime = rt.Time(eventStart,eventDuration),
 				)
-simulation.create_outages_schedule(network)
-
-
+simulation.run(network, 2)
+# simulation.post_process(network)
 

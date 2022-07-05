@@ -12,6 +12,9 @@ COL_NAME_RESILIENCE_FULL = 'resilienceFull'
 COL_NAME_WEATHER_TTR = 'weatherTTR'
 
 
+# Network element status
+STATUS = {'on': 1, 'off': 0, 'reparing': -1, 'waiting': -2}
+
 GLOBAL_ID = -1
 def get_GLOBAL_ID():
 	global GLOBAL_ID
@@ -41,6 +44,10 @@ class Network:
 		self.loads = []
 		self.crews = []
 		self.pp_network = self.build_pp_network(filename)
+
+		# self.outagesSchedule = None
+		self.metrics = []
+		# self.metrics = metrics()
 
 	def read_network_attributes(self, filename):
 		df_network = pd.read_excel(f'{filename}.xlsx', sheet_name=SHEET_NAME_NETWORK)
@@ -308,6 +315,102 @@ class Network:
 	def get_reparing_time(self, powerElementsID, powerElements):
 		return [powerElements[x].normalTTR for x in powerElementsID] #TODO: correct formula for repairing time
 
+	def calculate_outages_schedule(self, simulationTime, hazardTime):
+		'''
+		Add description of create_outages function
+		'''
+		failureCandidates = self.get_failure_candidates()
+		# crews = self.crews
+		failureProbability = np.array(
+			[x.failureProb for x in failureCandidates.values()])
+		randomNumber = 1
+		while (randomNumber > failureProbability).all():  # random until a failure happens
+			randomNumber = np.random.rand()
+		failure = np.where((randomNumber <= failureProbability), np.random.randint(
+			hazardTime.start, [hazardTime.stop]*len(failureCandidates)), simulationTime.stop)
+		crewSchedule = pd.DataFrame([[1]*len(self.crews)]*simulationTime.duration, columns=[
+									x.ID for x in self.crews], index=simulationTime.interval)
+		outagesSchedule = pd.DataFrame([[STATUS['on']]*len(failureCandidates)] *
+									   simulationTime.duration, columns=failureCandidates.keys(), index=simulationTime.interval)
+		for index, column in zip(failure, outagesSchedule):
+			# outagesSchedule[column].loc[(outagesSchedule.index >= failure[i])] = STATUS['off']
+			outagesSchedule[column].loc[index:] = STATUS['off']
+
+		for index, row in outagesSchedule.iterrows():
+			failureElements = row.index[row == 0].tolist()
+			availableCrews = crewSchedule.loc[index][crewSchedule.loc[index] == 1].index.tolist(
+			)
+			elementsToRepair, repairingCrews = self.get_closest_available_crews(
+				availableCrews, failureElements)
+			crewsTravelingTime = self.get_crews_traveling_time(
+				repairingCrews, elementsToRepair)
+			repairingTime = self.get_reparing_time(
+				elementsToRepair, failureCandidates)
+
+			for t_0, t_1, e, c in zip(crewsTravelingTime, repairingTime, elementsToRepair, repairingCrews):
+				outagesSchedule.loc[index+1:index+t_0, e] = STATUS['waiting']
+				outagesSchedule.loc[index+t_0+1:index +
+									t_0+t_1, e] = STATUS['reparing']
+				# TODO: this line can be removed if outagesSchedule is set to 1 on at failure time
+				outagesSchedule.loc[index+t_0+t_1+1:, e] = STATUS['on']
+				crewSchedule.loc[index+1:index+t_0+t_1, c] = e
+			'''
+			print(f'Time step: {index}')
+			print(f'Failure elements: {failureElements}')
+			print(f'Avaiable crews: {availableCrews}')
+			print(f'Reparing crews: {repairingCrews}')
+			print(f'Crews traveling time: {crewsTravelingTime}')
+			print(f'Elements reparing time {repairingTime}')
+			print(outagesSchedule.join(crewSchedule))
+			if (len(elementsToRepair)>0):
+				breakpoint()			
+			'''
+			if not outagesSchedule.loc[index+1:].isin([STATUS['on']]).any().any():
+				# print(failureCandidates.keys())
+				# print(failure)
+				# print(f'Finished at time step: {index}')
+				# print(outagesSchedule.join(crewSchedule))
+				self.outagesSchedule =  outagesSchedule
+		self.outagesSchedule  = outagesSchedule
+
+	
+	def calculate_metrics(self):
+		def elements_in_service():
+			idToClassMap = {id:type(f'{self.get_failure_candidates()[id]} in service').__name__ for id in self.outagesSchedule}
+			out = self.outagesSchedule.rename(idToClassMap, axis = 1).groupby(level = 0, axis = 1).sum()
+			# out.column.name = 'field 0'
+			# out.rename({'str':''})
+			# breakpoint() 
+			return out
+		self.metrics.append(Metric('Network', 'elements_in_service',elements_in_service()))
+		self.metrics.append(Metric('Network', 'total_elements_in_service', elements_in_service().sum().values, subfield = 'subfield_1', unit = 'unit_1'))
+
+	def create_metrics_database(self):
+			out = []
+			for metric in self.metrics:
+				keys, values = zip(*[(key, value) for key, value in metric.__dict__.items() if key is not 'value'])
+				if isinstance(metric.value, pd.DataFrame) or isinstance(metric.value, pd.Series):
+					value = metric.value.values
+					index = metric.value.index
+				else:
+					value = metric.value
+					index = [0]
+				df = pd.DataFrame(value, columns = pd.MultiIndex.from_tuples([values], names=keys), index = index)
+				out.append(df)
+			# out = pd.concat(timeSeries, axis = 1)
+			# dfScalar = pd.concat(scalar, axis = 1)
+			# dfTimeSeries.to_csv(f'timeSeries_{self.ID}.csv')
+			# dfScalar.to_csv(f'scalars_{network.ID}.csv')
+			return pd.concat(out, axis = 1)
+	
+
+class Metric:
+	def __init__(self, network_element, field, value, subfield = None, unit = None):
+		self.network_element = network_element
+		self.field = field
+		self.value = value
+		self.subfield = subfield
+		self.unit = unit
 
 class History:
 	'''
@@ -611,3 +714,18 @@ class Line(PowerElement):
 		self.span = span
 		self.lineSpan = lineSpan
 		self.towers = towers
+
+class Crew:
+	'''
+	Add description of Crew class here
+	'''
+
+	def __init__(self, ID, geodata=None):
+		self.ID = ID
+		# self.available = number
+		if geodata is None:
+			self.geodata = GeoData(0, 0)
+		else:
+			self.geodata = geodata
+	# def get_crew_waiting_time():
+		# return 0
