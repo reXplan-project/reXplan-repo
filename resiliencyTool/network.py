@@ -5,7 +5,9 @@ import csv
 import matplotlib.pyplot as plt
 import netCDF4 as nc
 import pandapower as pp
+
 from mpl_toolkits.basemap import Basemap
+
 COL_NAME_FRAGILITY_CURVE = 'fragility_curve'
 COL_NAME_KF = 'kf'
 COL_NAME_RESILIENCE_FULL = 'resilienceFull'
@@ -50,13 +52,13 @@ class Network:
 		# self.metrics = metrics()
 
 	def read_network_attributes(self, filename):
-		df_network = pd.read_excel(f'{filename}.xlsx', sheet_name=SHEET_NAME_NETWORK)
+		df_network = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_NETWORK)
 		self.name = df_network[COL_NAME_NAME].values[0]
 		self.f_hz = df_network[COL_NAME_FREQUENCY].values[0]
 		self.sn_mva = df_network[COL_NAME_REF_POWER].values[0]
 
 	def read_bus_attributes(self, filename):
-		df_bus = pd.read_excel(f'{filename}.xlsx', sheet_name=SHEET_NAME_NODES)
+		df_bus = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_NODES)
 		self.name = df_bus[COL_NAME_NAME].values[0]
 		self.f_hz = df_bus[COL_NAME_FREQUENCY].values[0]
 		self.sn_mva = df_bus[COL_NAME_REF_POWER].values[0]
@@ -65,13 +67,13 @@ class Network:
 		self.read_network_attributes(filename)
 		self.read_bus_attributes(filename)
 
-		df_nodes = pd.read_excel(f'{filename}.xlsx', sheet_name=SHEET_NAME_NODES)
-		df_generators = pd.read_excel(f'{filename}.xlsx', sheet_name=SHEET_NAME_GENERATORS)
-		df_transformers = pd.read_excel(f'{filename}.xlsx', sheet_name=SHEET_NAME_TRANSFORMER)
-		df_tr_type = pd.read_excel(f'{filename}.xlsx', sheet_name=SHEET_NAME_TR_TYPE)
-		df_lines = pd.read_excel(f'{filename}.xlsx', sheet_name=SHEET_NAME_LINES)
-		df_ln_type = pd.read_excel(f'{filename}.xlsx', sheet_name=SHEET_NAME_LN_TYPE)
-		df_loads = pd.read_excel(f'{filename}.xlsx', sheet_name=SHEET_NAME_LOADS)
+		df_nodes = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_NODES)
+		df_generators = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_GENERATORS)
+		df_transformers = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_TRANSFORMER)
+		df_tr_type = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_TR_TYPE)
+		df_lines = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_LINES)
+		df_ln_type = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_LN_TYPE)
+		df_loads = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_LOADS)
 
 	def updateGrid(self):
 		'''
@@ -86,7 +88,7 @@ class Network:
 		and gives as output the pandapower network object.
 		'''
 		# Creating the network elements
-		df_network = pd.read_excel(f'{filename}.xlsx', sheet_name=SHEET_NAME_NETWORK)
+		df_network = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_NETWORK)
 		df_network = df_network.where(pd.notnull(df_network), None)
 
 		name = df_network[COL_NAME_NAME].values[0]
@@ -96,7 +98,7 @@ class Network:
 		network = pp.create_empty_network(**{key: value for key, value in kwargs_network.items() if value is not None})
 		
 		# Creating the bus elements
-		df_bus = pd.read_excel(f'{filename}.xlsx', sheet_name=SHEET_NAME_NODES)
+		df_bus = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_NODES)
 		df_bus = df_bus.where(pd.notnull(df_bus), None) #TODO: update pandas version and replace this line of code by df_bus = df_bus.replace({np.nan: None}). Same for similar lines
 		
 
@@ -121,9 +123,9 @@ class Network:
 									weatherTTR=row[COL_NAME_WEATHER_TTR]))
 			bus_ids[row[COL_NAME_NAME]] = pp.create_bus(**{key: value for key, value in kwargs_bus.items() if value is not None})
 		# Creating the transformer elements
-		df_tr = pd.read_excel(f'{filename}.xlsx', sheet_name=SHEET_NAME_TRANSFORMER)
+		df_tr = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_TRANSFORMER)
 		df_tr = df_tr.where(pd.notnull(df_tr), None)
-		df_tr_type = pd.read_excel(f'{filename}.xlsx', sheet_name=SHEET_NAME_TR_TYPE)
+		df_tr_type = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_TR_TYPE)
 		df_tr_type = df_tr_type.where(pd.notnull(df_tr_type), None)
 		for index, row in df_tr.iterrows():
 			tr_type = df_tr_type.loc[df_tr_type[COL_NAME_NAME] == row[COL_NAME_TYPE]]
@@ -154,9 +156,9 @@ class Network:
 			pp.create_transformer_from_parameters(**{key: value for key, value in kwargs_tr.items() if value is not None})
 		
 		# Creating the line elements
-		df_ln = pd.read_excel(f'{filename}.xlsx', sheet_name=SHEET_NAME_LINES)
+		df_ln = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_LINES)
 		df_ln = df_ln.where(pd.notnull(df_ln), None)
-		df_ln_type = pd.read_excel(f'{filename}.xlsx', sheet_name=SHEET_NAME_LN_TYPE)
+		df_ln_type = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_LN_TYPE)
 		df_ln_type = df_ln_type.where(pd.notnull(df_ln_type), None) 
 		for index, row in df_ln.iterrows():
 			if (row[COL_NAME_FROM_LONGITUDE] is not None) and (row[COL_NAME_FROM_LATITUDE] is not None) and (row[COL_NAME_TO_LONGITUDE] is not None) and (row[COL_NAME_TO_LATITUDE] is not None):
@@ -190,7 +192,7 @@ class Network:
 			pp.create_line_from_parameters(**{key: value for key, value in kwargs_ln.items() if value is not None})
 		
 		# Creating the load elements
-		df_load = pd.read_excel(f'{filename}.xlsx', sheet_name=SHEET_NAME_LOADS)
+		df_load = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_LOADS)
 		df_load = df_load.where(pd.notnull(df_load), None)  
 		load_ids = {}
 		for index, row in df_load.iterrows():
@@ -213,7 +215,7 @@ class Network:
 			load_ids[row[COL_NAME_NAME]] = pp.create_load(**{key: value for key, value in kwargs_load.items() if value is not None})
 
 		# Creating the external gen elements
-		df_ex_gen = pd.read_excel(f'{filename}.xlsx', sheet_name=SHEET_NAME_EXTERNAL_GEN)
+		df_ex_gen = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_EXTERNAL_GEN)
 		df_ex_gen = df_ex_gen.where(pd.notnull(df_ex_gen), None)
 		ex_gen_ids = {}
 		for index, row in df_ex_gen.iterrows():
@@ -238,7 +240,7 @@ class Network:
 			ex_gen_ids[row[COL_NAME_NAME]] = pp.create_ext_grid(**{key: value for key, value in kwargs_ex_gen.items() if value is not None})
 
 		# Creating the generator elements
-		df_gen = pd.read_excel(f'{filename}.xlsx', sheet_name=SHEET_NAME_GENERATORS)
+		df_gen = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_GENERATORS)
 		df_gen = df_gen.where(pd.notnull(df_gen), None)
 		gen_ids = {}
 		for index, row in df_gen.iterrows():
@@ -269,7 +271,7 @@ class Network:
 			gen_ids[row[COL_NAME_NAME]] = pp.create_gen(**{key: value for key, value in kwargs_gen.items() if value is not None})
 		
 		# Creating the cost function
-		df_cost = pd.read_excel(f'{filename}.xlsx', sheet_name=SHEET_NAME_COST)
+		df_cost = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_COST)
 		df_cost = df_cost.where(pd.notnull(df_cost), None)
 		for index, row in df_cost.iterrows():
 			if row[COL_NAME_TYPE] == 'load':
@@ -371,21 +373,27 @@ class Network:
 				# print(f'Finished at time step: {index}')
 				# print(outagesSchedule.join(crewSchedule))
 				self.outagesSchedule =  outagesSchedule
+				self.crewSchedule = crewSchedule
+				return
 		self.outagesSchedule  = outagesSchedule
-
+		self.crewSchedule = crewSchedule
 	
 	def calculate_metrics(self):
+		self.metrics = []
 		def elements_in_service():
 			idToClassMap = {id:type(f'{self.get_failure_candidates()[id]} in service').__name__ for id in self.outagesSchedule}
 			out = self.outagesSchedule.rename(idToClassMap, axis = 1).groupby(level = 0, axis = 1).sum()
-			# out.column.name = 'field 0'
-			# out.rename({'str':''})
-			# breakpoint() 
 			return out
+		def crews_in_service():
+			return (self.crewSchedule!=1).sum(axis = 1)
+
+		self.metrics.append(Metric('Network', 'crews_in_service',crews_in_service()))
 		self.metrics.append(Metric('Network', 'elements_in_service',elements_in_service()))
 		self.metrics.append(Metric('Network', 'total_elements_in_service', elements_in_service().sum().values, subfield = 'subfield_1', unit = 'unit_1'))
 
-	def create_metrics_database(self):
+
+	def build_metrics_database(self):
+		#TODO: make it recurrent
 			out = []
 			for metric in self.metrics:
 				keys, values = zip(*[(key, value) for key, value in metric.__dict__.items() if key is not 'value'])
@@ -397,10 +405,6 @@ class Network:
 					index = [0]
 				df = pd.DataFrame(value, columns = pd.MultiIndex.from_tuples([values], names=keys), index = index)
 				out.append(df)
-			# out = pd.concat(timeSeries, axis = 1)
-			# dfScalar = pd.concat(scalar, axis = 1)
-			# dfTimeSeries.to_csv(f'timeSeries_{self.ID}.csv')
-			# dfScalar.to_csv(f'scalars_{network.ID}.csv')
 			return pd.concat(out, axis = 1)
 	
 
