@@ -381,15 +381,14 @@ class Network:
 	def calculate_metrics(self):
 		self.metrics = []
 		def elements_in_service():
-			idToClassMap = {id:type(f'{self.get_failure_candidates()[id]} in service').__name__ for id in self.outagesSchedule}
-			out = self.outagesSchedule.rename(idToClassMap, axis = 1).groupby(level = 0, axis = 1).sum()
-			return out
+			return self.outagesSchedule[self.outagesSchedule>0].sum(axis = 1)
+			
 		def crews_in_service():
 			return (self.crewSchedule!=1).sum(axis = 1)
 
 		self.metrics.append(Metric('Network', 'crews_in_service',crews_in_service()))
 		self.metrics.append(Metric('Network', 'elements_in_service',elements_in_service()))
-		self.metrics.append(Metric('Network', 'total_elements_in_service', elements_in_service().sum().values, subfield = 'subfield_1', unit = 'unit_1'))
+		self.metrics.append(Metric('Network', 'total_elements_in_service', elements_in_service().sum(), subfield = 'subfield_1', unit = 'unit_1'))
 
 
 	def build_metrics_database(self):

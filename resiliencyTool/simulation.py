@@ -3,7 +3,9 @@ import numpy as np
 from . import config
 
 def build_global_database(iterations, databases):
-	return pd.concat(dict(zip(iterations, databases)), names = ['iteration'], axis = 1)
+	out = pd.concat(dict(zip(iterations, databases)), names = ['iteration'], axis = 1).T
+	out.columns.name = 'timestep'
+	return out
 class Sim:
 	'''
 	Add description of Sim class here
