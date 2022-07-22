@@ -25,3 +25,5 @@ setuptools.setup(
     #package_dir={"": "src"},
     python_requires=">=3.6",
 )
+# pip install numba --upgrade --user
+# pip install pandas = 1.2.3

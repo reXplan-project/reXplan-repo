@@ -241,7 +241,7 @@ def update_histogram(field, legend_title, x_title,  range_x, x):
     # fig = go.Figure()
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     fig.add_trace(go.Histogram(x = x, histnorm='probability', name = 'histogram'))
-    fig.add_trace(go.Histogram(x = x , histnorm='probability', cumulative_enabled = True, name = 'cumulated histogram'), secondary_y = True)
+    fig.add_trace(go.Histogram(x = x, histnorm='probability', cumulative_enabled = True, name = 'cumulated histogram'), secondary_y = True)
     fig.update_traces(opacity=0.6)
     fig.update_layout(
         # legend_title= legend_title,

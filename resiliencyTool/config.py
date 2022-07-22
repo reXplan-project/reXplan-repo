@@ -16,6 +16,9 @@ class Path():
         
     def networkFile(self, simulationName):
         return os.path.join(self.inputFolder, simulationName, self.network)
+    def outputFolderPath(self, simulationName):
+        checkPath(os.path.join(self.outputFolder, simulationName))
+        return os.path.join(self.outputFolder, simulationName) 
     def globalDatabaseFile(self, simulationName):
         checkPath(os.path.join(self.outputFolder, simulationName))
         return os.path.join(self.outputFolder, simulationName, self.globalDatabase)

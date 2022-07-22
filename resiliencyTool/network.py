@@ -89,7 +89,8 @@ class Network:
 		'''
 		# Creating the network elements
 		df_network = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_NETWORK)
-		df_network = df_network.where(pd.notnull(df_network), None)
+		# df_network = df_network.where(pd.notnull(df_network), None)
+		df_network = df_network.replace({np.nan: None})
 
 		name = df_network[COL_NAME_NAME].values[0]
 		f_hz = df_network[COL_NAME_FREQUENCY].values[0]
@@ -99,8 +100,8 @@ class Network:
 		
 		# Creating the bus elements
 		df_bus = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_NODES)
-		df_bus = df_bus.where(pd.notnull(df_bus), None) #TODO: update pandas version and replace this line of code by df_bus = df_bus.replace({np.nan: None}). Same for similar lines
-		
+		# df_bus = df_bus.where(pd.notnull(df_bus), None) #TODO: update pandas version and replace this line of code by df_bus = df_bus.replace({np.nan: None}). Same for similar lines
+		df_bus = df_bus.replace({np.nan: None})
 
 		bus_ids = {}
 		for index, row in df_bus.iterrows():
@@ -124,9 +125,13 @@ class Network:
 			bus_ids[row[COL_NAME_NAME]] = pp.create_bus(**{key: value for key, value in kwargs_bus.items() if value is not None})
 		# Creating the transformer elements
 		df_tr = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_TRANSFORMER)
-		df_tr = df_tr.where(pd.notnull(df_tr), None)
+		# df_tr = df_tr.where(pd.notnull(df_tr), None)
+		df_tr = df_tr.replace({np.nan: None})
+
 		df_tr_type = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_TR_TYPE)
-		df_tr_type = df_tr_type.where(pd.notnull(df_tr_type), None)
+		# df_tr_type = df_tr_type.where(pd.notnull(df_tr_type), None)
+		df_tr_type = df_tr_type.replace({np.nan: None})
+
 		for index, row in df_tr.iterrows():
 			tr_type = df_tr_type.loc[df_tr_type[COL_NAME_NAME] == row[COL_NAME_TYPE]]
 			kwargs_tr = dict(net=network, hv_bus=bus_ids[row[COL_NAME_NODE_P]],
@@ -157,9 +162,13 @@ class Network:
 		
 		# Creating the line elements
 		df_ln = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_LINES)
-		df_ln = df_ln.where(pd.notnull(df_ln), None)
+		# df_ln = df_ln.where(pd.notnull(df_ln), None)
+		df_ln = df_ln.replace({np.nan: None})
+
 		df_ln_type = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_LN_TYPE)
-		df_ln_type = df_ln_type.where(pd.notnull(df_ln_type), None) 
+		# df_ln_type = df_ln_type.where(pd.notnull(df_ln_type), None) 
+		df_ln_type = df_ln_type.replace({np.nan: None})
+
 		for index, row in df_ln.iterrows():
 			if (row[COL_NAME_FROM_LONGITUDE] is not None) and (row[COL_NAME_FROM_LATITUDE] is not None) and (row[COL_NAME_TO_LONGITUDE] is not None) and (row[COL_NAME_TO_LATITUDE] is not None):
 				geodata = [[row[COL_NAME_FROM_LATITUDE], row[COL_NAME_FROM_LONGITUDE]],
@@ -193,7 +202,9 @@ class Network:
 		
 		# Creating the load elements
 		df_load = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_LOADS)
-		df_load = df_load.where(pd.notnull(df_load), None)  
+		# df_load = df_load.where(pd.notnull(df_load), None)
+		df_load = df_load.replace({np.nan: None})
+
 		load_ids = {}
 		for index, row in df_load.iterrows():
 			kwargs_load = dict(net=network,
@@ -216,7 +227,10 @@ class Network:
 
 		# Creating the external gen elements
 		df_ex_gen = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_EXTERNAL_GEN)
-		df_ex_gen = df_ex_gen.where(pd.notnull(df_ex_gen), None)
+		# df_ex_gen = df_ex_gen.where(pd.notnull(df_ex_gen), None)
+		df_ex_gen = df_ex_gen.replace({np.nan: None})
+
+
 		ex_gen_ids = {}
 		for index, row in df_ex_gen.iterrows():
 			kwargs_ex_gen = dict(net=network,
@@ -241,7 +255,10 @@ class Network:
 
 		# Creating the generator elements
 		df_gen = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_GENERATORS)
-		df_gen = df_gen.where(pd.notnull(df_gen), None)
+		# df_gen = df_gen.where(pd.notnull(df_gen), None)
+		df_gen = df_gen.replace({np.nan: None})
+
+
 		gen_ids = {}
 		for index, row in df_gen.iterrows():
 			kwargs_gen = dict(net=network,
@@ -272,7 +289,10 @@ class Network:
 		
 		# Creating the cost function
 		df_cost = pd.read_excel(f'{filename}', sheet_name=SHEET_NAME_COST)
-		df_cost = df_cost.where(pd.notnull(df_cost), None)
+		# df_cost = df_cost.where(pd.notnull(df_cost), None)
+		df_cost = df_cost.replace({np.nan: None})
+
+
 		for index, row in df_cost.iterrows():
 			if row[COL_NAME_TYPE] == 'load':
 				element=load_ids[row[COL_NAME_NAME]]
