@@ -22,7 +22,7 @@ from pandapower.plotting.plotly import simple_plotly
 
 
 simulationName = 'Simulation_1'
-network = rt.network.Network(1,'spain',rt.config.path.networkFile(simulationName))
+network = rt.network.Network(simulationName)
 # print(network.pp_network)
 #print(network.bus)
 #print(network.line)
@@ -38,9 +38,8 @@ def run_power_flows(network):
 	print(network.pp_network.res_bus.vm_pu)
 	print(network.pp_network.res_line.loading_percent)
 
-def run_time_series(net):
-	def create_data_source(n_timesteps):
-		line_to_disconnect = 'line1'
+def run_time_series(net, lines_to_disconnect):
+	def create_data_source(n_timesteps, lines_to_disconnect):
 		profiles = pd.DataFrame()
 		# load,gen = [],[]
 		for index, row in net.load.iterrows():
@@ -50,9 +49,10 @@ def run_time_series(net):
 			profiles[row['name']] = np.random.random(n_timesteps) * row['p_mw']
 			# gen.append(row['name'])
 		for index, row in net.line.iterrows():
-			not_disconnect = not (row['name'] == line_to_disconnect)
+			not_disconnect = not (row['name'] in lines_to_disconnect)
 			profiles[row['name']] = np.random.choice([True, not_disconnect],n_timesteps)#.astype(int)*100
-		print(profiles)
+		print(profiles.loc[:,profiles.columns.str.contains('line')])
+		# breakpoint()
 		return DFData(profiles)
 
 	def create_output_writer(net, time_steps, output_dir):
@@ -80,12 +80,14 @@ def run_time_series(net):
 
 	n_timesteps = 48
 	time_steps = range(0, n_timesteps)
-	net = create_controllers(net, create_data_source(n_timesteps))
+	net = create_controllers(net, create_data_source(n_timesteps, lines_to_disconnect))
 	ow = create_output_writer(net, time_steps, output_dir=rt.config.path.outputFolderPath(simulationName))
 	run_timeseries(net, time_steps)
 
 
 if __name__ == "__main__":
 	# run_power_flows(network)
-	run_time_series(network.pp_network)
+	lines_to_disconnect = ['line3', 'line7']
+	# lines_to_disconnect = []
+	run_time_series(network.pp_network, lines_to_disconnect)
 	# simple_plotly(network.pp_network)

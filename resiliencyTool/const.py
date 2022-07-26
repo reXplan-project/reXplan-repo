@@ -102,3 +102,6 @@ COL_NAME_CQ1 = 'cq1_eur_per_mvar'
 COL_NAME_CQ0 = 'cq0_eur'
 COL_NAME_CP2 = 'cp2_eur_per_mw2'
 COL_NAME_CQ2 = 'cq2_eur_per_mvar2'
+
+SHEET_NAME_PROFILES = 'profiles'
+SHEET_NAME_CREWS = 'crews'
