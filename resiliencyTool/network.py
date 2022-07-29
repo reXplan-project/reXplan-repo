@@ -26,32 +26,55 @@ COL_NAME_WEATHER_TTR = 'weatherTTR'
 STATUS = {'on': 1, 'off': 0, 'reparing': -1, 'waiting': -2}
 
 
-def build_class_list(df, class_name):
-	return [globals()[class_name](row.dropna(axis=0).to_dict()) for index, row in utils.df_to_internal_fields(df).iterrows()]
+def build_class_dict(df, class_name):
+	return {row.id: globals()[class_name](row.dropna(axis=0).to_dict()) for index, row in utils.df_to_internal_fields(df).iterrows()}
+
 
 def find_element_in_list(id, list):
 	return next((x for x in list if hasattr(x, 'id') and x.id == id), None)
 
+
 def build_df_database(values, columns, columnNames, index):
-	out = [pd.DataFrame(x, columns=pd.MultiIndex.from_tuples([y], names=columnNames), index=index) for x,y in zip(values, columns)]
-	return pd.concat(out, axis = 1)
+	out = [pd.DataFrame(x, columns=pd.MultiIndex.from_tuples(
+		[y], names=columnNames), index=index) for x, y in zip(values, columns)]
+	return pd.concat(out, axis=1)
+
+# def get_datatype_elements_(object, class_):
+# 	if isinstance(object, list):
+# 		return list(itertools.chain(*[get_datatype_elements(x, class_) for x in object]))
+# 	elif isinstance(object, dict):
+# 		return list(itertools.chain(*[get_datatype_elements(x, class_) for x in object.values()]))
+# 	else:
+# 		if hasattr(object, "__dict__"):
+# 			return [(object, type(object).__name__, key)  for key, value in vars(object).items() if isinstance(value,class_)] + get_datatype_elements([x for x in vars(object).values()], class_)
+# 		else:
+# 			return []
+
 
 def get_datatype_elements(object, class_):
 	if isinstance(object, list):
-		return list(itertools.chain(*[get_datatype_elements(x, class_) for x in object])) 	
+		iterateOver = object
+		out = []
+	elif isinstance(object, dict):
+		iterateOver = object.values()
+		out = []
+	elif hasattr(object, "__dict__"):
+		iterateOver = vars(object).values()
+		out = [(object, type(object).__name__, key)
+			   for key, value in vars(object).items() if isinstance(value, class_)]
 	else:
-		if hasattr(object, "__dict__"):
-			return [(object, type(object).__name__, key)  for key, value in vars(object).items() if isinstance(value,class_)] + get_datatype_elements([x for x in vars(object).values() if isinstance(x, list)], class_)
-		else:
-			return []
+		iterateOver = []
+		out = []
+	return out + list(itertools.chain(*[get_datatype_elements(x, class_) for x in iterateOver]))
+
 
 def get_content_filtered_by_time(df, time):
-			return df.loc[time.start:time.stop-1].values
+	return df.loc[time.start:time.stop-1].values
 # TODO: improve warning messages in Network and PowerElement
 
 
 class Network:
-	# TODO: is there abetter way to avoid networkFile repetition?
+	# TODO: is there a better way to avoid networkFile repetition?
 	'''
 	Add description of Newtork class here
 	'''
@@ -68,24 +91,23 @@ class Network:
 		self.totalRenewablePower = 0
 		self.totalStoragePower = 0
 
-		self.nodes = []
-		self.generators = []
-		self.externalGenerators = []
-		self.loads = []
-		self.transformers = []
-		self.transformerTypes = []
-		self.lines = []
-		self.lineTypes = []
-
-		self.crews = []
+		self.nodes = {}
+		self.generators = {}
+		self.externalGenerators = {}
+		self.loads = {}
+		self.transformers = {}
+		self.transformerTypes = {}
+		self.lines = {}
+		self.lineTypes = {}
+		self.crews = {}
 
 		self.pp_network = None
 
 		self.outagesSchedule = None
 		self.crewSchedule = None
-		self.metrics = []
 
-		self.MonteCarloVariables =[]
+		self.metrics = []
+		self.mcVariables = []
 
 		# self.profilesTimeInterval = None
 		self.build_network(config.path.networkFile(simulationName))
@@ -104,50 +126,51 @@ class Network:
 
 	def build_nodes(self, networkFile):
 		df_nodes = pd.read_excel(networkFile, sheet_name=SHEET_NAME_NODES)
-		self.nodes = build_class_list(df_nodes, 'Bus')
+		self.nodes = build_class_dict(df_nodes, 'Bus')
 		return df_nodes
 
 	def build_generators(self, networkFile):
 		df_gen = pd.read_excel(networkFile, sheet_name=SHEET_NAME_GENERATORS)
 		df_ex_gen = pd.read_excel(
 			networkFile, sheet_name=SHEET_NAME_EXTERNAL_GEN)
-		self.generators = build_class_list(df_gen, 'Generator')
-		self.externalGenerators = build_class_list(df_ex_gen, 'Generator')
+		self.generators = build_class_dict(df_gen, 'Generator')
+		self.externalGenerators = build_class_dict(df_ex_gen, 'Generator')
 		return df_gen, df_ex_gen
 
 	def build_loads(self, networkFile):
 		df_load = pd.read_excel(networkFile, sheet_name=SHEET_NAME_LOADS)
-		self.loads = build_class_list(df_load, 'Load')
+		self.loads = build_class_dict(df_load, 'Load')
 		return df_load
 
 	def build_transformers(self, networkFile):
 		df_transformers = pd.read_excel(
 			networkFile, sheet_name=SHEET_NAME_TRANSFORMER)
 		df_tr_types = pd.read_excel(networkFile, sheet_name=SHEET_NAME_TR_TYPE)
-		self.transformers = build_class_list(df_transformers, 'Transformer')
-		self.transformerTypes = build_class_list(df_tr_types, 'Transformer')
+		self.transformers = build_class_dict(df_transformers, 'Transformer')
+		self.transformerTypes = build_class_dict(df_tr_types, 'Transformer')
 		return df_transformers, df_tr_types
 
 	def build_lines(self, networkFile):
 		df_lines = pd.read_excel(networkFile, sheet_name=SHEET_NAME_LINES)
 		df_ln_types = pd.read_excel(networkFile, sheet_name=SHEET_NAME_LN_TYPE)
-		self.lines = build_class_list(df_lines, 'Line')
-		self.lineTypes = build_class_list(df_ln_types, 'Line')
+		self.lines = build_class_dict(df_lines, 'Line')
+		self.lineTypes = build_class_dict(df_ln_types, 'Line')
 		return df_lines, df_ln_types
 
 	def build_crews(self, networkFile):
 		df_crews = pd.read_excel(networkFile, sheet_name=SHEET_NAME_CREWS)
-		self.crews = build_class_list(df_crews, 'Crew')
+		self.crews = build_class_dict(df_crews, 'Crew')
 
 	def allocate_profiles(self, networkFile):
 		df_profiles = pd.read_excel(
 			networkFile, sheet_name=SHEET_NAME_PROFILES, header=[0, 1], index_col=0)
 		df_profiles.reset_index(drop=True, inplace=True)
-		assetsList = list(itertools.chain(
-			*[x for x in self.__dict__.values() if isinstance(x, list)]))
+		# assetsList = list(itertools.chain(
+		# *[x for x in self.__dict__.values() if isinstance(x, list)]))
 		for assetId, field in df_profiles:
-			element = find_element_in_list(assetId, assetsList)
-			if hasattr(element, field):  # element can be None depending on "find_element_in_list"
+			# element = find_element_in_list(assetId, assetsList)
+			element = self.get_powerelement(assetId)
+			if hasattr(element, field):  # element can be None depending on get_powerelement()
 				setattr(element, field, df_profiles[(assetId, field)])
 			else:
 				warnings.warn(f'Missing "{field}" field or "{assetId}" asset during profile allocation.')
@@ -177,18 +200,8 @@ class Network:
 				df_cost=df_cost
 			)
 
-	def updateGrid(self, montecarlo_database):
-		# TODO: more pythonic way of goruping network power elements
-		'''
-		Updates the network class elements
-		'''
-		#assumes montecarlo_database elements can be found in self.MonteCarloVariables
-		for id, field in montecarlo_database:
-			setattr(find_element_in_list(id, self.lines + self.transformers + self.generators + self.loads), field, montecarlo_database[id, field])
-
-		# print('Grid updated')
-
 	def build_pp_network(self, df_network, df_bus, df_tr, df_tr_type, df_ln, df_ln_type, df_load, df_ex_gen, df_gen, df_cost):
+		# Condense creation of dictionaries by iteration
 		'''
 		This Function takes as imput the input file name without the extention
 		and gives as output the pandapower network object.
@@ -429,10 +442,10 @@ class Network:
 	def get_failure_candidates(self):
 		keys = []
 		values = []
-		for x in [x for x in self.__dict__.values() if type(x) is list]:
-			values += [y for y in x if hasattr(y, 'failureProb')
+		for x in [x for x in self.__dict__.values() if isinstance(x, dict)]:
+			values += [y for y in x.values() if hasattr(y, 'failureProb')
 					   and y.failureProb != None]
-			keys += [y.id for y in x if hasattr(y, 'failureProb')
+			keys += [y.id for y in x.values() if hasattr(y, 'failureProb')
 					 and y.failureProb != None]
 		return dict(zip(keys, values))
 
@@ -461,8 +474,7 @@ class Network:
 			randomNumber = np.random.rand()
 		failure = np.where((randomNumber <= failureProbability), np.random.randint(
 			hazardTime.start, [hazardTime.stop]*len(failureCandidates)), simulationTime.stop)
-		crewSchedule = pd.DataFrame([[1]*len(self.crews)]*simulationTime.duration, columns=[
-			x.id for x in self.crews], index=simulationTime.interval)
+		crewSchedule = pd.DataFrame([[1]*len(self.crews)]*simulationTime.duration, columns=self.crews.keys(), index=simulationTime.interval)
 		outagesSchedule = pd.DataFrame([[STATUS['on']]*len(failureCandidates)] *
 									   simulationTime.duration, columns=failureCandidates.keys(), index=simulationTime.interval)
 		for index, column in zip(failure, outagesSchedule):
@@ -508,28 +520,48 @@ class Network:
 				return
 		self.outagesSchedule = outagesSchedule
 		self.crewSchedule = crewSchedule
-		
-	def update_montecarlo_variables(self, MontecarloVariable):
-		element = find_element_in_list(MontecarloVariable.id, self.MonteCarloVariables)
-		if not element or element.field != MontecarloVariable.field:
-			self.MonteCarloVariables.append(MontecarloVariable)
-			
+
 	def propagate_outages_to_network_elements(self):
 		df_in_service = self.outagesSchedule > 0
 		for elementId in df_in_service:
-			element = find_element_in_list(
-				elementId, self.lines + self.transformers)
+			# element = find_element_in_list(elementId, self.lines + self.transformers)
+			element = self.get_powerelement(elementId)
 			element.in_service = df_in_service[elementId]
-			self.update_montecarlo_variables(MonteCarloVariable(element, elementId, 'in_service')) # elements are pointers
+			self.update_montecarlo_variables(MonteCarloVariable(
+				element, elementId, 'in_service'))  # elements are pointers
+
+	def get_powerelement(self, id):
+		for x in [self.loads, self.generators, self.transformers, self.lines]:
+			if id in x:
+				return x[id]
+		return None
+
+	def updateGrid(self, montecarlo_database):
+		'''
+		Updates the network class elements
+		'''
+		for id, field in montecarlo_database:
+			setattr(self.get_powerelement(id), field, montecarlo_database[id, field])
+			# setattr(find_element_in_list(id, self.lines + self.transformers + self.generators + self.loads), field, montecarlo_database[id, field])
+
+		# print('Grid updated')
+
+	def update_montecarlo_variables(self, mcVariable):
+		element = find_element_in_list(
+			mcVariable.id, self.mcVariables)
+		if not element or element.field != mcVariable.field:
+			self.mcVariables.append(mcVariable)
 
 	def build_montecarlo_database(self, time):
 		# TODO: call const.py
-		values, column = zip(*[(get_content_filtered_by_time(getattr(x.element, x.field),time),(x.id, x.field)) for x in self.MonteCarloVariables])
+		values, column = zip(*[(get_content_filtered_by_time(getattr(
+			x.element, x.field), time), (x.id, x.field)) for x in self.mcVariables])
 		return build_df_database(values, column, ('network_element', 'field'), time.interval)
 
 	def get_network_timeseries(self, time):
 		# TODO: align get_datatype_elements with MonteCarloVariables format, to merge with previous function
-		values, column = zip(*[(get_content_filtered_by_time(getattr(element, field), time),(element.id, type, field)) for element, type, field in get_datatype_elements(self, pd.core.series.Series)])
+		values, column = zip(*[(get_content_filtered_by_time(getattr(element, field), time), (element.id, type, field))
+							   for element, type, field in get_datatype_elements(self, pd.core.series.Series)])
 		return build_df_database(values, column, ('network_element', 'type', 'field'), time.interval)
 
 	def calculate_metrics(self):
@@ -573,7 +605,7 @@ class Network:
 		pass
 
 	def run(self, time):
-		calculationEngine= engine.pandapower(self.pp_network)
+		calculationEngine = engine.pandapower(self.pp_network)
 		return calculationEngine.run(self.get_network_timeseries(time))
 
 
@@ -583,6 +615,7 @@ class MonteCarloVariable:
 		self.id = id
 		self.field = field
 
+
 class Metric:
 	def __init__(self, network_element, field, value, subfield=None, unit=None):
 		self.network_element = network_element
@@ -590,6 +623,7 @@ class Metric:
 		self.value = value
 		self.subfield = subfield
 		self.unit = unit
+
 
 class History:
 	'''

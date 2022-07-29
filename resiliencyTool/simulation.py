@@ -106,14 +106,15 @@ class Sim:
 		databases = []
 		df_montecarlo = convert_index_to_internal_time(read_database(
 			config.path.montecarloDatabaseFile(self.simulationName)), self.externalTimeInterval)
-		iterations = df_montecarlo.columns.get_level_values(level='iteration').drop_duplicates()
+		iterations = df_montecarlo.columns.get_level_values(level='iteration').drop_duplicates()[0:10]
 		for i in iterations:
 			print(f'Iteration = {i}')
 			network.updateGrid(df_montecarlo[i])
 			databases.append(network.run(self.time))
 			# output.T.to_csv(f'output_iteration_{i}.csv')
 			# network.calculate_metrics()
-			# databases.append(network.build_metrics_database())		out = build_database(iterations, databases, self.externalTimeInterval)
+			# databases.append(network.build_metrics_database())		
+		out = build_database(iterations, databases, self.externalTimeInterval)
 		out.to_csv(config.path.engineDatabaseFile(self.simulationName))
 
 # class Event():
