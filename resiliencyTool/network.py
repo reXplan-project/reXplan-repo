@@ -9,10 +9,13 @@ import netCDF4 as nc
 import pandapower as pp
 
 from . import config
+from . import utils
 from .const import *
+from . import engine
 
 from mpl_toolkits.basemap import Basemap
 
+# TODO: revise following contants
 COL_NAME_FRAGILITY_CURVE = 'fragility_curve'
 COL_NAME_KF = 'kf'
 COL_NAME_RESILIENCE_FULL = 'resilienceFull'
@@ -22,26 +25,28 @@ COL_NAME_WEATHER_TTR = 'weatherTTR'
 # Network element status
 STATUS = {'on': 1, 'off': 0, 'reparing': -1, 'waiting': -2}
 
-GLOBAL_ID = -1
-
-
-def get_GLOBAL_ID():
-	global GLOBAL_ID
-	GLOBAL_ID += 1
-	return 'ID_{}'.format(GLOBAL_ID)
-
-
-def df_internal_fields(df):
-	return df.rename(columns=config.inputFieldsMap['field'].to_dict())
-
 
 def build_class_list(df, class_name):
-	return [globals()[class_name](row.dropna(axis=0).to_dict()) for index, row in df_internal_fields(df).iterrows()]
-
+	return [globals()[class_name](row.dropna(axis=0).to_dict()) for index, row in utils.df_to_internal_fields(df).iterrows()]
 
 def find_element_in_list(id, list):
 	return next((x for x in list if hasattr(x, 'id') and x.id == id), None)
 
+def build_df_database(values, columns, columnNames, index):
+	out = [pd.DataFrame(x, columns=pd.MultiIndex.from_tuples([y], names=columnNames), index=index) for x,y in zip(values, columns)]
+	return pd.concat(out, axis = 1)
+
+def get_datatype_elements(object, class_):
+	if isinstance(object, list):
+		return list(itertools.chain(*[get_datatype_elements(x, class_) for x in object])) 	
+	else:
+		if hasattr(object, "__dict__"):
+			return [(object, type(object).__name__, key)  for key, value in vars(object).items() if isinstance(value,class_)] + get_datatype_elements([x for x in vars(object).values() if isinstance(x, list)], class_)
+		else:
+			return []
+
+def get_content_filtered_by_time(df, time):
+			return df.loc[time.start:time.stop-1].values
 # TODO: improve warning messages in Network and PowerElement
 
 
@@ -67,27 +72,29 @@ class Network:
 		self.generators = []
 		self.externalGenerators = []
 		self.loads = []
-
 		self.transformers = []
 		self.transformerTypes = []
 		self.lines = []
 		self.lineTypes = []
 
 		self.crews = []
+
 		self.pp_network = None
 
 		self.outagesSchedule = None
 		self.crewSchedule = None
 		self.metrics = []
 
+		self.MonteCarloVariables =[]
+
+		# self.profilesTimeInterval = None
 		self.build_network(config.path.networkFile(simulationName))
 
-		
 		# self.metrics = metrics()
 
 	def build_network_parameters(self, networkFile):
 		df_network = pd.read_excel(networkFile, sheet_name=SHEET_NAME_NETWORK)
-		for index, row in df_internal_fields(df_network).iterrows():
+		for index, row in utils.df_to_internal_fields(df_network).iterrows():
 			for key, value in row.dropna(axis=0).to_dict().items():
 				if hasattr(self, key):
 					setattr(self, key, value)
@@ -135,6 +142,7 @@ class Network:
 	def allocate_profiles(self, networkFile):
 		df_profiles = pd.read_excel(
 			networkFile, sheet_name=SHEET_NAME_PROFILES, header=[0, 1], index_col=0)
+		df_profiles.reset_index(drop=True, inplace=True)
 		assetsList = list(itertools.chain(
 			*[x for x in self.__dict__.values() if isinstance(x, list)]))
 		for assetId, field in df_profiles:
@@ -169,12 +177,16 @@ class Network:
 				df_cost=df_cost
 			)
 
-	def updateGrid(self):
+	def updateGrid(self, montecarlo_database):
+		# TODO: more pythonic way of goruping network power elements
 		'''
 		Updates the network class elements
 		'''
-		print('Grid updated')
-		return True
+		#assumes montecarlo_database elements can be found in self.MonteCarloVariables
+		for id, field in montecarlo_database:
+			setattr(find_element_in_list(id, self.lines + self.transformers + self.generators + self.loads), field, montecarlo_database[id, field])
+
+		# print('Grid updated')
 
 	def build_pp_network(self, df_network, df_bus, df_tr, df_tr_type, df_ln, df_ln_type, df_load, df_ex_gen, df_gen, df_cost):
 		'''
@@ -414,18 +426,14 @@ class Network:
 				**{key: value for key, value in kwargs_cost.items() if value is not None})
 		return network
 
-	def get_failure_candidates_backup(self):
-		out = []
-		for x in [x for x in self.__dict__.values() if type(x) is list]:
-			out += [y for y in x if hasattr(y, 'failureProb')]
-		return out
-
 	def get_failure_candidates(self):
 		keys = []
 		values = []
 		for x in [x for x in self.__dict__.values() if type(x) is list]:
-			values += [y for y in x if hasattr(y, 'failureProb')]
-			keys += [y.id for y in x if hasattr(y, 'failureProb')]
+			values += [y for y in x if hasattr(y, 'failureProb')
+					   and y.failureProb != None]
+			keys += [y.id for y in x if hasattr(y, 'failureProb')
+					 and y.failureProb != None]
 		return dict(zip(keys, values))
 
 	def get_closest_available_crews(self, availableCrew, powerElements):
@@ -500,6 +508,29 @@ class Network:
 				return
 		self.outagesSchedule = outagesSchedule
 		self.crewSchedule = crewSchedule
+		
+	def update_montecarlo_variables(self, MontecarloVariable):
+		element = find_element_in_list(MontecarloVariable.id, self.MonteCarloVariables)
+		if not element or element.field != MontecarloVariable.field:
+			self.MonteCarloVariables.append(MontecarloVariable)
+			
+	def propagate_outages_to_network_elements(self):
+		df_in_service = self.outagesSchedule > 0
+		for elementId in df_in_service:
+			element = find_element_in_list(
+				elementId, self.lines + self.transformers)
+			element.in_service = df_in_service[elementId]
+			self.update_montecarlo_variables(MonteCarloVariable(element, elementId, 'in_service')) # elements are pointers
+
+	def build_montecarlo_database(self, time):
+		# TODO: call const.py
+		values, column = zip(*[(get_content_filtered_by_time(getattr(x.element, x.field),time),(x.id, x.field)) for x in self.MonteCarloVariables])
+		return build_df_database(values, column, ('network_element', 'field'), time.interval)
+
+	def get_network_timeseries(self, time):
+		# TODO: align get_datatype_elements with MonteCarloVariables format, to merge with previous function
+		values, column = zip(*[(get_content_filtered_by_time(getattr(element, field), time),(element.id, type, field)) for element, type, field in get_datatype_elements(self, pd.core.series.Series)])
+		return build_df_database(values, column, ('network_element', 'type', 'field'), time.interval)
 
 	def calculate_metrics(self):
 		self.metrics = []
@@ -534,6 +565,23 @@ class Network:
 			out.append(df)
 		return pd.concat(out, axis=1)
 
+	def collect_time_series(self):
+		# pass
+		# out = utils.get_elements_with_field(self, 'p_mw')
+		# out = utils.get_datatype_elements(self, pd.core.series.Series) # pd.Series
+		# breakpoint()
+		pass
+
+	def run(self, time):
+		calculationEngine= engine.pandapower(self.pp_network)
+		return calculationEngine.run(self.get_network_timeseries(time))
+
+
+class MonteCarloVariable:
+	def __init__(self, element, id, field):
+		self.element = element
+		self.id = id
+		self.field = field
 
 class Metric:
 	def __init__(self, network_element, field, value, subfield=None, unit=None):
@@ -542,7 +590,6 @@ class Metric:
 		self.value = value
 		self.subfield = subfield
 		self.unit = unit
-
 
 class History:
 	'''
@@ -722,13 +769,16 @@ class PowerElement:
 	def __init__(self, **kwargs):
 		self.id = None
 		self.node = None
+		self.failureProb = None
+		self.normalTTR = None
+		self.in_service = None
 		for key, value in kwargs.items():
 			if hasattr(self, key):
 				setattr(self, key, value)
 			else:
 				warnings.warn(f'Input parameter "{key}" unknown in {kwargs} .')
 		if self.id is None:
-			self.id = get_GLOBAL_ID()
+			self.id = utils.get_GLOBAL_ID()
 
 	def initiate_failure_parameters(self,
 									id=None,

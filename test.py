@@ -80,8 +80,8 @@ def run_time_series(net, lines_to_disconnect):
 
 	n_timesteps = 48
 	time_steps = range(0, n_timesteps)
-	net = create_controllers(net, create_data_source(n_timesteps, lines_to_disconnect))
-	ow = create_output_writer(net, time_steps, output_dir=rt.config.path.outputFolderPath(simulationName))
+	create_controllers(net, create_data_source(n_timesteps, lines_to_disconnect))
+	create_output_writer(net, time_steps, output_dir=rt.config.path.outputFolderPath(simulationName))
 	run_timeseries(net, time_steps)
 
 

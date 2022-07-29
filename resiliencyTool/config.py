@@ -19,18 +19,24 @@ class Path():
         checkPath(self.outputFolder)
         
         self.network = 'network.xlsx'
-        self.globalDatabase = 'database.csv'
-
+        self.metricDatabase = 'metric_database.csv'
+        self.montecarloDatabase = 'montecarlo_database.csv'
+        self.engineDatabase = 'engine_database.csv'
 
     def networkFile(self, simulationName):
         return os.path.join(self.inputFolder, simulationName, self.network)
     def outputFolderPath(self, simulationName):
         checkPath(os.path.join(self.outputFolder, simulationName))
         return os.path.join(self.outputFolder, simulationName) 
-    def globalDatabaseFile(self, simulationName):
+    def metricDatabaseFile(self, simulationName):
         checkPath(os.path.join(self.outputFolder, simulationName))
-        return os.path.join(self.outputFolder, simulationName, self.globalDatabase)
-    
+        return os.path.join(self.outputFolder, simulationName, self.metricDatabase)
+    def engineDatabaseFile(self, simulationName):
+        checkPath(os.path.join(self.outputFolder, simulationName))
+        return os.path.join(self.outputFolder, simulationName, self.engineDatabase)
+    def montecarloDatabaseFile(self, simulationName):
+        checkPath(os.path.join(self.outputFolder, simulationName))
+        return os.path.join(self.outputFolder, simulationName, self.montecarloDatabase)
 
 path = Path()
-inputFieldsMap =  pd.read_csv(path.inputFieldsMapFile, index_col = 'input_file_field')
+

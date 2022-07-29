@@ -105,3 +105,8 @@ COL_NAME_CQ2 = 'cq2_eur_per_mvar2'
 
 SHEET_NAME_PROFILES = 'profiles'
 SHEET_NAME_CREWS = 'crews'
+SHEET_NAME_SIMULATION = 'simulation'
+
+COL_NAME_FIELD = 'field'
+COL_NAME_VALUE = 'value'
+COL_NAME_UNIT = 'unit'
