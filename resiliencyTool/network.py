@@ -14,7 +14,8 @@ from .const import *
 from . import engine
 
 from mpl_toolkits.basemap import Basemap
-
+# TODO: improve warning messages in Network and PowerElement
+# TODO: displace fragility curve elements
 # TODO: revise following contants
 COL_NAME_FRAGILITY_CURVE = 'fragility_curve'
 COL_NAME_KF = 'kf'
@@ -39,18 +40,6 @@ def build_df_database(values, columns, columnNames, index):
 		[y], names=columnNames), index=index) for x, y in zip(values, columns)]
 	return pd.concat(out, axis=1)
 
-# def get_datatype_elements_(object, class_):
-# 	if isinstance(object, list):
-# 		return list(itertools.chain(*[get_datatype_elements(x, class_) for x in object]))
-# 	elif isinstance(object, dict):
-# 		return list(itertools.chain(*[get_datatype_elements(x, class_) for x in object.values()]))
-# 	else:
-# 		if hasattr(object, "__dict__"):
-# 			return [(object, type(object).__name__, key)  for key, value in vars(object).items() if isinstance(value,class_)] + get_datatype_elements([x for x in vars(object).values()], class_)
-# 		else:
-# 			return []
-
-
 def get_datatype_elements(object, class_):
 	if isinstance(object, list):
 		iterateOver = object
@@ -67,10 +56,10 @@ def get_datatype_elements(object, class_):
 		out = []
 	return out + list(itertools.chain(*[get_datatype_elements(x, class_) for x in iterateOver]))
 
-
 def get_content_filtered_by_time(df, time):
 	return df.loc[time.start:time.stop-1].values
-# TODO: improve warning messages in Network and PowerElement
+
+
 
 
 class Network:
@@ -201,6 +190,7 @@ class Network:
 			)
 
 	def build_pp_network(self, df_network, df_bus, df_tr, df_tr_type, df_ln, df_ln_type, df_load, df_ex_gen, df_gen, df_cost):
+		## TODO: it seems this funciton is missplaced. Can it be moved to engine.pandapower?	
 		# Condense creation of dictionaries by iteration
 		'''
 		This Function takes as imput the input file name without the extention
@@ -496,24 +486,10 @@ class Network:
 				outagesSchedule.loc[index+1:index+t_0, e] = STATUS['waiting']
 				outagesSchedule.loc[index+t_0+1:index +
 									t_0+t_1, e] = STATUS['reparing']
-				# TODO: this line can be removed if outagesSchedule is set to 1 on at failure time
+				# Following line can be removed if outagesSchedule is set to 1 on at failure time
 				outagesSchedule.loc[index+t_0+t_1+1:, e] = STATUS['on']
 				crewSchedule.loc[index+1:index+t_0+t_1, c] = e
-			'''
-			print(f'Time step: {index}')
-			print(f'Failure elements: {failureElements}')
-			print(f'Avaiable crews: {availableCrews}')
-			print(f'Reparing crews: {repairingCrews}')
-			print(f'Crews traveling time: {crewsTravelingTime}')
-			print(f'Elements reparing time {repairingTime}')
-			print(outagesSchedule.join(crewSchedule))
-			if (len(elementsToRepair)>0):
-				breakpoint()			
-			'''
 			if not outagesSchedule.loc[index+1:].isin([STATUS['on']]).any().any():
-				# print(failureCandidates.keys())
-				# print(failure)
-				# print(f'Finished at time step: {index}')
 				# print(outagesSchedule.join(crewSchedule))
 				self.outagesSchedule = outagesSchedule
 				self.crewSchedule = crewSchedule
@@ -524,7 +500,6 @@ class Network:
 	def propagate_outages_to_network_elements(self):
 		df_in_service = self.outagesSchedule > 0
 		for elementId in df_in_service:
-			# element = find_element_in_list(elementId, self.lines + self.transformers)
 			element = self.get_powerelement(elementId)
 			element.in_service = df_in_service[elementId]
 			self.update_montecarlo_variables(MonteCarloVariable(
@@ -537,14 +512,8 @@ class Network:
 		return None
 
 	def updateGrid(self, montecarlo_database):
-		'''
-		Updates the network class elements
-		'''
 		for id, field in montecarlo_database:
 			setattr(self.get_powerelement(id), field, montecarlo_database[id, field])
-			# setattr(find_element_in_list(id, self.lines + self.transformers + self.generators + self.loads), field, montecarlo_database[id, field])
-
-		# print('Grid updated')
 
 	def update_montecarlo_variables(self, mcVariable):
 		element = find_element_in_list(
@@ -596,13 +565,6 @@ class Network:
 				[values], names=keys), index=index)
 			out.append(df)
 		return pd.concat(out, axis=1)
-
-	def collect_time_series(self):
-		# pass
-		# out = utils.get_elements_with_field(self, 'p_mw')
-		# out = utils.get_datatype_elements(self, pd.core.series.Series) # pd.Series
-		# breakpoint()
-		pass
 
 	def run(self, time):
 		calculationEngine = engine.pandapower(self.pp_network)

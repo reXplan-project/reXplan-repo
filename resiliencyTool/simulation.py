@@ -8,19 +8,12 @@ from . import config
 from . import utils
 from.const import *
 
-# from pandapower.control import ConstControl
-
-
-def invert_mapping():
-	return {v: k for k, v in dict.items()}
-
 
 def convert_index_to_internal_time(df, df_int_ext_time):
 	map = df_int_ext_time.dt.strftime(
 		'%Y-%m-%d %hh:%mm:%ss').to_dict()  # need to conver to string
 	map = {y: x for x, y in map.items()}
 	return df.rename(index=map)  # otherwise renaiming won't work
-
 
 def convert_index_to_external_time(df, df_int_ext_time):
 	return df.rename(index=df_int_ext_time.to_dict())
@@ -30,7 +23,6 @@ def build_database(iterations, databases, df_int_ext_time):
 	# TODO: call const.py for names
 	# TODO: too many things at the same time
 	return convert_index_to_external_time(pd.concat(dict(zip(iterations, databases)), names=['iteration'], axis=1), df_int_ext_time).T
-
 
 def read_database(dababaseFile):
 	# TODO: call const.py for index_col
@@ -47,10 +39,8 @@ def allocate_column_values(object, df_):
 		else:
 			warnings.warn(f'Input parameter "{key}" unknown in dataframe.')
 
-
 def index_to_dataSeries(df):
 	return df.index.to_frame(index=False)[0]
-
 
 class Sim:
 	'''
@@ -106,21 +96,13 @@ class Sim:
 		databases = []
 		df_montecarlo = convert_index_to_internal_time(read_database(
 			config.path.montecarloDatabaseFile(self.simulationName)), self.externalTimeInterval)
-		iterations = df_montecarlo.columns.get_level_values(level='iteration').drop_duplicates()[0:10]
+		iterations = df_montecarlo.columns.get_level_values(level='iteration').drop_duplicates()
 		for i in iterations:
 			print(f'Iteration = {i}')
 			network.updateGrid(df_montecarlo[i])
 			databases.append(network.run(self.time))
-			# output.T.to_csv(f'output_iteration_{i}.csv')
-			# network.calculate_metrics()
-			# databases.append(network.build_metrics_database())		
 		out = build_database(iterations, databases, self.externalTimeInterval)
 		out.to_csv(config.path.engineDatabaseFile(self.simulationName))
-
-# class Event():
-# 	def __init__(self, start, duration):
-# 		self.time = Time(start, duration)
-
 
 class Time():
 	# TODO: error raising for uncompatible times
