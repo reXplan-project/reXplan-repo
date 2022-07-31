@@ -26,7 +26,7 @@ def build_database(iterations, databases, df_int_ext_time):
 
 def read_database(dababaseFile):
 	# TODO: call const.py for index_col
-	return pd.read_csv(dababaseFile,  index_col=[0, 1, 2]).T
+	return pd.read_csv(dababaseFile,  index_col=[0, 1, 2, 3]).T
 
 
 def allocate_column_values(object, df_):
@@ -96,7 +96,7 @@ class Sim:
 		databases = []
 		df_montecarlo = convert_index_to_internal_time(read_database(
 			config.path.montecarloDatabaseFile(self.simulationName)), self.externalTimeInterval)
-		iterations = df_montecarlo.columns.get_level_values(level='iteration').drop_duplicates()
+		iterations = df_montecarlo.columns.get_level_values(level='iteration').drop_duplicates()[:2]
 		for i in iterations:
 			print(f'Iteration = {i}')
 			network.updateGrid(df_montecarlo[i])
