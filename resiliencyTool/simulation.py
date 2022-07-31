@@ -28,7 +28,6 @@ def read_database(dababaseFile):
 	# TODO: call const.py for index_col
 	return pd.read_csv(dababaseFile,  index_col=[0, 1, 2, 3]).T
 
-
 def allocate_column_values(object, df_):
 	# .to_frame().T is needed because the function acts on the df's columns
 	df = utils.df_to_internal_fields(df_.to_frame().T)
@@ -91,12 +90,14 @@ class Sim:
 		out = build_database(iterations, databases, self.externalTimeInterval)
 		out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
 
-	def run(self, network):
+	def run(self, network, iterationNumber = None):
 		# TODO: call const.py instead of 'iteration'
 		databases = []
 		df_montecarlo = convert_index_to_internal_time(read_database(
 			config.path.montecarloDatabaseFile(self.simulationName)), self.externalTimeInterval)
-		iterations = df_montecarlo.columns.get_level_values(level='iteration').drop_duplicates()[:2]
+		iterations = df_montecarlo.columns.get_level_values(level='iteration').drop_duplicates()
+		if iterationNumber:
+			iterations = iterations[0:iterationNumber]
 		for i in iterations:
 			print(f'Iteration = {i}')
 			network.updateGrid(df_montecarlo[i])
@@ -106,10 +107,7 @@ class Sim:
 
 class Time():
 	# TODO: error raising for uncompatible times
-	def __init__(self,
-				 start,
-				 duration
-				 ):
+	def __init__(self, start, duration):
 		self.start = start
 		self.duration = duration
 		self.stop = duration + start

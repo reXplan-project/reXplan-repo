@@ -7,13 +7,12 @@ def checkPath(path):
 
 class Path():
     def __init__(self):
-
-        parent = 'file'
-        testFolder = os.path.join(parent,'test')
-        toolFolder = 'resiliencyTool'
-
-        self.inputFolder = os.path.join(parent,'input')
-        self.outputFolder = os.path.join(parent,'output')
+        # parent_ = os.path.join(parent, 'file')
+        parent_ = 'file'
+        # testFolder = os.path.join(parent_,'test')
+        toolFolder = os.path.abspath(os.path.dirname(__file__ )) # aboslute file path of config.py
+        self.inputFolder = os.path.join(parent_,'input')
+        self.outputFolder = os.path.join(parent_,'output')
         self.inputFieldsMapFile = os.path.join(toolFolder, 'fields_map.csv')
 
         checkPath(self.outputFolder)
