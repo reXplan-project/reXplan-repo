@@ -87,7 +87,7 @@ def run_time_series(net, lines_to_disconnect):
 
 if __name__ == "__main__":
 	# run_power_flows(network)
-	lines_to_disconnect = ['line3', 'line7']
+	# lines_to_disconnect = ['line3', 'line7']
 	# lines_to_disconnect = []
 	# run_time_series(network.pp_network, lines_to_disconnect)
 	simple_plotly(network.pp_network)

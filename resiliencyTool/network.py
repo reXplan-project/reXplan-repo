@@ -14,6 +14,8 @@ from .const import *
 from . import engine
 
 from mpl_toolkits.basemap import Basemap
+# TODO: 
+
 # TODO: improve warning messages in Network and PowerElement
 # TODO: displace fragility curve elements
 # TODO: revise following contants
@@ -206,7 +208,8 @@ class Network:
 
 	def build_pp_network(self, df_network, df_bus, df_tr, df_tr_type, df_ln, df_ln_type, df_load, df_ex_gen, df_gen, df_cost):
 		# TODO: it seems this funciton is missplaced. Can it be moved to engine.pandapower?
-		# Condense creation of dictionaries by iteration
+		# TODO: Condense creation of dictionaries by iteration
+		# TODO: update fields_map.csv accordingly
 		'''
 		This Function takes as imput the input file name without the extention
 		and gives as output the pandapower network object.
@@ -415,7 +418,9 @@ class Network:
 							  pg_percent=row[COL_NAME_PG],
 							  power_station_trafo=row[COL_NAME_PS_TRAFO],
 							  in_service=row[COL_NAME_SERVICE],
-							  slack_weight=row[COL_NAME_SLACK_WEIGHT])
+							  slack_weight=row[COL_NAME_SLACK_WEIGHT],
+							  slack=row[COL_NAME_SLACK]
+							  )
 			gen_ids[row[COL_NAME_NAME]] = pp.create_gen(
 				**{key: value for key, value in kwargs_gen.items() if value is not None})
 
@@ -574,8 +579,28 @@ class Network:
 			out.append(df)
 		return pd.concat(out, axis=1)
 
+	def build_additional_metrics(self, df):
+		#TODO: put this in another library?
+		def loss_of_load():
+			field = 'loss_of_load_p_mw'
+			type = 'load'
+			content = df['max_p_mw'][type] - df['p_mw'][type]
+			# pd.concat([content], keys=[(field, type)], names=['field', 'type'], axis=1)
+			return pd.concat({(field, type):content}, names=['field', 'type'], axis=1)
+		def total( field):
+			id = 'network'
+			content = df[field].groupby('type',axis = 1).sum()
+			return pd.concat({(field, id):content}, names=['field', 'id'], axis=1).reorder_levels(['field','type', 'id'], axis = 1)
+
+		df =pd.concat([df, loss_of_load()], axis = 1)
+
+		concat = [df, total('p_mw'), total('loss_of_load_p_mw')]
+		return pd.concat(concat, axis = 1).sort_index(level = 'type')
+
+
+
 	def run(self, time, **kwargs):
-		return self.calculationEngine.run(self.build_timeseries_database(time), **kwargs)
+		return self.build_additional_metrics(self.calculationEngine.run(self.build_timeseries_database(time), **kwargs))
 
 
 class MonteCarloVariable:
@@ -586,6 +611,7 @@ class MonteCarloVariable:
 
 
 class Metric:
+	# TODO: delete
 	def __init__(self, network_element, field, value, subfield=None, unit=None):
 		self.network_element = network_element
 		self.field = field
@@ -855,7 +881,7 @@ class Generator(PowerElement):
 		self.min_p_mw = None
 		self.max_q_mvar = None
 		self.min_q_mvar = None
-
+		self.slack = None
 		self.weatherTTR = None  # TODO: Firas's code
 		self.elapsedReparationTime = None  # TODO: Firas's code
 		super().__init__(**kwargs)

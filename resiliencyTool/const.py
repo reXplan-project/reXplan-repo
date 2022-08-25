@@ -94,6 +94,7 @@ COL_NAME_RDSS = 'rdss_ohm'
 COL_NAME_COS_PHI = 'cos_phi'
 COL_NAME_PG = 'pg_percent'
 COL_NAME_PS_TRAFO = 'power_station_trafo'
+COL_NAME_SLACK = 'slack'
 
 SHEET_NAME_COST = 'cost'
 COL_NAME_CP1 = 'cp1_eur_per_mw'

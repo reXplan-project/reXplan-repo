@@ -106,6 +106,7 @@ class Sim:
 		for i in iterations:
 			print(f'Iteration = {i}')
 			network.updateGrid(df_montecarlo[i])
+			out = network.run(self.time,**kwargs)
 			databases.append(network.run(self.time,**kwargs))
 		out = build_database(iterations, databases, self.externalTimeInterval)
 		out.to_csv(config.path.engineDatabaseFile(self.simulationName))

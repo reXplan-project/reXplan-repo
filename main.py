@@ -9,7 +9,7 @@ simulation = rt.simulation.Sim(simulationName)
 # iteration_set = None
 # time_set = pd.date_range("2022-01-01 12:00:00", periods = 10, freq = 'H')
 # breakpoint()
-simulation.run(network, iterationSet=[0,1,2,3,4,5])
+simulation.run(network, iterationSet=[0,1,2,3,4,5], delta = 1e-16)
 
 
 
