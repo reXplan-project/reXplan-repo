@@ -14,16 +14,13 @@ def convert_index_to_internal_time(df, df_int_ext_time):
 	map = {y: x for x, y in map.items()}
 	return df.rename(index=map)  # otherwise renaiming won't work
 
-
 def convert_index_to_external_time(df, df_int_ext_time):
 	return df.rename(index=df_int_ext_time.to_dict())
-
 
 def build_database(iterations, databases, df_int_ext_time):
 	# TODO: call const.py for names
 	# TODO: too many things at the same time
 	return convert_index_to_external_time(pd.concat(dict(zip(iterations, databases)), names=['iteration'], axis=1), df_int_ext_time).T
-
 
 def read_database(dababaseFile):
 	# TODO: call const.py for index_col
@@ -40,10 +37,46 @@ def allocate_column_values(object, df_):
 		else:
 			warnings.warn(f'Input parameter "{key}" unknown in dataframe.')
 
-
 def get_index_as_dataSeries(df):
 	return df.index.to_frame(index=False)[0]
 
+def enrich_database(df):
+	#TODO: put this in another library?
+	def loss_of_load():
+		field = 'loss_of_load_p_mw'
+		type = 'load'
+		content = df.loc[:, 'max_p_mw','load',:] - df.loc[:, 'p_mw','load',:]
+		return pd.concat({(field, type): content}, names=['field', 'type']).reorder_levels(['iteration', 'field','type', 'id'])
+
+	def loss_of_load_percentage():
+		field = 'loss_of_load_p_percentage'
+		type = 'load'
+		# content = df['max_p_mw'][type] - df['p_mw'][type]
+		content = (df.loc[:, 'max_p_mw','load',:] - df.loc[:, 'p_mw','load',:]) / df.loc[:, 'max_p_mw','load',:]*100
+		return pd.concat({(field, type): content}, names=['field', 'type']).reorder_levels(['iteration', 'field','type', 'id'])
+
+	def total_loss_of_load():
+		field = 'total_loss_of_load_p_mw'
+		type = 'network'
+		id = 'network'
+		content = (df.loc[:, 'max_p_mw','load',:] - df.loc[:, 'p_mw','load',:]).groupby('iteration').sum()
+		return pd.concat({(field, type, id):content}, names=['field', 'type', 'id']).reorder_levels(['iteration', 'field','type', 'id'])
+
+	def total_loss_of_load_percentage():
+		field = 'total_loss_of_load_percentage'
+		type = 'network'
+		id = 'network'
+		content = (df.loc[:, 'max_p_mw','load',:] - df.loc[:, 'p_mw','load',:]).groupby('iteration').sum() / df.loc[:, 'max_p_mw','load',:].groupby('iteration').sum() * 100 
+		return pd.concat({(field, type, id):content}, names=['field', 'type', 'id']).reorder_levels(['iteration', 'field','type', 'id'])
+
+	# def total(field):
+	# 	# deprecated
+	# 	id = 'network'
+	# 	content = (df[field].groupby('type',axis = 1).sum())
+	# 	return pd.concat({(field, id):content}, names=['field', 'type','id'], axis=1).reorder_levels(['field','type', 'id'], axis = 1)
+
+	concat = [df, loss_of_load(), loss_of_load_percentage(), total_loss_of_load(), total_loss_of_load_percentage()]
+	return pd.concat(concat).sort_index(level = ['iteration', 'type'])
 
 class Sim:
 	'''
@@ -94,7 +127,7 @@ class Sim:
 		out = build_database(iterations, databases, self.externalTimeInterval)
 		out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
 
-	def run(self, network, iterationSet = None, **kwargs):
+	def run(self, network, iterationSet = None, saveOutput = True, **kwargs):
 		# TODO: call const.py instead of 'iteration'
 		databases = []
 		df_montecarlo = convert_index_to_internal_time(read_database(
@@ -108,8 +141,12 @@ class Sim:
 			network.updateGrid(df_montecarlo[i])
 			out = network.run(self.time,**kwargs)
 			databases.append(network.run(self.time,**kwargs))
-		out = build_database(iterations, databases, self.externalTimeInterval)
-		out.to_csv(config.path.engineDatabaseFile(self.simulationName))
+		out = enrich_database(build_database(iterations, databases, self.externalTimeInterval))
+		if saveOutput:
+			print ('Saving output database...')
+			out.to_csv(config.path.engineDatabaseFile(self.simulationName))
+			print ('done!')
+
 
 class Time():
 	# TODO: error raising for uncompatible times

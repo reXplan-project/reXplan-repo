@@ -579,28 +579,9 @@ class Network:
 			out.append(df)
 		return pd.concat(out, axis=1)
 
-	def build_additional_metrics(self, df):
-		#TODO: put this in another library?
-		def loss_of_load():
-			field = 'loss_of_load_p_mw'
-			type = 'load'
-			content = df['max_p_mw'][type] - df['p_mw'][type]
-			# pd.concat([content], keys=[(field, type)], names=['field', 'type'], axis=1)
-			return pd.concat({(field, type):content}, names=['field', 'type'], axis=1)
-		def total( field):
-			id = 'network'
-			content = df[field].groupby('type',axis = 1).sum()
-			return pd.concat({(field, id):content}, names=['field', 'id'], axis=1).reorder_levels(['field','type', 'id'], axis = 1)
-
-		df =pd.concat([df, loss_of_load()], axis = 1)
-
-		concat = [df, total('p_mw'), total('loss_of_load_p_mw')]
-		return pd.concat(concat, axis = 1).sort_index(level = 'type')
-
-
 
 	def run(self, time, **kwargs):
-		return self.build_additional_metrics(self.calculationEngine.run(self.build_timeseries_database(time), **kwargs))
+		return self.calculationEngine.run(self.build_timeseries_database(time), **kwargs)
 
 
 class MonteCarloVariable:

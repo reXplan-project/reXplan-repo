@@ -52,7 +52,7 @@ def test_2():
 	simulation = rt.simulation.Sim(simulationName)
 	# simulation.time = rt.simulation.Time(start = 11, duration = 3)
 	# simulation.pre_run(network, 100)
-	simulation.run(network, delta = 1e-16, iterationSet=[0], distributed_slack = False)
+	simulation.run(network, delta = 1e-16, distributed_slack = False)
 
 if __name__ == '__main__':
 	# print (test_1())
