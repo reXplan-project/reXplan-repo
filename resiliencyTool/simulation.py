@@ -7,6 +7,7 @@ from . import config
 from . import utils
 from.const import *
 
+DECIMAL_PRECISION = 1
 
 def convert_index_to_internal_time(df, df_int_ext_time):
 	map = df_int_ext_time.dt.strftime(
@@ -42,32 +43,91 @@ def get_index_as_dataSeries(df):
 
 def enrich_database(df):
 	#TODO: put this in another library?
+
+	def get_number_of_hours_per_timesteps(df):
+		hours = (df.columns[1:] - df.columns[:-1])/np.timedelta64(1,'h')
+		if hours.size == 0:
+			hours = np.append(hours,1) # assumes duration of 1 hour
+		else:
+			hours = np.append(hours, hours[-1]) # assumes last timestep's duration is the same as the previous one
+		return hours
+
+	def format_to_multiindex(df, keys, names):
+		return pd.concat({tuple(keys): df}, names=names).reorder_levels(['iteration', 'field','type', 'id'])
+
 	def loss_of_load():
 		field = 'loss_of_load_p_mw'
 		type = 'load'
 		content = df.loc[:, 'max_p_mw','load',:] - df.loc[:, 'p_mw','load',:]
-		return pd.concat({(field, type): content}, names=['field', 'type']).reorder_levels(['iteration', 'field','type', 'id'])
+		return format_to_multiindex(content, [field, type], ['field', 'type'])
+		# return pd.concat({(field, type): content}, names=['field', 'type']).reorder_levels(['iteration', 'field','type', 'id'])
 
 	def loss_of_load_percentage():
 		field = 'loss_of_load_p_percentage'
 		type = 'load'
-		# content = df['max_p_mw'][type] - df['p_mw'][type]
-		content = (df.loc[:, 'max_p_mw','load',:] - df.loc[:, 'p_mw','load',:]) / df.loc[:, 'max_p_mw','load',:]*100
-		return pd.concat({(field, type): content}, names=['field', 'type']).reorder_levels(['iteration', 'field','type', 'id'])
+		# content = (df.loc[:, 'max_p_mw','load',:] - df.loc[:, 'p_mw','load',:]) / df.loc[:, 'max_p_mw','load',:]*100
+		content = loss_of_load().groupby(['iteration', 'id']).sum()  / df.loc[:, 'max_p_mw','load',:]*100
+		content.fillna(0, inplace = True) # load of zero considered as supplied
+		return format_to_multiindex(content, [field, type], ['field', 'type'])
+	
+	def loss_of_load_duration():
+		field = 'loss_of_load_p_duration_h'
+		type = 'load'
+		hours = get_number_of_hours_per_timesteps(df)
+		filter = (df.loc[:, 'max_p_mw','load',:] - df.loc[:, 'p_mw','load',:]) / df.loc[:, 'max_p_mw','load',:]*100
+		filter.fillna(0, inplace = True)
+		filter = loss_of_load_percentage().groupby(['iteration', 'id']).sum()  # get rid of unused fields
+		filter = filter.round(DECIMAL_PRECISION)!=0 # DECIMAL_PRECISION = 1 means that less than 0.1% is NOT cosnidered as a loss of load.
+		content = filter.multiply(hours, axis = 1)
+		return format_to_multiindex(content, [field, type], ['field', 'type'])
+
+	def energy_not_served():
+		field = 'energy_not_served_wh'
+		type = 'load'
+		# hours = get_number_of_hours_per_timesteps(df)  # todo: change to loss_of_load_duration
+		hours = loss_of_load_duration().groupby(['iteration', 'id']).sum()
+		# content = loss_of_load().loc[:, 'loss_of_load_p_mw','load',:].multiply(hours, axis = 1)
+		content = loss_of_load().groupby(['iteration', 'id']).sum().multiply(hours, axis = 1)
+		return format_to_multiindex(content, [field, type], ['field', 'type'])
 
 	def total_loss_of_load():
-		field = 'total_loss_of_load_p_mw'
+		field = 'loss_of_load_p_mw'
 		type = 'network'
-		id = 'network'
-		content = (df.loc[:, 'max_p_mw','load',:] - df.loc[:, 'p_mw','load',:]).groupby('iteration').sum()
-		return pd.concat({(field, type, id):content}, names=['field', 'type', 'id']).reorder_levels(['iteration', 'field','type', 'id'])
+		id = ''
+		# content = (df.loc[:, 'max_p_mw','load',:] - df.loc[:, 'p_mw','load',:]).groupby('iteration').sum()
+		content = loss_of_load().groupby('iteration').sum()
+		return format_to_multiindex(content, [field, type, id], ['field', 'type', 'id'])
 
 	def total_loss_of_load_percentage():
-		field = 'total_loss_of_load_percentage'
+		field = 'loss_of_load_p_percentage'
 		type = 'network'
-		id = 'network'
-		content = (df.loc[:, 'max_p_mw','load',:] - df.loc[:, 'p_mw','load',:]).groupby('iteration').sum() / df.loc[:, 'max_p_mw','load',:].groupby('iteration').sum() * 100 
-		return pd.concat({(field, type, id):content}, names=['field', 'type', 'id']).reorder_levels(['iteration', 'field','type', 'id'])
+		id = ''
+		# content = (df.loc[:, 'max_p_mw','load',:] - df.loc[:, 'p_mw','load',:]).groupby('iteration').sum() / df.loc[:, 'max_p_mw','load',:].groupby('iteration').sum() * 100 
+		content = total_loss_of_load().groupby('iteration').sum() / df.loc[:, 'max_p_mw','load',:].groupby('iteration').sum() * 100 
+		content.fillna(0, inplace = True) # load of zero considered as supplied
+		return format_to_multiindex(content, [field, type, id], ['field', 'type', 'id'])
+
+	def total_loss_of_load_duration():
+		field = 'loss_of_load_p_duration_h'
+		type = 'network'
+		id = ''
+		hours = get_number_of_hours_per_timesteps(df)
+		# filter = (df.loc[:, 'max_p_mw','load',:] - df.loc[:, 'p_mw','load',:]).groupby('iteration').sum() / df.loc[:, 'max_p_mw','load',:].groupby('iteration').sum() * 100
+		filter = total_loss_of_load_percentage().groupby('iteration').sum() # get rid of unused fields
+		filter = filter.round(DECIMAL_PRECISION)!=0 # DECIMAL_PRECISION = 1 means that less than 0.1% is NOT cosnidered as a loss of load.
+		content = filter.multiply(hours, axis = 1)
+		return format_to_multiindex(content, [field, type, id], ['field', 'type', 'id'])
+
+	def total_energy_not_served():
+		field = 'energy_not_served_mwh'
+		type = 'network'
+		id = ''
+		# hours = get_number_of_hours_per_timesteps(df) # todo: change to total_loss_of_load_duration
+		hours = total_loss_of_load_duration().groupby('iteration').sum()
+		# content = loss_of_load().loc[:, 'loss_of_load_p_mw','load',:].multiply(hours, axis = 1)
+		content = energy_not_served().groupby('iteration').sum().multiply(hours, axis = 1)
+		return format_to_multiindex(content, [field, type, id], ['field', 'type', 'id'])
+
 
 	# def total(field):
 	# 	# deprecated
@@ -75,8 +135,16 @@ def enrich_database(df):
 	# 	content = (df[field].groupby('type',axis = 1).sum())
 	# 	return pd.concat({(field, id):content}, names=['field', 'type','id'], axis=1).reorder_levels(['field','type', 'id'], axis = 1)
 
-	concat = [df, loss_of_load(), loss_of_load_percentage(), total_loss_of_load(), total_loss_of_load_percentage()]
-	return pd.concat(concat).sort_index(level = ['iteration', 'type'])
+	to_concat = [df,
+			loss_of_load(),
+			loss_of_load_percentage(),
+			loss_of_load_duration(),
+			energy_not_served(),
+			total_loss_of_load(),
+			total_loss_of_load_percentage(),
+			total_loss_of_load_duration(),
+			total_energy_not_served()]
+	return pd.concat(to_concat).sort_index(level = ['iteration', 'type'])
 
 class Sim:
 	'''
@@ -139,7 +207,6 @@ class Sim:
 		for i in iterations:
 			print(f'Iteration = {i}')
 			network.updateGrid(df_montecarlo[i])
-			out = network.run(self.time,**kwargs)
 			databases.append(network.run(self.time,**kwargs))
 		out = enrich_database(build_database(iterations, databases, self.externalTimeInterval))
 		if saveOutput:

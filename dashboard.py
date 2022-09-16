@@ -41,7 +41,6 @@ df_quantiles = df.groupby('field').quantile(q = [0.05,0.5,0.95])
 df_quantiles.index.names = ['field',DATA_TYPES[1]]
 df_quantiles = index_to_columns_tranposed(df_quantiles)
 
-
 # value = 12
 # field = 'elements_in_service'
 
