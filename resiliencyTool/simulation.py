@@ -195,19 +195,24 @@ class Sim:
 		out = build_database(iterations, databases, self.externalTimeInterval)
 		out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
 
-	def run(self, network, iterationSet = None, saveOutput = True, **kwargs):
+	def run(self, network, iterationSet = None, saveOutput = True, time = None, **kwargs):
 		# TODO: call const.py instead of 'iteration'
-		databases = []
+		time_ = self.time
+		if time:
+			time_ = time
+		
 		df_montecarlo = convert_index_to_internal_time(read_database(
 			config.path.montecarloDatabaseFile(self.simulationName)), self.externalTimeInterval)
 		iterations = df_montecarlo.columns.get_level_values(
 			level='iteration').drop_duplicates()
 		if iterationSet:
 			iterations = [i for i in iterations if i in iterationSet]
+		
+		databases = []
 		for i in iterations:
 			print(f'Iteration = {i}')
 			network.updateGrid(df_montecarlo[i])
-			databases.append(network.run(self.time,**kwargs))
+			databases.append(network.run(time_,**kwargs))
 		out = enrich_database(build_database(iterations, databases, self.externalTimeInterval))
 		if saveOutput:
 			print ('Saving output database...')

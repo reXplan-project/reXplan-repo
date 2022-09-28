@@ -81,9 +81,13 @@ class pandapower():
         output = self.configure_output_writer(
             df_timeseries.index)
         run_type = pp.runopp
-        if 'run_type' in kwargs and kwargs['run_type'] == 'pf':
-            run_type = pp.runpp
-            print(f'Overriding default configuration. Running PF instead.')
+        if 'run_type' in kwargs:
+            # print(f'Overriding default configuration (opf). Running {kwargs['run_type']} instead.')
+            if kwargs['run_type'] == 'pf':
+                run_type = pp.runpp
+            elif kwargs['run_type'] == 'pm_ac_opf':
+                run_type = pp.runpm_ac_opf
+            
         self.run_time_series(df_timeseries, run = run_type, **kwargs)
         return self.format(output)
 

@@ -36,9 +36,11 @@ setuptools.setup(
         'plotly>=5.9.0',
         # 'nbformat>=4.2.0',
         'basemap>=1.3.3',
-        'openpyxl>=3.0.10'
-
-    ]
+        'openpyxl>=3.0.10',
+        'julia>=0.5.7'
+    ],
+    package_data={'': ['fields_map.csv']},
+    include_package_data=True,
 )
 # pip install numba --upgrade --user
 # pip install pandas = 1.2.3
