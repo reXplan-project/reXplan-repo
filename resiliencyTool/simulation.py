@@ -164,6 +164,7 @@ class Sim:
 		self.duration = None
 		self.hazardStartTime = None
 		self.hazardDuration = None
+		self.results = None
 		df_simulation = pd.read_excel(config.path.networkFile(
 			simulationName), sheet_name=SHEET_NAME_SIMULATION, index_col=0)
 		allocate_column_values(self, df_simulation[COL_NAME_VALUE])
@@ -213,10 +214,10 @@ class Sim:
 			print(f'Iteration = {i}')
 			network.updateGrid(df_montecarlo[i])
 			databases.append(network.run(time_,**kwargs))
-		out = enrich_database(build_database(iterations, databases, self.externalTimeInterval))
+		self.results = enrich_database(build_database(iterations, databases, self.externalTimeInterval))
 		if saveOutput:
 			print ('Saving output database...')
-			out.to_csv(config.path.engineDatabaseFile(self.simulationName))
+			self.results.to_csv(config.path.engineDatabaseFile(self.simulationName))
 			print ('done!')
 
 
