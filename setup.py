@@ -34,7 +34,7 @@ setuptools.setup(
         'pandapower>=2.9.0',
         'pandas>=1.4.3',
         'plotly>=5.9.0',
-        # 'nbformat>=4.2.0',
+        'nbformat>=4.2.0',
         'basemap>=1.3.3',
         'openpyxl>=3.0.10',
         'julia>=0.5.7'
