@@ -31,7 +31,7 @@ setuptools.setup(
         'networkx>=2.8.4',
         'numba>=0.55.2',
         'numpy>=1.22.4',
-        # 'pandapower>=2.9.0',
+        'pandapower>=2.9.0',
         'pandas>=1.4.3',
         'plotly>=5.9.0',
         # 'nbformat>=4.2.0',
