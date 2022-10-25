@@ -204,6 +204,7 @@ class Sim:
 		
 		df_montecarlo = convert_index_to_internal_time(read_database(
 			config.path.montecarloDatabaseFile(self.simulationName)), self.externalTimeInterval)
+		print(df_montecarlo)
 		iterations = df_montecarlo.columns.get_level_values(
 			level='iteration').drop_duplicates()
 		if iterationSet:

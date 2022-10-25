@@ -21,9 +21,20 @@ class Path():
         self.metricDatabase = 'metric_database.csv'
         self.montecarloDatabase = 'montecarlo_database.csv'
         self.engineDatabase = 'engine_database.csv'
+        self.fcDatabase = 'fragilityCurves'
+        self.hazardFolder = 'hazards'
+        self.hazardGifFolder = 'gif'
+        #self.hazard = 'trajectory.csv'
 
     def networkFile(self, simulationName):
         return os.path.join(self.inputFolder, simulationName, self.network)
+    def fragilityCurveFolder(self, simulationName):
+        return os.path.join(self.inputFolder, simulationName, self.fcDatabase)
+    def hazardFile(self, simulationName, filename):
+        return os.path.join(self.inputFolder, simulationName, self.hazardFolder, filename)
+    def hazardGifFile(self, simulationName, filename):
+        checkPath(os.path.join(self.inputFolder, simulationName, self.hazardFolder, self.hazardGifFolder))
+        return os.path.join(self.inputFolder, simulationName, self.hazardFolder, self.hazardGifFolder, filename)
     def outputFolderPath(self, simulationName):
         checkPath(os.path.join(self.outputFolder, simulationName))
         return os.path.join(self.outputFolder, simulationName) 
