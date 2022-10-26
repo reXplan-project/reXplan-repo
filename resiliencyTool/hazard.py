@@ -184,7 +184,7 @@ class Hazard:
 		    t_lon = self.df_trajectory.loc[self.df_trajectory['time'] == time, 'lon'].iloc[0]
 		    t_lat = self.df_trajectory.loc[self.df_trajectory['time'] == time, 'lat'].iloc[0]
 		    intensity = max_intensity*self.df_trajectory.loc[self.df_trajectory['time'] == time, 'intensity'].iloc[0]
-		    radius = max_radius*self.df_trajectory.loc[self.df_trajectory['time'] == time, 'radius'].iloc[0]
+		    radius = max_radius/111*self.df_trajectory.loc[self.df_trajectory['time'] == time, 'radius'].iloc[0]
 
 		    for lat in self.latitudes:
 		        for lon in self.longitudes:
@@ -200,7 +200,7 @@ class Hazard:
 	def grid_generator(self, max_intensity, max_radius):
 		'''
 		:param max_intensity: float, the rated intensity used for p.u. values in the trajectory data.
-		:param max_radius: float, the rated radius used for p.u. values in the trajectory data.
+		:param max_radius: float, value given in km. the rated radius used for p.u. values in the trajectory data.
 		:return df: pandas.DataFrame, contains all the geospatial and temporal data with the intensity values.
 
 		Creates an .nc file from the pandas dataframe containing the intensity for different geospacial and temporal points.
@@ -275,19 +275,22 @@ class Hazard:
 		
 		return t, att
 
-	def plot(self, time_idx):
+	def plot(self, time_idx, projection='cyl', edge_pad=0):
 		'''
 		:param time_idx: int, should be between 0 and the maximum number of timesteps defined in the Hazard
+		:param projection: string, projection used by Basemap, default='cyl' espg projections can be used as well
+		:param edge_pad: int, shows more of the map by adding additional lat and lon degrees
 		:return fig: matplotlib.pyplot figure
 		:return ax: matplotlib.pyplot axis
 
 		Plots the the hazard intensity on a heatmap for a given timestep.
 		'''
 
-		mp = Basemap(llcrnrlon=min(self.lon),   # lower longitude
-		             llcrnrlat=min(self.lat),    # lower latitude
-		             urcrnrlon=max(self.lon),   # uppper longitude
-		             urcrnrlat=max(self.lat))
+		mp = Basemap(llcrnrlon=min(self.lon)-edge_pad,   # lower longitude
+		             llcrnrlat=min(self.lat)-edge_pad,    # lower latitude
+		             urcrnrlon=max(self.lon)+edge_pad,   # uppper longitude
+		             urcrnrlat=max(self.lat)+edge_pad,
+		             projection=projection, resolution ='i',area_thresh=1000.)
 
 		# Here you can plot the intensity over the map for a specific time
 		longs, lats = np.meshgrid(self.lon, self.lat)  #this converts coordinates into 2D arrray
@@ -295,65 +298,60 @@ class Hazard:
 		
 		fig, ax = plt.subplots(tight_layout=True)
 		
-		c_scheme = mp.pcolor(x,y,np.squeeze(self.intensity[time_idx,:,:]),cmap = 'jet') # [0,:,:] is for the first day of the year
-
+		intensity_matrix = np.copy(np.squeeze(self.intensity[time_idx,:,:]))
+		mask = np.ones((intensity_matrix.shape[0],intensity_matrix.shape[1])).astype(bool)
+		mask = np.logical_and(mask, intensity_matrix == 0)
+		intensity_matrix[mask] = np.nan
+		c_scheme = mp.pcolormesh(x,y,intensity_matrix,cmap = 'turbo',zorder=10,shading='gouraud', vmin=0, vmax=np.around(self.intensity.max()+1))
 		# consider this as the outline for the map that is to be created 
-		mp.drawcoastlines()
-		mp.drawstates()
-		mp.drawcountries()
-		mp.bluemarble()
+		# draw coastlines, meridians and parallels.
+		mp.drawcoastlines(color='w')
+		mp.drawcountries(color='w')
+		mp.drawmapboundary(fill_color='#99ffff')
+		mp.fillcontinents(color='#cc9966',lake_color='#99ffff')
+		mp.drawparallels(np.arange(-90,90,10),labels=[1,1,0,0],zorder=11)
+		mp.drawmeridians(np.arange(-180,180,10),labels=[0,0,0,1],zorder=12)
+		plt.title('Intensity of hazard event')
 
-		cbar = mp.colorbar(c_scheme,location='right',pad = '10%') # map information
+		cbar = mp.colorbar(c_scheme,location='right',pad = '15%') # map information
 
 		return fig, ax
 
-	def plot_gif(self, simulationName, speed=3):
+	def plot_gif(self, simulationName, speed=3, projection='cyl', edge_pad=0):
 		'''
 		:param simulationName: int, should be between 0 and the maximum number of timesteps defined in the Hazard
 		:param speed: int, default=3, the reply speed of the gif
+		:param projection: string, projection used by Basemap, default='cyl' espg projections can be used as well
+		:param edge_pad: int, shows more of the map by adding additional lat and lon degrees
 		
 		Generate a .gif file if the file/input/*project name*/hazards/gif directory of the hazard
 		'''
-		mp = Basemap(llcrnrlon=min(self.lon),   # lower longitude
-					llcrnrlat=min(self.lat),    # lower latitude
-					urcrnrlon=max(self.lon),   # uppper longitude
-					urcrnrlat=max(self.lat))  # # uppper latitude
-
-		longs, lats = np.meshgrid(self.lon, self.lat)
-		x,y = mp(longs, lats) #mapping them together 
-		fig, ax = plt.subplots(tight_layout=True)
 		time_steps = np.arange(0,len(self.datetimes))
-
-		# create each frame of the gif as a jpg file.
 		for i in time_steps:
-		    c_scheme = mp.pcolor(x,y,np.squeeze(self.intensity[i,:,:]),cmap = 'jet')
-		    mp.drawcoastlines()
-		    mp.drawstates()
-		    mp.drawcountries()
+			fig,ax = self.plot(i, projection=projection, edge_pad=edge_pad)
+			plt.title('Intensity '+str(i)+' time')
 
-		    cbar = mp.colorbar(c_scheme,location='right',pad = '10%')
-		    i = i+1
-
-		    plt.title('Intensity '+str(i)+' time')
-
-		    tmp = str(i)+'.jpg'
-		    filename = config.path.hazardGifFile(simulationName, tmp)
-		    plt.savefig(filename)
-		    plt.clf()
+			tmp = str(i)+'.jpg'
+			filename = config.path.hazardGifFile(simulationName, tmp)
+			plt.savefig(filename)
+			
+			fig.clear()
+			ax.clear()
+			plt.close(fig)
 
 		# put all the frames together and create the gif file
 		image_frames = [] # creating a empty list to be appended later on
 		for k in time_steps:
-			filename = config.path.hazardGifFile(simulationName, str(k+1)+'.jpg')
+			filename = config.path.hazardGifFile(simulationName, str(k)+'.jpg')
 			new_fram = PIL.Image.open(filename) 
 			image_frames.append(new_fram)
 
-		image_frames[0].save(config.path.hazardGifFile(simulationName, 'intensity_timlapse.gif'),format='GIF',
+		image_frames[0].save(config.path.hazardGifFile(simulationName, 'intensity_timelapse.gif'),format='GIF',
 							append_images = image_frames[1:],
 							save_all = True, duration = len(self.datetimes)*speed,loop = 0)
 
 		# cleanup, removing the jpg files generated
 		for i in time_steps:
-			tmp = str(i+1)+'.jpg'
+			tmp = str(i)+'.jpg'
 			filename = config.path.hazardGifFile(simulationName, tmp)
 			os.remove(filename)
