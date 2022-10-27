@@ -32,73 +32,51 @@ def readFragilityCurves(simulationName):
 					fragility_curve_list.append((col,x,df[col].values))
 	return fragility_curve_list
 
-def interpolate_fc(datax,datay,xnew, k=3):
+def build_fragility_curve_database(simulationName):
 	'''
-	:param datax: list, intensity data
-	:param datay: list, failure probability data
+	:param simulationName: string, name of the simulation case.
+	:param xnew: list, new intensity vector
+	:return dict_fragility_curves: dictionary with fragility curve objects
+
+	builds a dictionary with the name of the fragility curve as a key and the fragility curve objects as values
+	'''
+
+	fcs = readFragilityCurves(simulationName)
+	
+	dict_fragility_curves = {}
+	
+	for fc in fcs:
+		dict_fragility_curves[fc[0]] = FragilityCurve(fc[0], list(fc[1]), list(fc[2]))
+	return dict_fragility_curves
+
+
+def plotFragilityCurves(dict_fc, xnew, k=3):
+	'''
+	:param dict_fc: dict of Fragility curve objects, can be generated using build_fragility_curve_database(simulationName) 
 	:param xnew: list, new intensity vector
 	:param k: int, must be between 1 and 5, default=3, interpolation order
-	:return ynew: interpolated failure probabilities
-
-	Uses spline to interpolate the fragility curve data to a new x array. values above 1 are cliped.
-
-	k = 1 -> linear interpolation
-	k = 2 -> quadratic interpolation
-	k = 3 -> cubic interpolation
-	...
-	'''
-	if k > 0 and k < 6:
-		tck = splrep(datax, datay)
-		ynew = splev(xnew, (tck[0],tck[1],k), der=0)
-	else:
-		warnings.warn(f'k = {k} is invalid, please choose a value for k between 1 and 5')
-		return
-	return ynew.clip(0,1)
-
-def populateFragilityCurveDatabase(fragility_curve_list, xnew, k=3):
-	'''
-	:param fragility_curve_list: list, list of tuples containing the original data from the fragility curves, use fragilitycurve.readFragilityCurves(simulationName) to generate
-	:param xnew: list, new intensity vector 
-	:param k: int, must be between 1 and 5, default=3, interpolation order
-	:return df: pandas.DataFrame, contains all the interpolated data of the fragility curves
-
-	Uses spline to interpolate all fragility curves to a new x array. values above 1 are cliped.
-	Populates a dataframe with the interpolated data.
-
-	k = 1 -> linear interpolation
-	k = 2 -> quadratic interpolation
-	k = 3 -> cubic interpolation
-	'''
-	df = pd.DataFrame()
-	df["intensity"] = xnew
-	for fc in fragility_curve_list:
-		df[fc[0]] = interpolate_fc(fc[1], fc[2], xnew, k)
-	return df
-
-def plotFragilityCurves(fragilityCurveDatabase=pd.DataFrame(), fcs=[]):
-	'''
-	:param fragilityCurveDatabase: pandas.DataFrame, interpolated fragility curves, use fragilitycurve.populateFragilityCurveDatabase(fragility_curve_list, xnew, k=3) to generate
-	:param fcs: list, list of tuples containing the original data from the fragility curves, use fragilitycurve.readFragilityCurves(simulationName) to generate
 	:return fig: matplotlib.pyplot figure
 	:return ax: matplotlib.pyplot axis
 
-	Plots the interpolated and original data of the fragility curve
+	Uses spline to interpolate the fragility curve data to a new x array. values above 1 are cliped.
+	Plots the original data and the interpolated data for all fragility curves
+
+	k = 1 -> linear interpolation
+	k = 2 -> quadratic interpolation
+	k = 3 -> cubic interpolation
 	'''
 	fig, ax = plt.subplots(tight_layout=True)
-	legend = []
-	if not fragilityCurveDatabase.empty:
-		legend = fragilityCurveDatabase.columns[1:]
-		for col in fragilityCurveDatabase.columns[1:]:
-			plt.plot(fragilityCurveDatabase["intensity"], fragilityCurveDatabase[col])
+
+	for fc in dict_fc.values():
+		ynew = fc.interpolate(xnew, k)
+		plt.plot(xnew, ynew)
 	
 	plt.gca().set_prop_cycle(None)
 	
-	if fcs:
-		for fc in fcs:
-			plt.plot(fc[1], fc[2], 'o')
-			if fragilityCurveDatabase.empty:
-				legend.append(fc[0])
+	for fc in dict_fc.values():
+		plt.plot(fc.x_data, fc.y_data, 'o')
 
+	legend = dict_fc.keys()
 	plt.legend(legend, loc='best')
 	plt.xlabel("intensity")
 	plt.ylabel("probability of failure")

@@ -45,7 +45,6 @@ class Hazard:
 	'''
 
 	def __init__(self):
-
 		# variables read from the ncdf file
 		self.intensity = None
 		self.lon = None
@@ -53,6 +52,91 @@ class Hazard:
 		self.time = None
 
 		# internal/private variables
+		self.latitudes = []
+		self.longitudes = []
+		self.datetimes = []
+		self.df_trajectory = pd.DataFrame()
+
+	def hazardFromNC(self, simulationName, filename):
+		'''
+		:param simulationName: string, name of the simulation case.
+		:param filename: string, filename of the nc file. Must end with .nc and must be in the directory: file/input/*project name*/hazards/
+		
+		Initializes the Hazard object using a .nc file
+		'''
+		self.clear()
+		self.read_nc(simulationName, filename)
+	
+	def hazardFromTrajectory(self, simulationName, filename, 
+								max_intensity, max_radius,
+								sdate, edate, geodata1, geodata2, 
+								delta_km, frequency='1H'):
+		'''
+		:param simulationName: string, name of the simulation case.
+		:param filename: string, filename of the csv file. Must end with .csv and must be in the directory: file/input/*project name*/hazards/
+		:param max_intensity: float, the rated intensity used for p.u. values in the trajectory data.
+		:param max_radius: float, the rated radius used for p.u. values in the trajectory data.
+		:param sdate: datetime, start time of the hazard event, can be generated using datetime.date(year,month,day)
+		:param edate: datetime, end time of the hazard event, can be generated using datetime.date(year,month,day)
+		:param geodata1: network.Geodata, first corner of the geospactial range covered by the hazard
+		:param geodata2: network.Geodata, second corner of the geospactial range covered by the hazard
+		:param delta_km: float, geospatial resolution of the intensity data in km
+		:param frequency: string, time intervals, default='1H'
+
+		Initializes the Hazard object using a .csv trajectory file
+		'''
+		self.clear()
+
+		self.datetime_generator(sdate,edate,frequency)
+		self.geospatial_generator(geodata1, geodata2, delta_km)
+		self.epicenterTrajectory_reader(simulationName, filename)
+
+		hazard_grid = self.grid_generator(max_intensity, max_radius)
+		nc_filename = filename.split('.')[0] + '.nc'
+		self.to_nc(hazard_grid, simulationName, nc_filename)
+		self.read_nc(simulationName, nc_filename)
+
+	def hazardFromStaticInput(self, simulationName, filename, 
+								max_intensity, max_radius,
+								sdate, edate, geodata1, geodata2, delta_km,
+								epicenter_lat, epicenter_lon, 
+								frequency='1H', epicenter_radius=1, epicenter_intensity=1):
+		'''
+		:param simulationName: string, name of the simulation case.
+		:param filename: string, filename of the csv file. Must end with .csv and must be in the directory: file/input/*project name*/hazards/
+		:param max_intensity: float, the rated intensity used for p.u. values in the trajectory data.
+		:param max_radius: float, the rated radius used for p.u. values in the trajectory data.
+		:param sdate: datetime, start time of the hazard event, can be generated using datetime.date(year,month,day)
+		:param edate: datetime, end time of the hazard event, can be generated using datetime.date(year,month,day)
+		:param geodata1: network.Geodata, first corner of the geospactial range covered by the hazard
+		:param geodata2: network.Geodata, second corner of the geospactial range covered by the hazard
+		:param delta_km: float, geospatial resolution of the intensity data in km
+		:param epicenter_lat: float, latitude of the epicenter of the hazard event
+		:param epicenter_lon: float, longitude of the epicenter of the hazard event
+		:param frequency: string, time intervals, default='1H'
+		:param epicenter_radius: float, radius of the hazard event from the epicenter in p.u., default = 1 p.u.
+		:param epicenter_intensity: float, intensity of the hazard event at the epicenter in p.u., default = 1 p.u.
+
+		Initializes the Hazard object using the inputs provided.
+		'''
+		self.clear()
+
+		self.datetime_generator(sdate,edate,frequency)
+		self.geospatial_generator(geodata1, geodata2, delta_km)
+		self.epicenterTrajectory_generator(epicenter_radius, epicenter_intensity, epicenter_lat, epicenter_lon)
+
+		hazard_grid = self.grid_generator(max_intensity, max_radius)
+		self.to_nc(hazard_grid, simulationName, filename)
+		self.read_nc(simulationName, filename)
+
+	def clear(self):
+		'''
+		Clears all class attributes
+		'''
+		self.intensity = None
+		self.lon = None
+		self.lat = None
+		self.time = None
 		self.latitudes = []
 		self.longitudes = []
 		self.datetimes = []
@@ -104,10 +188,11 @@ class Hazard:
 		self.longitudes = np.arange(min(geodata1.longitude, geodata2.longitude),max(geodata1.longitude, geodata2.longitude), delta)
 		return self.latitudes, self.longitudes
 
-	def datetime_generator(self, sdate,edate,frequency):
+	def datetime_generator(self, sdate,edate,frequency='1H'):
 		'''
 		:param sdate: datetime, start time of the hazard event, can be generated using datetime.date(year,month,day)
 		:param edate: datetime, end time of the hazard event, can be generated using datetime.date(year,month,day)
+		:param frequency: string, time intervals, default='1H'
 		:return Hazard.datetimes: list, list datetime objects
 
 		Generates the time range over which the hazard intensity is provided
@@ -209,8 +294,7 @@ class Hazard:
 		colnames = ['DateTime', 'latitude', 'longitude', 'intensity']
 		grid_latitudes, grid_longitudes, grid_datetimes = self.geospatialGrid_generator()
 		grid_intensity = self.intensityGrid_generator(max_intensity, max_radius)
-		df = pd.DataFrame(list(zip(grid_datetimes, grid_latitudes, grid_longitudes, grid_intensity)),
-		                  columns  =colnames)
+		df = pd.DataFrame(list(zip(grid_datetimes, grid_latitudes, grid_longitudes, grid_intensity)), columns=colnames)
 		return df
 
 	def to_nc(self, df, simulationName, filename, intensity_unit='m/s', intensity_name='wind speed', title='Sythetic storm'):
@@ -317,23 +401,23 @@ class Hazard:
 
 		return fig, ax
 
-	def plot_gif(self, simulationName, speed=3, projection='cyl', edge_pad=0):
+	def plot_gif(self, simulationName, filename, speed=3, projection='cyl', edge_pad=0):
 		'''
 		:param simulationName: int, should be between 0 and the maximum number of timesteps defined in the Hazard
+		:param filename: sting, filename of the generated gif file. must end with .gif
 		:param speed: int, default=3, the reply speed of the gif
 		:param projection: string, projection used by Basemap, default='cyl' espg projections can be used as well
 		:param edge_pad: int, shows more of the map by adding additional lat and lon degrees
 		
 		Generate a .gif file if the file/input/*project name*/hazards/gif directory of the hazard
 		'''
-		time_steps = np.arange(0,len(self.datetimes))
+		time_steps = np.arange(0,len(self.time))
 		for i in time_steps:
 			fig,ax = self.plot(i, projection=projection, edge_pad=edge_pad)
 			plt.title('Intensity '+str(i)+' time')
 
-			tmp = str(i)+'.jpg'
-			filename = config.path.hazardGifFile(simulationName, tmp)
-			plt.savefig(filename)
+			jpg_filename = config.path.hazardGifFile(simulationName, str(i)+'.jpg')
+			plt.savefig(jpg_filename)
 			
 			fig.clear()
 			ax.clear()
@@ -342,16 +426,15 @@ class Hazard:
 		# put all the frames together and create the gif file
 		image_frames = [] # creating a empty list to be appended later on
 		for k in time_steps:
-			filename = config.path.hazardGifFile(simulationName, str(k)+'.jpg')
-			new_fram = PIL.Image.open(filename) 
+			jpg_filename = config.path.hazardGifFile(simulationName, str(k)+'.jpg')
+			new_fram = PIL.Image.open(jpg_filename) 
 			image_frames.append(new_fram)
 
-		image_frames[0].save(config.path.hazardGifFile(simulationName, 'intensity_timelapse.gif'),format='GIF',
+		image_frames[0].save(config.path.hazardGifFile(simulationName, filename),format='GIF',
 							append_images = image_frames[1:],
 							save_all = True, duration = len(self.datetimes)*speed,loop = 0)
 
 		# cleanup, removing the jpg files generated
 		for i in time_steps:
-			tmp = str(i)+'.jpg'
-			filename = config.path.hazardGifFile(simulationName, tmp)
-			os.remove(filename)
+			jpg_filename = config.path.hazardGifFile(simulationName, str(i)+'.jpg')
+			os.remove(jpg_filename)

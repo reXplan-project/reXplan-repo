@@ -12,6 +12,8 @@ from . import config
 from . import utils
 from .const import *
 from . import engine
+from . import fragilitycurve
+from . import hazard
 
 from mpl_toolkits.basemap import Basemap
 # TODO: 
@@ -111,6 +113,8 @@ class Network:
 		self.lines = {}
 		self.lineTypes = {}
 		self.crews = {}
+		self.fragility_curves = fragilitycurve.build_fragility_curve_database(simulationName)
+		self.event = hazard.Hazard() 
 
 		self.pp_network = None
 
