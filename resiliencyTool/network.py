@@ -12,6 +12,8 @@ from . import config
 from . import utils
 from .const import *
 from . import engine
+from . import fragilitycurve
+from . import hazard
 
 from mpl_toolkits.basemap import Basemap
 # TODO: 
@@ -111,6 +113,8 @@ class Network:
 		self.lines = {}
 		self.lineTypes = {}
 		self.crews = {}
+		self.fragility_curves = fragilitycurve.build_fragility_curve_database(simulationName)
+		self.event = hazard.Hazard() 
 
 		self.pp_network = None
 
@@ -620,6 +624,7 @@ class History:
 		self.LOEF = 0
 		self.totENS = 0
 
+
 	def plot(self):
 		'''
 		Add description of plot function
@@ -638,135 +643,10 @@ class History:
 		'''
 		pass
 
-
-class FragilityCurve:
-	'''
-	Builds the Fragility curve element from a csv input file.
-	The name of the csv file will be used as the name
-	of the fragility curve element
-	'''
-
-	def __init__(self, filename):
-		self.fc = self.readFromCsv(filename)
-		self.name = filename.split('.')[0]
-
-	def readFromCsv(self, filename):
-		'''
-		Takes a csv file name as input and outputs a list of lists
-		with the first column being the intensity and the
-		second columns being the probablity
-		'''
-		fc = []
-		with open(filename, "r") as csv_file:
-			csv_reader = csv.reader(csv_file, delimiter=',')
-			for row in csv_reader:
-				fc.append([float(i) for i in row])
-		return list(zip(*fc))
-
-	def plot(self):
-		'''
-		Returns the figure and axis elements from 
-		matplotlib of the fragility curve. Use plot.show()
-		to see the graph.
-		'''
-		fig, ax = plt.subplots(tight_layout=True)
-		plt.plot(self.fc[0], self.fc[1])
-		ax.set_xlabel('intensity')
-		ax.set_ylabel('probability')
-		ax.set_title(self.name)
-		return fig, ax
-
-
-class Hazard:
-	'''
-	Add description of Hazard class
-	'''
-
-	def __init__(self, name, filename):
-		self.name = filename.split('.')[0]
-		self.filename = filename
-		self.attributes, self.lon, self.lat, self.time = self.read_attributes()
-
-	def read_attributes(self):
-		'''
-		Takes as input the name of the ncdf file (with the .nc extention)
-		Returns the attributes in the ncdf file
-		'''
-		ncdf = nc.Dataset(self.filename, mode='r')
-		cols = []
-		for att in ncdf.variables:
-			if att == 'lon':
-				lon = ncdf[att][:]
-			elif att == 'lat':
-				lat = ncdf[att][:]
-			elif att == 'time':
-				time_tmp = ncdf.variables[att]
-				time = nc.num2date(
-					time_tmp[:], time_tmp.units, only_use_cftime_datetimes=False)
-				time = pd.to_datetime(time)
-			else:
-				cols.append(att)
-		ncdf.close()
-		return cols, lon, lat, time
-
-	def get_attributes(self):
-		return self.attributes
-
-	def get_lon(self):
-		return self.lon
-
-	def get_lat(self):
-		return self.lat
-
-	def get_time(self):
-		return self.time
-
-	def read_attribute(self, attribute, lon, lat, startTime, endTime):
-		'''
-		Takes as input the attribute name. All avaialble attributes can be listed using the get_attributes() method.
-		The coordinates lon(longitude) and lat(lattitude) must be provided as input. 
-		The nearest longitude at lattitude values available in the ncdf file will be used
-		A time window must also be provided (startTime and endTime) this must be a datime object from pandas.
-		use the pd.to_datetime() method to convert any other time object.
-		Returns the datetime and values for the requested attribute at a given longitude and lattitude.
-		'''
-		idx_startTime = self.time.get_loc(startTime, method='nearest')
-		idx_endTime = self.time.get_loc(endTime, method='nearest')
-
-		lon_approx_idx = min(range(len(self.lon)),
-							 key=lambda i: abs(self.lon[i]-lon))
-		lat_approx_idx = min(range(len(self.lat)),
-							 key=lambda i: abs(self.lat[i]-lat))
-
-		ncdf = nc.Dataset(self.filename, mode='r')
-		tmp = ncdf[attribute][:]
-		att = tmp[idx_startTime:idx_endTime, lat_approx_idx, lon_approx_idx]
-		ncdf.close()
-
-		return self.time[idx_startTime:idx_endTime], att
-
-	def plot(self, attribute, time):
-		'''
-		Add description of plot function
-		'''
-		mp = Basemap(llcrnrlon=min(self.lon),   # lower longitude
-					 llcrnrlat=min(self.lat),    # lower latitude
-					 urcrnrlon=max(self.lon),   # uppper longitude
-					 urcrnrlat=max(self.lat))
-
-		lons, lats = np.meshgrid(self.lon, self.lat)
-		x, y = mp(lons, lats)
-		fig = plt.figure(figsize=(6, 8))
-		# c_scheme = mp.pcolor(x,y,np.squeeze(pr[0,:,:]),cmap = 'jet') # [0,:,:] is for the first day of the year
-		mp.bluemarble()
-		return fig
-
-
 class GeoData:
 	'''
 	Add description of GeoData class
 	'''
-
 	def __init__(self, latitude, longitude):
 		self.latitude = latitude
 		self.longitude = longitude
@@ -793,7 +673,6 @@ class PowerElement:
 
 	def initiate_failure_parameters(self,
 									id=None,
-									fragilityCurve=None,
 									kf=None,
 									resilienceFull=None,
 									geodata=None,
@@ -801,20 +680,17 @@ class PowerElement:
 									inReparation=False,
 									normalTTR=None,
 									distTTR=0,
-									inService=True,
-									kw=None,
-
-									):
+									in_service=True,
+									kw=None):
 
 		# self.geodata = geodata
-		self.fragilityCurve = fragilityCurve
 		self.kf = kf
 		self.resilienceFull = resilienceFull
 		self.failureProb = failureProb
 		self.inReparation = inReparation
 		self.normalTTR = normalTTR
 		self.distTTR = distTTR
-		self.inService = inService
+		self.in_service = in_service
 		# self.kw = kw
 
 	def fail(self):
@@ -838,23 +714,42 @@ class PowerElement:
 
 class Bus(PowerElement):
 	'''
-	Add description of Bus class here
+	Class Bus: Parent Class PowerElement
+
+	:attribute longitude: float, longitude in degrees
+	:attribute latitude: float, latitude in degrees
+	:attribute fragility_curve: string, the type of the fragility curve
 	'''
 
 	def __init__(self, kwargs):
+		'''
+		Bus Class Constructor
+
+		:param kwargs: argument list see excel...
+		'''
 		self.vn_kv = None
-		self.in_service = None
 		self.weatherTTR = None  # TODO: Firas's code
 		self.elapsedReparationTime = None  # TODO: Firas's code
+		self.longitude = None
+		self.latitude = None
+		self.fragility_curve = None
 		super().__init__(**kwargs)
-
 
 class Generator(PowerElement):
 	'''
-	Add description of Generator class here
+	Class Generator: Parent Class PowerElement
+
+	:attribute longitude: float, longitude in degrees
+	:attribute latitude: float, latitude in degrees
+	:attribute fragility_curve: string, the type of the fragility curve
 	'''
 
 	def __init__(self, kwargs):
+		'''
+		Bus Class Generator
+
+		:param kwargs: argument list see excel...
+		'''
 		self.p_mw = None
 		self.q_mvar = None
 		self.vm_pu = None
@@ -866,6 +761,7 @@ class Generator(PowerElement):
 		self.slack = None
 		self.weatherTTR = None  # TODO: Firas's code
 		self.elapsedReparationTime = None  # TODO: Firas's code
+		self.fragility_curve = None
 		super().__init__(**kwargs)
 
 
@@ -913,6 +809,7 @@ class Transformer(PowerElement):
 		self.max_loading_percent = None
 		self.weatherTTR = None  # TODO: Firas's code
 		self.elapsedReparationTime = None  # TODO: Firas's code
+		self.fragility_curve = None
 		super().__init__(**kwargs)
 
 
@@ -939,6 +836,7 @@ class Line(PowerElement):
 		self.span = None  # TODO: Firas's code
 		self.lineSpan = None  # TODO: Firas's code
 		self.towers = None  # TODO: Firas's code
+		self.fragility_curve = None
 		super().__init__(**kwargs)
 
 
