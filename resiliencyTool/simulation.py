@@ -82,7 +82,7 @@ def enrich_database(df):
 		return format_to_multiindex(content, [field, type], ['field', 'type'])
 
 	def energy_not_served():
-		field = 'energy_not_served_wh'
+		field = 'energy_not_served_mwh'
 		type = 'load'
 		# hours = get_number_of_hours_per_timesteps(df)  # todo: change to loss_of_load_duration
 		hours = loss_of_load_duration().groupby(['iteration', 'id']).sum()
@@ -125,7 +125,7 @@ def enrich_database(df):
 		# hours = get_number_of_hours_per_timesteps(df) # todo: change to total_loss_of_load_duration
 		hours = total_loss_of_load_duration().groupby('iteration').sum()
 		# content = loss_of_load().loc[:, 'loss_of_load_p_mw','load',:].multiply(hours, axis = 1)
-		content = energy_not_served().groupby('iteration').sum().multiply(hours, axis = 1)
+		content = energy_not_served().groupby('iteration').sum()
 		return format_to_multiindex(content, [field, type, id], ['field', 'type', 'id'])
 
 

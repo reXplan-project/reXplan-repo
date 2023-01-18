@@ -479,9 +479,10 @@ class Network:
 		# crews = self.crews
 		failureProbability = np.array(
 			[x.failureProb for x in failureCandidates.values()])
-		randomNumber = 1
-		while (randomNumber > failureProbability).all():  # random until a failure happens
-			randomNumber = np.random.rand()
+		# randomNumber = 1
+		# while (randomNumber > failureProbability).all():  # random until a failure happens
+		# 	randomNumber = np.random.rand()
+		randomNumber = np.random.rand()
 		failure = np.where((randomNumber <= failureProbability), np.random.randint(
 			hazardTime.start, [hazardTime.stop]*len(failureCandidates)), simulationTime.stop)
 		crewSchedule = pd.DataFrame([[1]*len(self.crews)]*simulationTime.duration,
