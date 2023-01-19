@@ -32,7 +32,6 @@ class pandapower():
             return out.loc[out.name.isin(dataframe.columns)]
 
         for (field, type), df in df_timeseries.groupby(level=['field', 'type'], axis=1):
-            print(field)
             # TODO: find better way to avoid level drop
             df.columns = df.columns.droplevel(['field', 'type'])
             df_elements = get_network_df_intersection_dataframe(self.network, type, df)
