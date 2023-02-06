@@ -128,6 +128,8 @@ class Network:
 		self.build_network(config.path.networkFile(simulationName))
 		self.calculationEngine = engine.pandapower(self.pp_network)
 
+		#self.calculate_prob_failure(tower_spacing_km=0.2)
+
 	def build_network_parameters(self, networkFile):
 		df_network = pd.read_excel(networkFile, sheet_name=SHEET_NAME_NETWORK)
 		for index, row in utils.df_to_internal_fields(df_network).iterrows():
@@ -222,7 +224,7 @@ class Network:
 				lat = node1.latitude + i_segment*(node2.latitude-node1.latitude)/nb_segments
 				_, event_intensity = self.event.get_intensity(lon, lat)
 				probFailure.append(self.fragility_curves[line.fragility_curve].interpolate(event_intensity.max()))
-			line.failure_prob = sum(probFailure)
+			line.failureProb = sum(probFailure)
 
 	def build_pp_network(self, df_network, df_bus, df_tr, df_tr_type, df_ln, df_ln_type, df_load, df_ex_gen, df_gen, df_cost):
 		# TODO: it seems this funciton is missplaced. Can it be moved to engine.pandapower?
@@ -850,7 +852,6 @@ class Line(PowerElement):
 		self.lineSpan = None  # TODO: Firas's code
 		self.towers = None  # TODO: Firas's code
 		self.fragility_curve = None
-		self.failure_prob = None
 		super().__init__(**kwargs)
 
 
