@@ -1,4 +1,5 @@
 import pandas as pd
+from functools import reduce
 
 def invert(df):
     aux_ = list(set(df.index.names)-{'field'})
@@ -7,7 +8,11 @@ def invert(df):
 def filter(df, **kwargs):
     filter = True
     for k,v in kwargs.items():
-        filter = filter & (df.index.get_level_values(level = k) == v)
+        if isinstance(v, list):
+            filter_ = reduce(lambda a, b: a | b, [df.index.get_level_values(level = k) == x for x in v])
+        else:
+            filter_ = (df.index.get_level_values(level = k) == v)
+        filter = filter & filter_
     return df.loc[filter]
 
 def group_by(df, operation = 'sum', *args):

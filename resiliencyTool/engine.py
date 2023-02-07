@@ -23,14 +23,20 @@ REGEX = r"(?:res_)?(\w+)\."
 class pandapower():
     def __init__(self, network):
         self.network = network  # pandapower network type
+
     def create_controllers(self, df_timeseries):
         # TODO call cont.py
+        def get_network_df_intersection_dataframe(network, type, dataframe):
+            # Intersection between network.type and df based on names and ids.
+            out = getattr(network, pp_rt_map[type])
+            return out.loc[out.name.isin(dataframe.columns)]
+
         for (field, type), df in df_timeseries.groupby(level=['field', 'type'], axis=1):
-            print(field)
             # TODO: find better way to avoid level drop
             df.columns = df.columns.droplevel(['field', 'type'])
-            self.SimpleControl(self.network, element=pp_rt_map[type], variable=field, element_index=getattr(
-                self.network, pp_rt_map[type]).index, data_source=DFData(df), profile_name=getattr(self.network, pp_rt_map[type]).name, drop_same_existing_ctrl=True)
+            df_elements = get_network_df_intersection_dataframe(self.network, type, df)
+            self.SimpleControl(self.network, element=pp_rt_map[type], variable=field, element_index=df_elements.index, data_source=self.DFData_boolean_adapted(
+                df), profile_name=df_elements.name, drop_same_existing_ctrl=True)
 
     def configure_output_writer(self, time_steps):
         ow = OutputWriter(self.network, time_steps)
@@ -60,7 +66,8 @@ class pandapower():
         return ow
 
     def run_time_series(self, df_timeseries, **kwargs):
-        run_timeseries(self.network, df_timeseries.index, continue_on_divergence = True, **kwargs)
+        run_timeseries(self.network, df_timeseries.index,
+                       continue_on_divergence=True, **kwargs)
 
     def format(self, output):
         out = []
@@ -87,8 +94,8 @@ class pandapower():
                 run_type = pp.runpp
             elif kwargs['run_type'] == 'pm_ac_opf':
                 run_type = pp.runpm_ac_opf
-            
-        self.run_time_series(df_timeseries, run = run_type, **kwargs)
+
+        self.run_time_series(df_timeseries, run=run_type, **kwargs)
         return self.format(output)
 
     class SimpleControl(ConstControl):
@@ -100,6 +107,7 @@ class pandapower():
         i.e. everything is re-mapped as an input before launching the actual simulation.
         """
         # TODO: For improving performance, set_recycle must be constructed to consider the specific variables that will be changin during a timeseries simulation
+
         def __init__(self, net, element, variable, element_index, profile_name=None, data_source=None,
                      scale_factor=1.0, in_service=True, recycle=False, order=-1, level=-1, drop_same_existing_ctrl=False,
                      matching_params=None, initial_run=False, **kwargs):
@@ -108,67 +116,20 @@ class pandapower():
                              in_service, recycle, order, level, drop_same_existing_ctrl, matching_params, initial_run, **kwargs)
 
         def set_recycle(self, net):
-            # it overrids set_recycle function from ConstControl
+            # it overrides set_recycle function from ConstControl
             pass
 
-    class SimpleControl_backup(Controller):
+    class DFData_boolean_adapted(DFData):
+        def __init__(self, df, multi=False):
+            super().__init__(df, multi=multi)
 
-        def __init__(self, net, element, variable, element_index, profile_name=None, data_source=None,
-                     scale_factor=1.0, in_service=True, recycle=False, order=-1, level=-1,
-                     drop_same_existing_ctrl=False, matching_params=None,
-                     initial_run=False, **kwargs):
-            # just calling init of the parent
-            if matching_params is None:
-                matching_params = {"element": element, "variable": variable,
-                                   "element_index": element_index}
-            super().__init__(net, in_service=in_service, recycle=recycle, order=order, level=level,
-                             drop_same_existing_ctrl=drop_same_existing_ctrl,
-                             matching_params=matching_params, initial_run=initial_run,
-                             **kwargs)
-
-            # data source for time series values
-            self.data_source = data_source
-            # ids of sgens or loads
-            self.element_index = element_index
-            # element type
-            self.element = element
-            self.values = None
-            self.profile_name = profile_name
-            self.scale_factor = scale_factor
-            self.applied = False
-            self.write_flag, self.variable = _detect_read_write_flag(
-                net, element, element_index, variable)
-            # self.set_recycle(net)
-
-        def time_step(self, net, time):
-            """
-            Get the values of the element from data source
-            Write to pandapower net by calling write_to_net()
-            If ConstControl is used without a data_source, it will reset the controlled values to the initial values,
-            preserving the initial net state.
-            """
-            self.applied = False
-            if self.data_source is None:
-                self.values = net[self.element][self.variable].loc[self.element_index]
+        def get_time_step_value(self, time_step, profile_name, scale_factor=1.0):
+            res = self.df.loc[time_step, profile_name]
+            if hasattr(res, 'values'):
+                res = res.values
+            if any(isinstance(x, bool) for x in res):
+                # without explicit conversion, array's dtype remains as 'object', which will make numba fail
+                res = res.astype(dtype=bool)
             else:
-                self.values = self.data_source.get_time_step_value(time_step=time,
-                                                                   profile_name=self.profile_name,
-                                                                   scale_factor=self.scale_factor)
-            if self.values is not None:
-                write_to_net(net, self.element, self.element_index,
-                             self.variable, self.values, self.write_flag)
-
-        def is_converged(self, net):
-            """
-            Actual implementation of the convergence criteria: If controller is applied, it can stop
-            """
-            return self.applied
-
-        def control_step(self, net):
-            """
-            Set applied to True, which means that the values set in time_step have been included in the load flow calculation.
-            """
-            self.applied = True
-
-        def __str__(self):
-            return super().__str__() + " [%s.%s]" % (self.element, self.variable)
+                res = res*scale_factor
+            return res
