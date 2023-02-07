@@ -3,6 +3,7 @@ import itertools
 
 import pandas as pd
 import numpy as np
+import math as math
 # import csv
 import matplotlib.pyplot as plt
 import netCDF4 as nc
@@ -13,13 +14,16 @@ from . import utils
 from .const import *
 from . import engine
 
+from . import fragilitycurve
+from . import hazard
+
 from mpl_toolkits.basemap import Basemap
 # TODO: 
 
 # TODO: improve warning messages in Network and PowerElement
 # TODO: displace fragility curve elements
 # TODO: revise following contants
-COL_NAME_FRAGILITY_CURVE = 'fragility_curve'
+COL_NAME_FRAGILITY_CURVE = 'fragilityCurve'
 COL_NAME_KF = 'kf'
 COL_NAME_RESILIENCE_FULL = 'resilienceFull'
 COL_NAME_WEATHER_TTR = 'weatherTTR'
@@ -111,6 +115,8 @@ class Network:
 		self.lines = {}
 		self.lineTypes = {}
 		self.crews = {}
+		self.fragilityCurves = fragilitycurve.build_fragility_curve_database(simulationName)
+		self.event = hazard.Hazard() 
 
 		self.pp_network = None
 
@@ -205,6 +211,20 @@ class Network:
 				df_gen=df_gen,
 				df_cost=df_cost
 			)
+
+	def update_failure_probability(self):
+		'''
+		This function updates the failure probability of the power elements of the network.
+		The event object must be defined before calling this method.
+		If this method is called the failure probabilities entered in the excel file will not be considered.
+		'''
+		powerElements = {**self.lines, 
+						 **self.generators,
+						 **self.loads, 
+						 **self.transformers}
+		
+		for el in powerElements.values():
+			el.update_failure_probability(self)
 
 	def build_pp_network(self, df_network, df_bus, df_tr, df_tr_type, df_ln, df_ln_type, df_load, df_ex_gen, df_gen, df_cost):
 		# TODO: it seems this funciton is missplaced. Can it be moved to engine.pandapower?
@@ -638,130 +658,6 @@ class History:
 		'''
 		pass
 
-
-class FragilityCurve:
-	'''
-	Builds the Fragility curve element from a csv input file.
-	The name of the csv file will be used as the name
-	of the fragility curve element
-	'''
-
-	def __init__(self, filename):
-		self.fc = self.readFromCsv(filename)
-		self.name = filename.split('.')[0]
-
-	def readFromCsv(self, filename):
-		'''
-		Takes a csv file name as input and outputs a list of lists
-		with the first column being the intensity and the
-		second columns being the probablity
-		'''
-		fc = []
-		with open(filename, "r") as csv_file:
-			csv_reader = csv.reader(csv_file, delimiter=',')
-			for row in csv_reader:
-				fc.append([float(i) for i in row])
-		return list(zip(*fc))
-
-	def plot(self):
-		'''
-		Returns the figure and axis elements from 
-		matplotlib of the fragility curve. Use plot.show()
-		to see the graph.
-		'''
-		fig, ax = plt.subplots(tight_layout=True)
-		plt.plot(self.fc[0], self.fc[1])
-		ax.set_xlabel('intensity')
-		ax.set_ylabel('probability')
-		ax.set_title(self.name)
-		return fig, ax
-
-
-class Hazard:
-	'''
-	Add description of Hazard class
-	'''
-
-	def __init__(self, name, filename):
-		self.name = filename.split('.')[0]
-		self.filename = filename
-		self.attributes, self.lon, self.lat, self.time = self.read_attributes()
-
-	def read_attributes(self):
-		'''
-		Takes as input the name of the ncdf file (with the .nc extention)
-		Returns the attributes in the ncdf file
-		'''
-		ncdf = nc.Dataset(self.filename, mode='r')
-		cols = []
-		for att in ncdf.variables:
-			if att == 'lon':
-				lon = ncdf[att][:]
-			elif att == 'lat':
-				lat = ncdf[att][:]
-			elif att == 'time':
-				time_tmp = ncdf.variables[att]
-				time = nc.num2date(
-					time_tmp[:], time_tmp.units, only_use_cftime_datetimes=False)
-				time = pd.to_datetime(time)
-			else:
-				cols.append(att)
-		ncdf.close()
-		return cols, lon, lat, time
-
-	def get_attributes(self):
-		return self.attributes
-
-	def get_lon(self):
-		return self.lon
-
-	def get_lat(self):
-		return self.lat
-
-	def get_time(self):
-		return self.time
-
-	def read_attribute(self, attribute, lon, lat, startTime, endTime):
-		'''
-		Takes as input the attribute name. All avaialble attributes can be listed using the get_attributes() method.
-		The coordinates lon(longitude) and lat(lattitude) must be provided as input. 
-		The nearest longitude at lattitude values available in the ncdf file will be used
-		A time window must also be provided (startTime and endTime) this must be a datime object from pandas.
-		use the pd.to_datetime() method to convert any other time object.
-		Returns the datetime and values for the requested attribute at a given longitude and lattitude.
-		'''
-		idx_startTime = self.time.get_loc(startTime, method='nearest')
-		idx_endTime = self.time.get_loc(endTime, method='nearest')
-
-		lon_approx_idx = min(range(len(self.lon)),
-							 key=lambda i: abs(self.lon[i]-lon))
-		lat_approx_idx = min(range(len(self.lat)),
-							 key=lambda i: abs(self.lat[i]-lat))
-
-		ncdf = nc.Dataset(self.filename, mode='r')
-		tmp = ncdf[attribute][:]
-		att = tmp[idx_startTime:idx_endTime, lat_approx_idx, lon_approx_idx]
-		ncdf.close()
-
-		return self.time[idx_startTime:idx_endTime], att
-
-	def plot(self, attribute, time):
-		'''
-		Add description of plot function
-		'''
-		mp = Basemap(llcrnrlon=min(self.lon),   # lower longitude
-					 llcrnrlat=min(self.lat),    # lower latitude
-					 urcrnrlon=max(self.lon),   # uppper longitude
-					 urcrnrlat=max(self.lat))
-
-		lons, lats = np.meshgrid(self.lon, self.lat)
-		x, y = mp(lons, lats)
-		fig = plt.figure(figsize=(6, 8))
-		# c_scheme = mp.pcolor(x,y,np.squeeze(pr[0,:,:]),cmap = 'jet') # [0,:,:] is for the first day of the year
-		mp.bluemarble()
-		return fig
-
-
 class GeoData:
 	'''
 	Add description of GeoData class
@@ -775,14 +671,16 @@ class GeoData:
 class PowerElement:
 	'''
 	Add description of PowerElement class here
-	'''
 
+	:attribute fragilityCurve: string, the type of the fragility curve
+	'''
 	def __init__(self, **kwargs):
 		self.id = None
 		self.node = None
 		self.failureProb = None
+		self.fragilityCurve = None
 		self.normalTTR = None
-		self.in_service = None
+		self.inService = None
 		for key, value in kwargs.items():
 			if hasattr(self, key):
 				setattr(self, key, value)
@@ -802,9 +700,7 @@ class PowerElement:
 									normalTTR=None,
 									distTTR=0,
 									inService=True,
-									kw=None,
-
-									):
+									kw=None):
 
 		# self.geodata = geodata
 		self.fragilityCurve = fragilityCurve
@@ -816,6 +712,11 @@ class PowerElement:
 		self.distTTR = distTTR
 		self.inService = inService
 		# self.kw = kw
+
+	def update_failure_probability(self, network):
+		node = network.nodes[self.node]
+		_, event_intensity = network.event.get_intensity(node.longitude, node.latitude)
+		self.failureProb = network.fragilityCurves[self.fragilityCurve].interpolate(event_intensity.max())
 
 	def fail(self):
 		'''
@@ -838,7 +739,10 @@ class PowerElement:
 
 class Bus(PowerElement):
 	'''
-	Add description of Bus class here
+	Class Bus: Parent Class PowerElement
+
+	:attribute longitude: float, longitude in degrees
+	:attribute latitude: float, latitude in degrees
 	'''
 
 	def __init__(self, kwargs):
@@ -846,8 +750,13 @@ class Bus(PowerElement):
 		self.in_service = None
 		self.weatherTTR = None  # TODO: Firas's code
 		self.elapsedReparationTime = None  # TODO: Firas's code
+		self.longitude = None
+		self.latitude = None
 		super().__init__(**kwargs)
 
+	def update_failure_probability(self, network):
+		_, event_intensity = network.event.get_intensity(self.longitude, self.latitude)
+		self.failureProb = network.fragilityCurves[self.fragilityCurve].interpolate(event_intensity.max())
 
 class Generator(PowerElement):
 	'''
@@ -915,6 +824,10 @@ class Transformer(PowerElement):
 		self.elapsedReparationTime = None  # TODO: Firas's code
 		super().__init__(**kwargs)
 
+	def update_failure_probability(self, network):
+		node = network.nodes[self.node_p]
+		_, event_intensity = network.event.get_intensity(node.longitude, node.latitude)
+		self.failureProb = network.fragilityCurves[self.fragilityCurve].interpolate(event_intensity.max())
 
 class Line(PowerElement):
 	'''
@@ -941,6 +854,17 @@ class Line(PowerElement):
 		self.towers = None  # TODO: Firas's code
 		super().__init__(**kwargs)
 
+	def update_failure_probability(self, network):
+		node1 = network.nodes[self.from_bus]
+		node2 = network.nodes[self.to_bus]
+		nb_segments = math.ceil(self.length_km/self.lineSpan)
+		probFailure = []
+		for i_segment in range(nb_segments+1):
+			lon = node1.longitude + i_segment*(node2.longitude-node1.longitude)/nb_segments
+			lat = node1.latitude + i_segment*(node2.latitude-node1.latitude)/nb_segments
+			_, event_intensity = network.event.get_intensity(lon, lat)
+			probFailure.append(network.fragilityCurves[self.fragilityCurve].interpolate(event_intensity.max()))
+		self.failureProb = sum(probFailure)
 
 class Crew:
 	'''

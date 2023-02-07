@@ -10,7 +10,7 @@ zone,zone,,
 max_vm_pu,max_vm_pu,,float
 min_vm_pu,min_vm_pu,,float
 in_service,in_service,,bool
-fragility_curve,fragility_curve,,
+fragility_curve,fragilityCurve,,
 kf,kf,,
 resilienceFull,resilienceFull,,
 weatherTTR,weatherTTR,,
