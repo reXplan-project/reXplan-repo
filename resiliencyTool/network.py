@@ -105,6 +105,7 @@ class Network:
 		self.totalRenewablePower = 0
 		self.totalStoragePower = 0
 
+		
 		self.nodes = {}
 		self.generators = {}
 		self.externalGenerators = {}
@@ -213,18 +214,20 @@ class Network:
 				df_cost=df_cost
 			)
 
-	def calculate_prob_failure(self, tower_spacing_km=0.2):
-		for key, line in self.lines.items():
-			node1 = self.nodes[line.from_bus]
-			node2 = self.nodes[line.to_bus]
-			nb_segments = math.ceil(line.length_km/tower_spacing_km)
-			probFailure = []
-			for i_segment in range(nb_segments+1):
-				lon = node1.longitude + i_segment*(node2.longitude-node1.longitude)/nb_segments
-				lat = node1.latitude + i_segment*(node2.latitude-node1.latitude)/nb_segments
-				_, event_intensity = self.event.get_intensity(lon, lat)
-				probFailure.append(self.fragility_curves[line.fragility_curve].interpolate(event_intensity.max()))
-			line.failureProb = sum(probFailure)
+	def update_failure_probability(self):
+		'''
+		This function updates the failure probability of the power elements of the network.
+		The event object must be defined before calling this method.
+		If this method is called the failure probabilities entered in the excel file will not be considered.
+		'''
+		powerElements = {**self.lines, 
+						 **self.generators,
+						 **self.loads, 
+						 **self.transformers}
+		
+		for el in powerElements.values():
+			el.update_failure_probability(self)
+
 
 	def build_pp_network(self, df_network, df_bus, df_tr, df_tr_type, df_ln, df_ln_type, df_load, df_ex_gen, df_gen, df_cost):
 		# TODO: it seems this funciton is missplaced. Can it be moved to engine.pandapower?
@@ -670,12 +673,14 @@ class GeoData:
 class PowerElement:
 	'''
 	Add description of PowerElement class here
-	'''
 
+	:attribute fragility_curve: string, the type of the fragility curve
+	'''
 	def __init__(self, **kwargs):
 		self.id = None
 		self.node = None
 		self.failureProb = None
+		self.fragility_curve = None
 		self.normalTTR = None
 		self.in_service = None
 		for key, value in kwargs.items():
@@ -708,6 +713,11 @@ class PowerElement:
 		self.in_service = in_service
 		# self.kw = kw
 
+	def update_failure_probability(self, network):
+		node = network.nodes[self.node]
+		_, event_intensity = network.event.get_intensity(node.longitude, node.latitude)
+		self.failureProb = network.fragility_curves[self.fragility_curve].interpolate(event_intensity.max())
+
 	def fail(self):
 		'''
 		Add description of fail class
@@ -733,7 +743,6 @@ class Bus(PowerElement):
 
 	:attribute longitude: float, longitude in degrees
 	:attribute latitude: float, latitude in degrees
-	:attribute fragility_curve: string, the type of the fragility curve
 	'''
 
 	def __init__(self, kwargs):
@@ -747,8 +756,11 @@ class Bus(PowerElement):
 		self.elapsedReparationTime = None  # TODO: Firas's code
 		self.longitude = None
 		self.latitude = None
-		self.fragility_curve = None
 		super().__init__(**kwargs)
+
+	def update_failure_probability(self, network):
+		_, event_intensity = network.event.get_intensity(self.longitude, self.latitude)
+		self.failureProb = network.fragility_curves[self.fragility_curve].interpolate(event_intensity.max())
 
 class Generator(PowerElement):
 	'''
@@ -776,7 +788,6 @@ class Generator(PowerElement):
 		self.slack = None
 		self.weatherTTR = None  # TODO: Firas's code
 		self.elapsedReparationTime = None  # TODO: Firas's code
-		self.fragility_curve = None
 		super().__init__(**kwargs)
 
 
@@ -824,8 +835,12 @@ class Transformer(PowerElement):
 		self.max_loading_percent = None
 		self.weatherTTR = None  # TODO: Firas's code
 		self.elapsedReparationTime = None  # TODO: Firas's code
-		self.fragility_curve = None
 		super().__init__(**kwargs)
+
+	def update_failure_probability(self, network):
+		node = network.nodes[self.node_p]
+		_, event_intensity = network.event.get_intensity(node.longitude, node.latitude)
+		self.failureProb = network.fragility_curves[self.fragility_curve].interpolate(event_intensity.max())
 
 
 class Line(PowerElement):
@@ -851,9 +866,19 @@ class Line(PowerElement):
 		self.span = None  # TODO: Firas's code
 		self.lineSpan = None  # TODO: Firas's code
 		self.towers = None  # TODO: Firas's code
-		self.fragility_curve = None
 		super().__init__(**kwargs)
 
+	def update_failure_probability(self, network):
+		node1 = network.nodes[self.from_bus]
+		node2 = network.nodes[self.to_bus]
+		nb_segments = math.ceil(self.length_km/self.lineSpan)
+		probFailure = []
+		for i_segment in range(nb_segments+1):
+			lon = node1.longitude + i_segment*(node2.longitude-node1.longitude)/nb_segments
+			lat = node1.latitude + i_segment*(node2.latitude-node1.latitude)/nb_segments
+			_, event_intensity = network.event.get_intensity(lon, lat)
+			probFailure.append(network.fragility_curves[self.fragility_curve].interpolate(event_intensity.max()))
+		self.failureProb = sum(probFailure)
 
 class Crew:
 	'''
