@@ -13,6 +13,7 @@ from . import config
 from . import utils
 from .const import *
 from . import engine
+
 from . import fragilitycurve
 from . import hazard
 
@@ -129,8 +130,6 @@ class Network:
 		self.build_network(config.path.networkFile(simulationName))
 		self.calculationEngine = engine.pandapower(self.pp_network)
 
-		#self.calculate_prob_failure(tower_spacing_km=0.2)
-
 	def build_network_parameters(self, networkFile):
 		df_network = pd.read_excel(networkFile, sheet_name=SHEET_NAME_NETWORK)
 		for index, row in utils.df_to_internal_fields(df_network).iterrows():
@@ -227,7 +226,6 @@ class Network:
 		
 		for el in powerElements.values():
 			el.update_failure_probability(self)
-
 
 	def build_pp_network(self, df_network, df_bus, df_tr, df_tr_type, df_ln, df_ln_type, df_load, df_ex_gen, df_gen, df_cost):
 		# TODO: it seems this funciton is missplaced. Can it be moved to engine.pandapower?
@@ -502,9 +500,10 @@ class Network:
 		# crews = self.crews
 		failureProbability = np.array(
 			[x.failureProb for x in failureCandidates.values()])
-		randomNumber = 1
-		while (randomNumber > failureProbability).all():  # random until a failure happens
-			randomNumber = np.random.rand()
+		# randomNumber = 1
+		# while (randomNumber > failureProbability).all():  # random until a failure happens
+		# 	randomNumber = np.random.rand()
+		randomNumber = np.random.rand()
 		failure = np.where((randomNumber <= failureProbability), np.random.randint(
 			hazardTime.start, [hazardTime.stop]*len(failureCandidates)), simulationTime.stop)
 		crewSchedule = pd.DataFrame([[1]*len(self.crews)]*simulationTime.duration,
@@ -642,7 +641,6 @@ class History:
 		self.LOEF = 0
 		self.totENS = 0
 
-
 	def plot(self):
 		'''
 		Add description of plot function
@@ -665,6 +663,7 @@ class GeoData:
 	'''
 	Add description of GeoData class
 	'''
+
 	def __init__(self, latitude, longitude):
 		self.latitude = latitude
 		self.longitude = longitude
@@ -674,7 +673,7 @@ class PowerElement:
 	'''
 	Add description of PowerElement class here
 
-	:attribute fragility_curve: string, the type of the fragility curve
+	:attribute fragilityCurve: string, the type of the fragility curve
 	'''
 	def __init__(self, **kwargs):
 		self.id = None
@@ -704,13 +703,14 @@ class PowerElement:
 									kw=None):
 
 		# self.geodata = geodata
+		self.fragilityCurve = fragilityCurve
 		self.kf = kf
 		self.resilienceFull = resilienceFull
 		self.failureProb = failureProb
 		self.inReparation = inReparation
 		self.normalTTR = normalTTR
 		self.distTTR = distTTR
-		self.in_service = in_service
+		self.inService = inService
 		# self.kw = kw
 
 	def update_failure_probability(self, network):
@@ -746,12 +746,11 @@ class Bus(PowerElement):
 	'''
 
 	def __init__(self, kwargs):
-		'''
 		Bus Class Constructor
 
 		:param kwargs: argument list see excel...
-		'''
 		self.vn_kv = None
+		self.in_service = None
 		self.weatherTTR = None  # TODO: Firas's code
 		self.elapsedReparationTime = None  # TODO: Firas's code
 		self.longitude = None

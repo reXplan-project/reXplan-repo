@@ -37,7 +37,8 @@ setuptools.setup(
         'nbformat>=4.2.0',
         'basemap>=1.3.3',
         'openpyxl>=3.0.10',
-        'julia>=0.5.7'
+        'julia>=0.5.7',
+        'xarray>=2023.1.0'
     ],
     package_data={'': ['fields_map.csv']},
     include_package_data=True,
