@@ -18,7 +18,7 @@ from . import fragilitycurve
 from . import hazard
 
 from mpl_toolkits.basemap import Basemap
-# TODO: 
+# TODO:
 
 # TODO: improve warning messages in Network and PowerElement
 # TODO: displace fragility curve elements
@@ -114,14 +114,18 @@ class Network:
 		self.transformerTypes = {}
 		self.lines = {}
 		self.lineTypes = {}
+		self.switches = {}
+
 		self.crews = {}
-		self.fragilityCurves = fragilitycurve.build_fragility_curve_database(simulationName)
-		self.event = hazard.Hazard() 
+		self.fragilityCurves = fragilitycurve.build_fragility_curve_database(
+			simulationName)
+		self.event = hazard.Hazard()
 
 		self.pp_network = None
 
 		self.outagesSchedule = None
 		self.crewSchedule = None
+		self.switchesSchedule = None
 
 		self.metrics = []
 		self.mcVariables = []
@@ -172,6 +176,12 @@ class Network:
 		self.lineTypes = build_class_dict(df_ln_types, 'Line')
 		return df_lines, df_ln_types
 
+	def build_switches(self, networkFile):
+		df_switches = pd.read_excel(
+			networkFile, sheet_name=SHEET_NAME_SWITCHES)
+		self.switches = build_class_dict(df_switches, 'Switch')
+		return df_switches
+
 	def build_crews(self, networkFile):
 		df_crews = pd.read_excel(networkFile, sheet_name=SHEET_NAME_CREWS)
 		self.crews = build_class_dict(df_crews, 'Crew')
@@ -194,6 +204,7 @@ class Network:
 		df_gen, df_ex_gen = self.build_generators(networkFile)
 		df_transformers, df_tr_types = self.build_transformers(networkFile)
 		df_lines, df_ln_types = self.build_lines(networkFile)
+		df_switches = self.build_switches(networkFile)
 		df_cost = pd.read_excel(
 			networkFile, sheet_name=SHEET_NAME_COST)  # TODO: build cost
 		self.build_crews(networkFile)
@@ -209,6 +220,7 @@ class Network:
 				df_load=df_load,
 				df_ex_gen=df_ex_gen,
 				df_gen=df_gen,
+				df_switch=df_switches,
 				df_cost=df_cost
 			)
 
@@ -218,15 +230,15 @@ class Network:
 		The event object must be defined before calling this method.
 		If this method is called the failure probabilities entered in the excel file will not be considered.
 		'''
-		powerElements = {**self.lines, 
+		powerElements = {**self.lines,
 						 **self.generators,
-						 **self.loads, 
+						 **self.loads,
 						 **self.transformers}
-		
+
 		for el in powerElements.values():
 			el.update_failure_probability(self)
 
-	def build_pp_network(self, df_network, df_bus, df_tr, df_tr_type, df_ln, df_ln_type, df_load, df_ex_gen, df_gen, df_cost):
+	def build_pp_network(self, df_network, df_bus, df_tr, df_tr_type, df_ln, df_ln_type, df_load, df_ex_gen, df_gen, df_switch, df_cost):
 		# TODO: it seems this funciton is missplaced. Can it be moved to engine.pandapower?
 		# TODO: Condense creation of dictionaries by iteration
 		# TODO: update fields_map.csv accordingly
@@ -283,6 +295,7 @@ class Network:
 		# df_tr_type = df_tr_type.where(pd.notnull(df_tr_type), None)
 		df_tr_type = df_tr_type.replace({np.nan: None})
 
+		tr_ids = {}
 		for index, row in df_tr.iterrows():
 			tr_type = df_tr_type.loc[df_tr_type[COL_NAME_NAME]
 									 == row[COL_NAME_TYPE]]
@@ -310,7 +323,7 @@ class Network:
 							 max_loading_percent=row[COL_NAME_MAX_LOADING],
 							 parallel=row[COL_NAME_PARALLEL],
 							 df=row[COL_NAME_DF])
-			pp.create_transformer_from_parameters(
+			tr_ids[row[COL_NAME_NAME]] = pp.create_transformer_from_parameters(
 				**{key: value for key, value in kwargs_tr.items() if value is not None})
 
 		# Creating the line elements
@@ -322,6 +335,7 @@ class Network:
 		# df_ln_type = df_ln_type.where(pd.notnull(df_ln_type), None)
 		df_ln_type = df_ln_type.replace({np.nan: None})
 
+		line_ids = {}
 		for index, row in df_ln.iterrows():
 			if (row[COL_NAME_FROM_LONGITUDE] is not None) and (row[COL_NAME_FROM_LATITUDE] is not None) and (row[COL_NAME_TO_LONGITUDE] is not None) and (row[COL_NAME_TO_LATITUDE] is not None):
 				geodata = [[row[COL_NAME_FROM_LATITUDE], row[COL_NAME_FROM_LONGITUDE]],
@@ -352,7 +366,7 @@ class Network:
 							 x0_ohm_per_km=ln_type[COL_NAME_X0].values[0],
 							 c0_nf_per_km=ln_type[COL_NAME_C0].values[0],
 							 g0_us_per_km=ln_type[COL_NAME_G0].values[0])
-			pp.create_line_from_parameters(
+			line_ids[row[COL_NAME_NAME]] = pp.create_line_from_parameters(
 				**{key: value for key, value in kwargs_ln.items() if value is not None})
 
 		# Creating the load elements
@@ -444,6 +458,29 @@ class Network:
 			gen_ids[row[COL_NAME_NAME]] = pp.create_gen(
 				**{key: value for key, value in kwargs_gen.items() if value is not None})
 
+		# Creating the switch elements
+		df_switch = df_switch.replace({np.nan: None})
+		switches_ids = {}
+		for index, row in df_switch.iterrows():
+			if row[COL_NAME_ET] == 'b':
+				element = bus_ids[row[COL_NAME_ELEMENT]]
+			elif row[COL_NAME_ET] == 'l':
+				element = line_ids[row[COL_NAME_ELEMENT]]
+			elif row[COL_NAME_ET] in ['t', 't3']:
+				element = tr_ids[row[COL_NAME_ELEMENT]]
+			kwargs_gen = dict(net=network,
+							  name=row[COL_NAME_NAME],
+							  bus=bus_ids[row[COL_NAME_BUS]],
+							  element=element,
+							  et=row[COL_NAME_ET],
+							  closed=row[COL_NAME_CLOSED],
+							  in_ka=row[COL_NAME_IN_KA],
+							  type=row[COL_NAME_TYPE]
+							  # in_service=row[COL_NAME_SERVICE]
+							  )
+			switches_ids[row[COL_NAME_NAME]] = pp.create_switch(
+				**{key: value for key, value in kwargs_gen.items() if value is not None})
+
 		# Creating the cost function
 		# df_cost = pd.read_excel(networkFile, sheet_name=SHEET_NAME_COST)
 		# df_cost = df_cost.where(pd.notnull(df_cost), None)
@@ -493,7 +530,7 @@ class Network:
 
 	def calculate_outages_schedule(self, simulationTime, hazardTime):
 		'''
-		Add description of create_outages function
+		outagesSchedule = 1 iif <-> powerElement is available
 		'''
 		failureCandidates = self.get_failure_candidates()
 		# crews = self.crews
@@ -501,7 +538,7 @@ class Network:
 			[x.failureProb for x in failureCandidates.values()])
 		# randomNumber = 1
 		# while (randomNumber > failureProbability).all():  # random until a failure happens
-		# 	randomNumber = np.random.rand()
+		#   randomNumber = np.random.rand()
 		randomNumber = np.random.rand()
 		failure = np.where((randomNumber <= failureProbability), np.random.randint(
 			hazardTime.start, [hazardTime.stop]*len(failureCandidates)), simulationTime.stop)
@@ -539,16 +576,41 @@ class Network:
 		self.outagesSchedule = outagesSchedule
 		self.crewSchedule = crewSchedule
 
-	def get_powerelement(self, id):
-		return next((x[id] for x in [self.loads, self.generators, self.transformers, self.lines] if id in x), None)
+	def calculate_switches_schedule(self, simulationTime):
+		"""
+		Switches will open (i.e. switch.closed = 0) if at least one of its disconnecting_element is in outagesSchedule and its value is zero. They keep their initial state otherwise.
+		switchesSchedule = 1 <-> switch is closed
+		"""
+		switchesSchedule = pd.DataFrame.from_dict(
+			{k: [v.closed]*simulationTime.duration for k, v in self.switches.items()}, dtype='int')  # forcing int is important!
+		switchesSchedule.index = simulationTime.interval
+		for switch_id in [x for x in switchesSchedule if self.switches[x].disconnecting_elements is not None]:
+			filter = self.outagesSchedule.columns.intersection(
+				self.switches[switch_id].disconnecting_elements)
+			# multiplication with initial values is necessary to respect initial state
+			switchesSchedule[switch_id] = switchesSchedule[switch_id] * \
+				(self.outagesSchedule[filter] > 0).all(axis=1)
+		self.switchesSchedule = switchesSchedule
 
-	def propagate_outages_to_network_elements(self):
+	def get_powerelement(self, id):
+		# It assumes ids are unique!
+		return next((x[id] for x in [self.loads, self.generators, self.transformers, self.lines, self.switches] if id in x), None)
+
+	def propagate_schedules_to_network_elements(self):
+		"""
+		Defines 'in_service' attribute from outagesSchedule for powerElements
+		Defines 'closed' attribute from switchesSchedule for switches
+		"""
 		df_in_service = self.outagesSchedule > 0
-		for elementId in df_in_service:
-			element = self.get_powerelement(elementId)
-			element.in_service = df_in_service[elementId]
-			self.update_montecarlo_variables(standard_dict(content=element, type=type(
-				element).__name__, id=elementId, field='in_service'))  # elements are pointers
+		df_closed = self.switchesSchedule > 0
+		iterator = [['in_service', df_in_service], ['closed', df_closed]]
+		for field, y in iterator:
+			for elementId in y:
+				element = self.get_powerelement(elementId)
+				setattr(element, field, y[elementId])
+				# element.in_service = df_in_service[elementId]
+				self.update_montecarlo_variables(standard_dict(content=element, type=type(
+					element).__name__, id=elementId, field=field))  # elements are pointers
 
 	def update_montecarlo_variables(self, standard_dict):
 		element = find_element_in_standard_dict_list(
@@ -565,7 +627,11 @@ class Network:
 		return build_database(self.mcVariables).loc[time.start: time.stop-1]
 
 	def build_timeseries_database(self, time):
-		return build_database(get_datatype_elements([self.loads, self.generators, self.transformers, self.lines], TIMESERIES_CLASS)).loc[time.start: time.stop-1]
+		""" 
+		From the list [loads, generators, transformers, lines, switches] it creates a database with all the fields corresponding to timeseries
+		TODO: Replace list by a function that will recognise powerElement-type instances
+		"""
+		return build_database(get_datatype_elements([self.loads, self.generators, self.transformers, self.lines, self.switches], TIMESERIES_CLASS)).loc[time.start: time.stop-1]
 
 	def calculate_metrics(self):
 		self.metrics = []
@@ -600,8 +666,8 @@ class Network:
 			out.append(df)
 		return pd.concat(out, axis=1)
 
-
 	def run(self, time, **kwargs):
+		# TODO: to include an argument to choose which elements will not be considered in the timeseries simulation. For instance, running a simulation with/without switches
 		return self.calculationEngine.run(self.build_timeseries_database(time), **kwargs)
 
 
@@ -654,9 +720,10 @@ class History:
 
 	def print(self):
 		'''
-		Add description of print function
+		Add description of int function
 		'''
 		pass
+
 
 class GeoData:
 	'''
@@ -674,6 +741,7 @@ class PowerElement:
 
 	:attribute fragilityCurve: string, the type of the fragility curve
 	'''
+
 	def __init__(self, **kwargs):
 		self.id = None
 		self.node = None
@@ -715,8 +783,10 @@ class PowerElement:
 
 	def update_failure_probability(self, network):
 		node = network.nodes[self.node]
-		_, event_intensity = network.event.get_intensity(node.longitude, node.latitude)
-		self.failureProb = network.fragilityCurves[self.fragilityCurve].interpolate(event_intensity.max())
+		_, event_intensity = network.event.get_intensity(
+			node.longitude, node.latitude)
+		self.failureProb = network.fragilityCurves[self.fragilityCurve].interpolate(
+			event_intensity.max())
 
 	def fail(self):
 		'''
@@ -755,8 +825,26 @@ class Bus(PowerElement):
 		super().__init__(**kwargs)
 
 	def update_failure_probability(self, network):
-		_, event_intensity = network.event.get_intensity(self.longitude, self.latitude)
-		self.failureProb = network.fragilityCurves[self.fragilityCurve].interpolate(event_intensity.max())
+		_, event_intensity = network.event.get_intensity(
+			self.longitude, self.latitude)
+		self.failureProb = network.fragilityCurves[self.fragilityCurve].interpolate(
+			event_intensity.max())
+
+
+class Switch(PowerElement):
+	def __init__(self, kwargs):
+		# element type: “l” = switch between bus and line, “t” = switch between bus and transformer, “t3” = switch between bus and transformer3w, “b” = switch between two buses'
+		self.et = None
+		self.element = None
+		self.closed = None
+		self.in_ka = None
+		self.type = None
+		self.disconnecting_elements = None
+		super().__init__(**kwargs)
+		if self.disconnecting_elements:
+			self.disconnecting_elements = [
+				x.strip() for x in self.disconnecting_elements.split(',')]
+
 
 class Generator(PowerElement):
 	'''
@@ -826,8 +914,11 @@ class Transformer(PowerElement):
 
 	def update_failure_probability(self, network):
 		node = network.nodes[self.node_p]
-		_, event_intensity = network.event.get_intensity(node.longitude, node.latitude)
-		self.failureProb = network.fragilityCurves[self.fragilityCurve].interpolate(event_intensity.max())
+		_, event_intensity = network.event.get_intensity(
+			node.longitude, node.latitude)
+		self.failureProb = network.fragilityCurves[self.fragilityCurve].interpolate(
+			event_intensity.max())
+
 
 class Line(PowerElement):
 	'''
@@ -860,11 +951,15 @@ class Line(PowerElement):
 		nb_segments = math.ceil(self.length_km/self.lineSpan)
 		probFailure = []
 		for i_segment in range(nb_segments+1):
-			lon = node1.longitude + i_segment*(node2.longitude-node1.longitude)/nb_segments
-			lat = node1.latitude + i_segment*(node2.latitude-node1.latitude)/nb_segments
+			lon = node1.longitude + i_segment * \
+				(node2.longitude-node1.longitude)/nb_segments
+			lat = node1.latitude + i_segment * \
+				(node2.latitude-node1.latitude)/nb_segments
 			_, event_intensity = network.event.get_intensity(lon, lat)
-			probFailure.append(network.fragilityCurves[self.fragilityCurve].interpolate(event_intensity.max()))
+			probFailure.append(
+				network.fragilityCurves[self.fragilityCurve].interpolate(event_intensity.max()))
 		self.failureProb = sum(probFailure)
+
 
 class Crew:
 	'''

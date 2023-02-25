@@ -111,3 +111,11 @@ SHEET_NAME_SIMULATION = 'simulation'
 COL_NAME_FIELD = 'field'
 COL_NAME_VALUE = 'value'
 COL_NAME_UNIT = 'unit'
+
+SHEET_NAME_SWITCHES = 'switches'
+COL_NAME_ELEMENT = 'element'
+COL_NAME_ET = 'et'
+COL_NAME_CLOSED = 'closed'
+COL_NAME_IN_KA = 'in_ka'
+
+COL_NAME_DISCONECTING_ELEMENTS = 'disconnecting_elements'

@@ -90,3 +90,7 @@ hazard start time,hazardStartTime,,
 hazard duration,hazardDuration,,int
 failureProb,failureProb,,float
 normalTTR,normalTTR,,float
+et,et,,
+closed,closed,,
+in_ka,in_ka,,
+DS,DS,,
