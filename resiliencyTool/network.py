@@ -19,10 +19,11 @@ from . import hazard
 
 from mpl_toolkits.basemap import Basemap
 # TODO:
-
 # TODO: improve warning messages in Network and PowerElement
 # TODO: displace fragility curve elements
 # TODO: revise following contants
+# OBS: Not all elements can be set to iMontecarlo = True. The montecarlo_database.csv file cannot be empty
+
 COL_NAME_FRAGILITY_CURVE = 'fragilityCurve'
 COL_NAME_KF = 'kf'
 COL_NAME_RESILIENCE_FULL = 'resilienceFull'
@@ -506,22 +507,30 @@ class Network:
 				**{key: value for key, value in kwargs_cost.items() if value is not None})
 		return network
 
+	# def get_failure_candidates(self):
+	# 	keys = []
+	# 	values = []
+	# 	for x in [x for x in self.__dict__.values() if isinstance(x, dict)]:
+	# 		values += [y for y in x.values() if hasattr(y, 'failureProb')
+	# 				   and y.failureProb != None]
+	# 		keys += [y.id for y in x.values() if hasattr(y, 'failureProb')
+	# 				 and y.failureProb != None]
+	# 	return dict(zip(keys, values))
+
 	def get_failure_candidates(self):
-		keys = []
-		values = []
+		out = {}
 		for x in [x for x in self.__dict__.values() if isinstance(x, dict)]:
-			values += [y for y in x.values() if hasattr(y, 'failureProb')
-					   and y.failureProb != None]
-			keys += [y.id for y in x.values() if hasattr(y, 'failureProb')
-					 and y.failureProb != None]
-		return dict(zip(keys, values))
+			out.update({y.id:y for y in x.values() if hasattr(y, 'failureProb')
+					   and y.failureProb != None and y.iMontecarlo != True})
+		return out
 
 	def get_closest_available_crews(self, availableCrew, powerElements):
 		aux = len(powerElements)
 		return powerElements[0:aux], availableCrew[0:aux]
 
 	def get_crews_traveling_time(self, crew, powerElements):
-		time = np.random.randint(10)
+		# time = np.random.randint(10)
+		time = 0
 		return [time]*len(crew)
 
 	def get_reparing_time(self, powerElementsID, powerElements):
@@ -530,7 +539,7 @@ class Network:
 
 	def calculate_outages_schedule(self, simulationTime, hazardTime):
 		'''
-		outagesSchedule = 1 iif <-> powerElement is available
+		outagesSchedule = 1 iif powerElement is available
 		'''
 		failureCandidates = self.get_failure_candidates()
 		# crews = self.crews
@@ -576,20 +585,25 @@ class Network:
 		self.outagesSchedule = outagesSchedule
 		self.crewSchedule = crewSchedule
 
+	def get_switch_candidates(self):
+		return {k:v for k,v in self.switches.items() if v.associatedElements != None and v.iMontecarlo != True}
+
 	def calculate_switches_schedule(self, simulationTime):
 		"""
-		Switches will open (i.e. switch.closed = 0) if at least one of its disconnecting_element is in outagesSchedule and its value is zero. They keep their initial state otherwise.
-		switchesSchedule = 1 <-> switch is closed
+		Switches will negate 'closed_' state iif at least one of its disconnecting_element is in outagesSchedule and its value is zero. This is done by a XNOR between closed_ values and previous condition.
+		switchesSchedule = 1 iif switch is closed
+		OBS: If a powerElement is excluded from self.outagesSchedule (e.g. iMontecarlo = True) then it will play no role on the determination of its associated switches' status.
 		"""
 		switchesSchedule = pd.DataFrame.from_dict(
-			{k: [v.closed]*simulationTime.duration for k, v in self.switches.items()}, dtype='int')  # forcing int is important!
+			{k: [v.closed_]*simulationTime.duration for k, v in self.get_switch_candidates().items()}, dtype='int')  # forcing int is important!
+		# switchesSchedule2 = pd.DataFrame.from_dict(
+		# 	{k: [v.closed_]*simulationTime.duration for k, v  in self.switches.items() if v.associatedElements != None}, dtype='int') 
 		switchesSchedule.index = simulationTime.interval
-		for switch_id in [x for x in switchesSchedule if self.switches[x].disconnecting_elements is not None]:
+		for switch_id in switchesSchedule:
+		# for switch_id in [x for x in switchesSchedule if self.switches[x].associatedElements is not None]:
 			filter = self.outagesSchedule.columns.intersection(
-				self.switches[switch_id].disconnecting_elements)
-			# multiplication with initial values is necessary to respect initial state
-			switchesSchedule[switch_id] = switchesSchedule[switch_id] * \
-				(self.outagesSchedule[filter] > 0).all(axis=1)
+				self.switches[switch_id].associatedElements)
+			switchesSchedule[switch_id] = (switchesSchedule[switch_id] == (self.outagesSchedule[filter] > 0).all(axis=1))*1 #XNOR
 		self.switchesSchedule = switchesSchedule
 
 	def get_powerelement(self, id):
@@ -598,8 +612,8 @@ class Network:
 
 	def propagate_schedules_to_network_elements(self):
 		"""
-		Defines 'in_service' attribute from outagesSchedule for powerElements
-		Defines 'closed' attribute from switchesSchedule for switches
+		Assigns 'in_service' field based on outagesSchedule for powerElements
+		Assigns 'closed' field based on switchesSchedule for switches
 		"""
 		df_in_service = self.outagesSchedule > 0
 		df_closed = self.switchesSchedule > 0
@@ -618,7 +632,7 @@ class Network:
 		if not element or element['field'] != standard_dict['field']:
 			self.mcVariables.append(standard_dict)
 
-	def updateGrid(self, montecarlo_database):
+	def update_grid(self, montecarlo_database):
 		for type, id, field in montecarlo_database.columns.dropna():  # useful for empty database
 			setattr(self.get_powerelement(id), field,
 					montecarlo_database[type, id, field])
@@ -634,6 +648,7 @@ class Network:
 		return build_database(get_datatype_elements([self.loads, self.generators, self.transformers, self.lines, self.switches], TIMESERIES_CLASS)).loc[time.start: time.stop-1]
 
 	def calculate_metrics(self):
+		# DEPRECATED
 		self.metrics = []
 
 		def elements_in_service():
@@ -650,11 +665,12 @@ class Network:
 								   elements_in_service().sum(), subfield='subfield_1', unit='unit_1'))
 
 	def build_metrics_database(self):
+		# DEPRECATED
 		# TODO: make it recurrent
 		out = []
 		for metric in self.metrics:
 			keys, values = zip(
-				*[(key, value) for key, value in metric.__dict__.items() if key is not 'value'])
+				*[(key, value) for key, value in metric.__dict__.items() if key != 'value'])
 			if isinstance(metric.value, pd.DataFrame) or isinstance(metric.value, pd.Series):
 				value = metric.value.values
 				index = metric.value.index
@@ -749,6 +765,7 @@ class PowerElement:
 		self.fragilityCurve = None
 		self.normalTTR = None
 		self.inService = None
+		self.iMontecarlo = None
 		for key, value in kwargs.items():
 			if hasattr(self, key):
 				setattr(self, key, value)
@@ -839,11 +856,12 @@ class Switch(PowerElement):
 		self.closed = None
 		self.in_ka = None
 		self.type = None
-		self.disconnecting_elements = None
+		self.associatedElements = None
 		super().__init__(**kwargs)
-		if self.disconnecting_elements:
-			self.disconnecting_elements = [
-				x.strip() for x in self.disconnecting_elements.split(',')]
+		self.closed_ = self.closed
+		if self.associatedElements:
+			self.associatedElements = [
+				x.strip() for x in self.associatedElements.split(',')]
 
 
 class Generator(PowerElement):

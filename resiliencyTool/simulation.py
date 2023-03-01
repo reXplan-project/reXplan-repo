@@ -212,7 +212,7 @@ class Sim:
 		databases = []
 		for i in iterations:
 			print(f'Iteration = {i}')
-			network.updateGrid(df_montecarlo[i])
+			network.update_grid(df_montecarlo[i])
 			databases.append(network.run(time_,**kwargs))
 		self.results = enrich_database(build_database(iterations, databases, self.externalTimeInterval))
 		if saveOutput:

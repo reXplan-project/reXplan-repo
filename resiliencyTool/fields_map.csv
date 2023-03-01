@@ -9,7 +9,7 @@ latitude,latitude,,float
 zone,zone,,
 max_vm_pu,max_vm_pu,,float
 min_vm_pu,min_vm_pu,,float
-in_service,in_service,,bool
+in_service,inService,,bool
 fragility_curve,fragilityCurve,,
 kf,kf,,
 resilienceFull,resilienceFull,,
@@ -93,4 +93,5 @@ normalTTR,normalTTR,,float
 et,et,,
 closed,closed,,
 in_ka,in_ka,,
-DS,DS,,
+associated elements,associatedElements,,
+ignore montecarlo,iMontecarlo,,
