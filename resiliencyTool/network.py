@@ -22,7 +22,7 @@ from mpl_toolkits.basemap import Basemap
 # TODO: improve warning messages in Network and PowerElement
 # TODO: displace fragility curve elements
 # TODO: revise following contants
-# OBS: Not all elements can be set to iMontecarlo = True. The montecarlo_database.csv file cannot be empty
+# OBS: Not all elements can be set to i_montecarlo = True. The montecarlo_database.csv file cannot be empty
 
 COL_NAME_FRAGILITY_CURVE = 'fragilityCurve'
 COL_NAME_KF = 'kf'
@@ -521,7 +521,7 @@ class Network:
 		out = {}
 		for x in [x for x in self.__dict__.values() if isinstance(x, dict)]:
 			out.update({y.id:y for y in x.values() if hasattr(y, 'failureProb')
-					   and y.failureProb != None and y.iMontecarlo != True})
+					   and y.failureProb != None and y.i_montecarlo != True})
 		return out
 
 	def get_closest_available_crews(self, availableCrew, powerElements):
@@ -586,23 +586,23 @@ class Network:
 		self.crewSchedule = crewSchedule
 
 	def get_switch_candidates(self):
-		return {k:v for k,v in self.switches.items() if v.associatedElements != None and v.iMontecarlo != True}
+		return {k:v for k,v in self.switches.items() if v.associated_elements != None and v.i_montecarlo != True}
 
 	def calculate_switches_schedule(self, simulationTime):
 		"""
 		Switches will negate 'closed_' state iif at least one of its disconnecting_element is in outagesSchedule and its value is zero. This is done by a XNOR between closed_ values and previous condition.
 		switchesSchedule = 1 iif switch is closed
-		OBS: If a powerElement is excluded from self.outagesSchedule (e.g. iMontecarlo = True) then it will play no role on the determination of its associated switches' status.
+		OBS: If a powerElement is excluded from self.outagesSchedule (e.g. i_montecarlo = True) then it will play no role on the determination of its associated switches' status.
 		"""
 		switchesSchedule = pd.DataFrame.from_dict(
 			{k: [v.closed_]*simulationTime.duration for k, v in self.get_switch_candidates().items()}, dtype='int')  # forcing int is important!
 		# switchesSchedule2 = pd.DataFrame.from_dict(
-		# 	{k: [v.closed_]*simulationTime.duration for k, v  in self.switches.items() if v.associatedElements != None}, dtype='int') 
+		# 	{k: [v.closed_]*simulationTime.duration for k, v  in self.switches.items() if v.associated_elements != None}, dtype='int') 
 		switchesSchedule.index = simulationTime.interval
 		for switch_id in switchesSchedule:
-		# for switch_id in [x for x in switchesSchedule if self.switches[x].associatedElements is not None]:
+		# for switch_id in [x for x in switchesSchedule if self.switches[x].associated_elements is not None]:
 			filter = self.outagesSchedule.columns.intersection(
-				self.switches[switch_id].associatedElements)
+				self.switches[switch_id].associated_elements)
 			switchesSchedule[switch_id] = (switchesSchedule[switch_id] == (self.outagesSchedule[filter] > 0).all(axis=1))*1 #XNOR
 		self.switchesSchedule = switchesSchedule
 
@@ -764,8 +764,8 @@ class PowerElement:
 		self.failureProb = None
 		self.fragilityCurve = None
 		self.normalTTR = None
-		self.inService = None
-		self.iMontecarlo = None
+		self.in_service = None
+		self.i_montecarlo = None
 		for key, value in kwargs.items():
 			if hasattr(self, key):
 				setattr(self, key, value)
@@ -784,7 +784,7 @@ class PowerElement:
 									inReparation=False,
 									normalTTR=None,
 									distTTR=0,
-									inService=True,
+									in_service=True,
 									kw=None):
 
 		# self.geodata = geodata
@@ -795,7 +795,7 @@ class PowerElement:
 		self.inReparation = inReparation
 		self.normalTTR = normalTTR
 		self.distTTR = distTTR
-		self.inService = inService
+		self.in_service = in_service
 		# self.kw = kw
 
 	def update_failure_probability(self, network):
@@ -856,12 +856,12 @@ class Switch(PowerElement):
 		self.closed = None
 		self.in_ka = None
 		self.type = None
-		self.associatedElements = None
+		self.associated_elements = None
 		super().__init__(**kwargs)
 		self.closed_ = self.closed
-		if self.associatedElements:
-			self.associatedElements = [
-				x.strip() for x in self.associatedElements.split(',')]
+		if self.associated_elements:
+			self.associated_elements = [
+				x.strip() for x in self.associated_elements.split(',')]
 
 
 class Generator(PowerElement):
