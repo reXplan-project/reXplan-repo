@@ -116,7 +116,8 @@ class Network:
 		self.lineTypes = {}
 		self.crews = {}
 		self.fragilityCurves = fragilitycurve.build_fragility_curve_database(simulationName)
-		self.event = hazard.Hazard() 
+		self.event = hazard.Hazard(simulationName)
+		self.return_period = hazard.ReturnPeriod(simulationName) 
 
 		self.pp_network = None
 
@@ -225,6 +226,8 @@ class Network:
 		
 		for el in powerElements.values():
 			el.update_failure_probability(self)
+
+		return powerElements
 
 	def build_pp_network(self, df_network, df_bus, df_tr, df_tr_type, df_ln, df_ln_type, df_load, df_ex_gen, df_gen, df_cost):
 		# TODO: it seems this funciton is missplaced. Can it be moved to engine.pandapower?
@@ -864,7 +867,7 @@ class Line(PowerElement):
 			lat = node1.latitude + i_segment*(node2.latitude-node1.latitude)/nb_segments
 			_, event_intensity = network.event.get_intensity(lon, lat)
 			probFailure.append(network.fragilityCurves[self.fragilityCurve].interpolate(event_intensity.max()))
-		self.failureProb = sum(probFailure)
+		self.failureProb = 1-np.prod(1-np.array(probFailure))
 
 class Crew:
 	'''

@@ -196,6 +196,40 @@ class Sim:
 		out = build_database(iterations, databases, self.externalTimeInterval)
 		out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
 
+	def pre_run2(self, network, filename, iterationNumber):
+		databases = []
+		iterations = range(iterationNumber)
+
+		powerElements = {**network.lines, 
+						 **network.generators,
+						 **network.loads, 
+						 **network.transformers}
+
+		network.return_period.update_return_period(filename)
+
+		x_min = 0.722
+		x_max = 1.5
+		N = 10000
+		x = network.return_period.resample_hazard_intensity(x_min, x_max, N)
+
+		z = []
+		for el in powerElements.values():
+			z.append(network.fragilityCurves[el.fragilityCurve].interpolate(x))
+		return z
+
+		#for strata
+			# get random event intensity
+			# powerlement.failureprob update
+
+			#for i in iterations:
+			#	print(f'Iteration = {i}')
+			#	network.calculate_outages_schedule(self.time, self.hazardTime)
+			#	network.propagate_outages_to_network_elements()
+			#	databases.append(network.build_montecarlo_database(self.time))
+
+	#	out = build_database(iterations, databases, self.externalTimeInterval)
+	#	out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
+
 	def run(self, network, iterationSet = None, saveOutput = True, time = None, **kwargs):
 		# TODO: call const.py instead of 'iteration'
 		time_ = self.time
