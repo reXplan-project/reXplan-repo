@@ -770,9 +770,14 @@ class PowerElement:
 			if hasattr(self, key):
 				setattr(self, key, value)
 			else:
-				warnings.warn(f'Input parameter "{key}" unknown in {kwargs} .')
+				warnings.warn(f'Input parameter "{key}" is not a valid attribute of the "{self.__class__.__name__}" class.')
 		if self.id is None:
 			self.id = utils.get_GLOBAL_ID()
+			warnings.warn(f'No "id" defined as input for {self}. The folloging identifier was assigned: {self.id}.')
+		if self.in_service == False:
+			if self.i_montecarlo == False:
+				warnings.warn(f'Forcing "ignore montecarlo" to "True" for {self.id}.')
+			self.i_montecarlo = True
 
 	def initiate_failure_parameters(self,
 									id=None,
@@ -839,6 +844,8 @@ class Bus(PowerElement):
 		self.elapsedReparationTime = None  # TODO: Firas's code
 		self.longitude = None
 		self.latitude = None
+		self.max_vm_pu = None
+		self.min_vm_pu = None
 		super().__init__(**kwargs)
 
 	def update_failure_probability(self, network):
