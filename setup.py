@@ -23,7 +23,7 @@ setuptools.setup(
     #    "Operating System :: OS Independent",
     #],
     #package_dir={"": "src"},
-    python_requires=">=3.6",
+    python_requires=">=3.10",
     install_requires=[
         'dash>=2.6.0',
         # 'matplotlib>=3.5.2',

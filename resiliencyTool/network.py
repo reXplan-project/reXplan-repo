@@ -64,16 +64,6 @@ def get_datatype_elements(object, class_):
 		out = []
 	return out + list(itertools.chain(*[get_datatype_elements(x, class_) for x in iterateOver]))
 
-# def get_content_filtered_by_time(df, time):
-#     # TODO: REMOVE
-#     return df.loc[time.start:time.stop-1].values
-
-# def build_df_database(values, columns, columnNames, index):
-#     # TODO: REMOVE
-#     out = [pd.DataFrame(x, columns=pd.MultiIndex.from_tuples(
-#         [y], names=columnNames), index=index) for x, y in zip(values, columns)]
-#     return pd.concat(out, axis=1)
-
 
 def build_database(standard_dict_list, get_value_from_content=True):
 	columnNames = [*standard_dict_list[0]]
@@ -518,11 +508,12 @@ class Network:
 	# 	return dict(zip(keys, values))
 
 	def get_failure_candidates(self):
-		out = {}
+		candidates = {}
 		for x in [x for x in self.__dict__.values() if isinstance(x, dict)]:
-			out.update({y.id:y for y in x.values() if hasattr(y, 'failureProb')
+			candidates.update({y.id:y for y in x.values() if hasattr(y, 'failureProb')
 					   and y.failureProb != None and y.i_montecarlo != True})
-		return out
+		priorities = [x.priority if x.priority  != None else float('inf') for x in candidates.values()] # infinity for None priorities
+		return {x:candidates[x] for _,x  in sorted(zip(priorities, candidates))}
 
 	def get_closest_available_crews(self, availableCrew, powerElements):
 		aux = len(powerElements)
@@ -766,6 +757,7 @@ class PowerElement:
 		self.normalTTR = None
 		self.in_service = None
 		self.i_montecarlo = None
+		self.priority = None
 		for key, value in kwargs.items():
 			if hasattr(self, key):
 				setattr(self, key, value)
