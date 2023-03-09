@@ -17,6 +17,13 @@ from . import engine
 from . import fragilitycurve
 from . import hazard
 
+# For stratification using the R language
+import rpy2
+import rpy2.robjects as robjects
+from rpy2.robjects.packages import importr
+from rpy2.robjects import pandas2ri
+import rpy2.rlike.container as rlc
+
 from mpl_toolkits.basemap import Basemap
 # TODO: 
 
@@ -213,7 +220,7 @@ class Network:
 				df_cost=df_cost
 			)
 
-	def update_failure_probability(self):
+	def update_failure_probability(self, intensity=None):
 		'''
 		This function updates the failure probability of the power elements of the network.
 		The event object must be defined before calling this method.
@@ -223,10 +230,8 @@ class Network:
 						 **self.generators,
 						 **self.loads, 
 						 **self.transformers}
-		
 		for el in powerElements.values():
-			el.update_failure_probability(self)
-
+			el.update_failure_probability(self, intensity=intensity)
 		return powerElements
 
 	def build_pp_network(self, df_network, df_bus, df_tr, df_tr_type, df_ln, df_ln_type, df_load, df_ex_gen, df_gen, df_cost):
@@ -499,15 +504,17 @@ class Network:
 		Add description of create_outages function
 		'''
 		failureCandidates = self.get_failure_candidates()
+
 		# crews = self.crews
-		failureProbability = np.array(
-			[x.failureProb for x in failureCandidates.values()])
+		failureProbability = np.array([x.failureProb for x in failureCandidates.values()])
+
 		# randomNumber = 1
 		# while (randomNumber > failureProbability).all():  # random until a failure happens
 		# 	randomNumber = np.random.rand()
 		randomNumber = np.random.rand()
-		failure = np.where((randomNumber <= failureProbability), np.random.randint(
-			hazardTime.start, [hazardTime.stop]*len(failureCandidates)), simulationTime.stop)
+		failure = np.where((randomNumber <= failureProbability), 
+							np.random.randint(hazardTime.start, [hazardTime.stop]*len(failureCandidates)),
+							simulationTime.stop)
 		crewSchedule = pd.DataFrame([[1]*len(self.crews)]*simulationTime.duration,
 									columns=self.crews.keys(), index=simulationTime.interval)
 		outagesSchedule = pd.DataFrame([[STATUS['on']]*len(failureCandidates)] *
@@ -518,22 +525,18 @@ class Network:
 
 		for index, row in outagesSchedule.iterrows():
 			failureElements = row.index[row == 0].tolist()
-			availableCrews = crewSchedule.loc[index][crewSchedule.loc[index] == 1].index.tolist(
-			)
-			elementsToRepair, repairingCrews = self.get_closest_available_crews(
-				availableCrews, failureElements)
-			crewsTravelingTime = self.get_crews_traveling_time(
-				repairingCrews, elementsToRepair)
-			repairingTime = self.get_reparing_time(
-				elementsToRepair, failureCandidates)
+			availableCrews = crewSchedule.loc[index][crewSchedule.loc[index] == 1].index.tolist()
+			elementsToRepair, repairingCrews = self.get_closest_available_crews(availableCrews, failureElements)
+			crewsTravelingTime = self.get_crews_traveling_time(repairingCrews, elementsToRepair)
+			repairingTime = self.get_reparing_time(elementsToRepair, failureCandidates)
 
 			for t_0, t_1, e, c in zip(crewsTravelingTime, repairingTime, elementsToRepair, repairingCrews):
-				outagesSchedule.loc[index+1:index+t_0, e] = STATUS['waiting']
-				outagesSchedule.loc[index+t_0+1:index +
-									t_0+t_1, e] = STATUS['reparing']
+				outagesSchedule.loc[index+1:index + t_0, e] = STATUS['waiting']
+				outagesSchedule.loc[index+t_0+1:index + t_0 + t_1, e] = STATUS['reparing']
 				# Following line can be removed if outagesSchedule is set to 1 on at failure time
 				outagesSchedule.loc[index+t_0+t_1+1:, e] = STATUS['on']
 				crewSchedule.loc[index+1:index+t_0+t_1, c] = e
+
 			if not outagesSchedule.loc[index+1:].isin([STATUS['on']]).any().any():
 				# print(outagesSchedule.join(crewSchedule))
 				self.outagesSchedule = outagesSchedule
@@ -606,6 +609,61 @@ class Network:
 
 	def run(self, time, **kwargs):
 		return self.calculationEngine.run(self.build_timeseries_database(time), **kwargs)
+
+	def calc_stratas(self, data, cv=0.1):
+		stratify = importr('SamplingStrata')
+		base = importr('base')
+		pandas2ri.activate()
+
+		ids = list(range(len(data)))
+		domain = [1]*len(data)
+
+		Y = ["id"]
+		y = [ids]
+		cv_ = ["DOM1"]
+		CV_ = ["DOM"]
+
+		n = 1
+		for fc_name, fc in self.fragilityCurves.items():
+			Y.append(fc_name)
+			y.append(fc.interpolate(data))
+			cv_.append(cv)
+			CV_.append(str("CV" + str(n)))
+			n += 1
+		
+		Y.extend(["x", "domain"])
+		y.extend([data, domain])
+		cv_.append(1)
+		CV_.append("domainvalue")
+
+		df = pd.DataFrame(np.transpose(np.array(y)), columns=Y)
+
+		frame = stratify.buildFrameDF(df=robjects.conversion.py2rpy(df),
+										id = "id", X = ["x"], Y = Y[1:-2],
+										domainvalue = "domain")
+
+		df_cv = base.as_data_frame(rlc.TaggedList(cv_, tags=tuple(CV_)))
+
+		kmean = stratify.KmeansSolution2(frame=frame,
+											errors=df_cv,
+											maxclusters = 10,
+											showPlot = False)
+
+		nstrat = np.unique(robjects.conversion.rpy2py(kmean)["suggestions"].values).size
+
+		sugg = stratify.prepareSuggestion(kmean=kmean, frame=frame, nstrat=nstrat)
+
+		solution = stratify.optimStrata(method = "continuous", errors = df_cv,
+										framesamp = frame, iter = 50,
+										pops = 20, nStrata = nstrat,
+										suggestions = sugg, showPlot = False,
+										parallel=True)
+
+		strataStructure = stratify.summaryStrata(robjects.conversion.rpy2py(solution)[2],
+												robjects.conversion.rpy2py(solution)[1],
+												progress=False)
+
+		return(robjects.conversion.rpy2py(strataStructure))
 
 
 class MonteCarloVariable:
@@ -716,10 +774,15 @@ class PowerElement:
 		self.inService = inService
 		# self.kw = kw
 
-	def update_failure_probability(self, network):
-		node = network.nodes[self.node]
-		_, event_intensity = network.event.get_intensity(node.longitude, node.latitude)
-		self.failureProb = network.fragilityCurves[self.fragilityCurve].interpolate(event_intensity.max())
+	def update_failure_probability(self, network, intensity=None):
+		if self.fragilityCurve == None:
+			self.failureProb = 0
+		else:
+			node = network.nodes[self.node]
+			if intensity == None:
+				_, event_intensity = network.event.get_intensity(node.longitude, node.latitude)
+				intensity = event_intensity.max()
+			self.failureProb = network.fragilityCurves[self.fragilityCurve].interpolate(intensity)[0]
 
 	def fail(self):
 		'''
@@ -757,9 +820,15 @@ class Bus(PowerElement):
 		self.latitude = None
 		super().__init__(**kwargs)
 
-	def update_failure_probability(self, network):
-		_, event_intensity = network.event.get_intensity(self.longitude, self.latitude)
-		self.failureProb = network.fragilityCurves[self.fragilityCurve].interpolate(event_intensity.max())
+	def update_failure_probability(self, network, intensity=None):			
+		if self.fragilityCurve == None:
+			self.failureProb = 0
+		else:
+			if intensity == None:
+				_, event_intensity = network.event.get_intensity(self.longitude, self.latitude)
+				intensity = event_intensity.max()
+			self.failureProb = network.fragilityCurves[self.fragilityCurve].interpolate(intensity)[0]
+
 
 class Generator(PowerElement):
 	'''
@@ -827,10 +896,15 @@ class Transformer(PowerElement):
 		self.elapsedReparationTime = None  # TODO: Firas's code
 		super().__init__(**kwargs)
 
-	def update_failure_probability(self, network):
-		node = network.nodes[self.node_p]
-		_, event_intensity = network.event.get_intensity(node.longitude, node.latitude)
-		self.failureProb = network.fragilityCurves[self.fragilityCurve].interpolate(event_intensity.max())
+	def update_failure_probability(self, network, intensity=None):
+		if self.fragilityCurve == None:
+			self.failureProb = 0
+		else:
+			node = network.nodes[self.node_p]
+			if intensity == None:
+				_, event_intensity = network.event.get_intensity(node.longitude, node.latitude)
+				intensity = event_intensity.max()
+			self.failureProb = network.fragilityCurves[self.fragilityCurve].interpolate(intensity)[0]
 
 class Line(PowerElement):
 	'''
@@ -857,17 +931,22 @@ class Line(PowerElement):
 		self.towers = None  # TODO: Firas's code
 		super().__init__(**kwargs)
 
-	def update_failure_probability(self, network):
-		node1 = network.nodes[self.from_bus]
-		node2 = network.nodes[self.to_bus]
-		nb_segments = math.ceil(self.length_km/self.lineSpan)
-		probFailure = []
-		for i_segment in range(nb_segments+1):
-			lon = node1.longitude + i_segment*(node2.longitude-node1.longitude)/nb_segments
-			lat = node1.latitude + i_segment*(node2.latitude-node1.latitude)/nb_segments
-			_, event_intensity = network.event.get_intensity(lon, lat)
-			probFailure.append(network.fragilityCurves[self.fragilityCurve].interpolate(event_intensity.max()))
-		self.failureProb = 1-np.prod(1-np.array(probFailure))
+	def update_failure_probability(self, network, intensity=None):
+		if self.fragilityCurve == None:
+			self.failureProb = 0
+		else:
+			node1 = network.nodes[self.from_bus]
+			node2 = network.nodes[self.to_bus]
+			nb_segments = math.ceil(self.length_km/self.lineSpan)
+			probFailure = []
+			for i_segment in range(nb_segments+1):
+				lon = node1.longitude + i_segment*(node2.longitude-node1.longitude)/nb_segments
+				lat = node1.latitude + i_segment*(node2.latitude-node1.latitude)/nb_segments
+				if intensity == None:
+					_, event_intensity = network.event.get_intensity(lon, lat)
+					intensity = event_intensity.max()
+				probFailure.append(network.fragilityCurves[self.fragilityCurve].interpolate(intensity))		
+			self.failureProb = 1-np.prod(1-np.array(probFailure))
 
 class Crew:
 	'''

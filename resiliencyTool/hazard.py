@@ -476,19 +476,16 @@ class ReturnPeriod:
 	def interpolate_inv_return_period(self, newX):
 		return self.inv_log_gam.predict(np.log(newX))
 
-	def stratify(self, x_min, x_max, N, fragilitycurve, n_stratas):
+	def generate_samples(self, x_min, x_max, N):
 		X = np.linspace(x_min,x_max,N)
-		#CDF = [1-1/r for r in self.interpolate_return_period(X)]
-		#CDF_new_samples = np.linspace(CDF[0], CDF[-1], N)
+		
+		CDF = [1-1/r for r in self.interpolate_return_period(X)]
+		CDF_new_samples = np.linspace(CDF[0], CDF[-1], N)
 
-		pf_samples = fragilitycurve.interpolate(X)
-
-		return_period_resampled = [1/(1-pf) for pf in pf_samples]
+		return_period_resampled = [1/(1-cdf) for cdf in CDF_new_samples]
 		samples = self.interpolate_inv_return_period(return_period_resampled)
 
-		bins = jp.jenks_breaks(samples, n_classes=n_stratas)
-
-		return samples, bins
+		return samples
 
 	def stratify_old(self, x_min, x_max, N, fragilitycurve, n_stratas):
 		X = np.linspace(x_min,x_max,N)

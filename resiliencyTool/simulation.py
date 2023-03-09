@@ -7,6 +7,9 @@ from . import config
 from . import utils
 from.const import *
 
+import random
+import warnings
+
 DECIMAL_PRECISION = 1
 
 def convert_index_to_internal_time(df, df_int_ext_time):
@@ -165,14 +168,14 @@ class Sim:
 		self.hazardStartTime = None
 		self.hazardDuration = None
 		self.results = None
+		self.stratResults = None
 		df_simulation = pd.read_excel(config.path.networkFile(
 			simulationName), sheet_name=SHEET_NAME_SIMULATION, index_col=0)
 		allocate_column_values(self, df_simulation[COL_NAME_VALUE])
 		self.externalTimeInterval = get_index_as_dataSeries(pd.read_excel(config.path.networkFile(
 			simulationName), sheet_name=SHEET_NAME_PROFILES, index_col=0, header=[0, 1]))
 		self.time = self.to_internal_time(self.startTime, self.duration)
-		self.hazardTime = self.to_internal_time(
-			self.hazardStartTime, self.hazardDuration)
+		self.hazardTime = self.to_internal_time(self.hazardStartTime, self.hazardDuration)
 
 	def to_internal_time(self, startTime, duration):
 		# TODO: very important to check!
@@ -185,7 +188,7 @@ class Sim:
 		).index[0], self.externalTimeInterval[filter].dropna().index.size
 		return Time(start, duration)
 
-	def pre_run(self, network, iterationNumber):
+	def initialize_model_sh(self, network, iterationNumber):
 		databases = []
 		iterations = range(iterationNumber)
 		for i in iterations:
@@ -196,40 +199,63 @@ class Sim:
 		out = build_database(iterations, databases, self.externalTimeInterval)
 		out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
 
-	def pre_run2(self, network, filename, iterationNumber):
+	def initialize_model_rp(self, network, filename, iterationNumber, cv=0.1, maxTotalIteration=1000, nStrataSamples=10000, x_min=None, x_max=None):
 		databases = []
-		iterations = range(iterationNumber)
 
-		powerElements = {**network.lines, 
-						 **network.generators,
-						 **network.loads, 
-						 **network.transformers}
+		for j, fc in enumerate(network.fragilityCurves):
+			if j == 0:
+				xmin = min(network.fragilityCurves[fc].x_data)
+				xmax =max(network.fragilityCurves[fc].x_data)
+			else:
+				xmin = min(xmin, min(network.fragilityCurves[fc].x_data))
+				xmax = max(xmax, max(network.fragilityCurves[fc].x_data))
+
+		if x_min==None:
+			x_min = xmin
+		elif x_min < xmin:
+			warnings.warn(f'Warning: selected x_min is below than the data provided for the fragility curves: {x_min} < {xmin}')
+
+		if x_max==None:
+			x_max = xmax
+		elif x_max > xmax:
+			warnings.warn(f'Warning: selected x_max is greater than the data provided for the fragility curves: {x_max} > {xmax}')
 
 		network.return_period.update_return_period(filename)
+		z = network.return_period.generate_samples(x_min, x_max, nStrataSamples)
+		self.stratResults = network.calc_stratas(z, cv=cv)
 
-		x_min = 0.722
-		x_max = 1.5
-		N = 10000
-		x = network.return_period.resample_hazard_intensity(x_min, x_max, N)
+		if self.stratResults["Allocation"].sum()*iterationNumber >  maxTotalIteration:
+			warnings.warn(f'Warning: Estimated needed starta samples to reach cv = {cv} are greater than maxTotalIteration = {maxTotalIteration}')
 
-		z = []
-		for el in powerElements.values():
-			z.append(network.fragilityCurves[el.fragilityCurve].interpolate(x))
-		return z
+		iteration_number = 0
+		for strata in range(len(self.stratResults.index)):
+			sample_pool = z[(z > self.stratResults["Lower_X1"].values[strata]) & (z < self.stratResults["Upper_X1"].values[strata])]
+			
+			if self.stratResults["Allocation"].sum()*iterationNumber <=  maxTotalIteration:
+				nsamples = self.stratResults["Allocation"].values[strata]*iterationNumber
+			else:
+				nsamples = round(self.stratResults["Allocation"].values[strata]*maxTotalIteration/self.stratResults["Allocation"].sum())
+			
+			print(f'Strata = {strata}')
+			print(f'number of samples = {nsamples}')
+			print(f'Intensity samples between {self.stratResults["Lower_X1"].values[strata]} and {self.stratResults["Upper_X1"].values[strata]}')
+			for i in range(int(nsamples)):
+				event_intensity = sample_pool[random.randint(0, len(sample_pool))]
+				network.update_failure_probability(intensity=event_intensity)
+				
+				iteration_number += 1
+				print(f'Iteration {iteration_number}: intensity = {event_intensity}')
+				
+				#for key, value in network.lines.items():
+				#	print(f'{key} : {value.failureProb}')
+				
+				network.calculate_outages_schedule(self.time, self.hazardTime)
+				network.propagate_outages_to_network_elements()
+				databases.append(network.build_montecarlo_database(self.time))
 
-		#for strata
-			# get random event intensity
-			# powerlement.failureprob update
-
-			#for i in iterations:
-			#	print(f'Iteration = {i}')
-			#	network.calculate_outages_schedule(self.time, self.hazardTime)
-			#	network.propagate_outages_to_network_elements()
-			#	databases.append(network.build_montecarlo_database(self.time))
-
-	#	out = build_database(iterations, databases, self.externalTimeInterval)
-	#	out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
-
+		out = build_database(range(iteration_number+1), databases, self.externalTimeInterval)
+		out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
+		
 	def run(self, network, iterationSet = None, saveOutput = True, time = None, **kwargs):
 		# TODO: call const.py instead of 'iteration'
 		time_ = self.time
@@ -253,7 +279,6 @@ class Sim:
 			print ('Saving output database...')
 			self.results.to_csv(config.path.engineDatabaseFile(self.simulationName))
 			print ('done!')
-
 
 class Time():
 	# TODO: error raising for uncompatible times
