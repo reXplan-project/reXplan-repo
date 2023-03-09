@@ -69,7 +69,7 @@ def enrich_database(df):
 		field = 'loss_of_load_p_percentage'
 		type = 'load'
 		# content = (df.loc[:, 'max_p_mw','load',:] - df.loc[:, 'p_mw','load',:]) / df.loc[:, 'max_p_mw','load',:]*100
-		content = loss_of_load().groupby(['iteration', 'id']).sum()  / df.loc[:, 'max_p_mw','load',:]*100
+		content = loss_of_load().groupby(['iteration', 'id']).sum()/df.loc[:, 'max_p_mw','load',:]*100
 		content.fillna(0, inplace = True) # load of zero considered as supplied
 		return format_to_multiindex(content, [field, type], ['field', 'type'])
 	
@@ -153,7 +153,6 @@ class Sim:
 	'''
 	Add description of Sim class here
 	'''
-
 	def __init__(self,
 				 simulationName,
 				 # history,
@@ -169,11 +168,13 @@ class Sim:
 		self.hazardDuration = None
 		self.results = None
 		self.stratResults = None
-		df_simulation = pd.read_excel(config.path.networkFile(
-			simulationName), sheet_name=SHEET_NAME_SIMULATION, index_col=0)
+		self.failureProbs = pd.DataFrame(columns=['iteration','strata','event intensity','element type','power element','failure probability','status'])
+		self.samples = None
+
+		df_simulation = pd.read_excel(config.path.networkFile(simulationName), sheet_name=SHEET_NAME_SIMULATION, index_col=0)
 		allocate_column_values(self, df_simulation[COL_NAME_VALUE])
-		self.externalTimeInterval = get_index_as_dataSeries(pd.read_excel(config.path.networkFile(
-			simulationName), sheet_name=SHEET_NAME_PROFILES, index_col=0, header=[0, 1]))
+		self.externalTimeInterval = get_index_as_dataSeries(pd.read_excel(config.path.networkFile(simulationName),
+																		 sheet_name=SHEET_NAME_PROFILES, index_col=0, header=[0, 1]))
 		self.time = self.to_internal_time(self.startTime, self.duration)
 		self.hazardTime = self.to_internal_time(self.hazardStartTime, self.hazardDuration)
 
@@ -182,10 +183,8 @@ class Sim:
 		# TODO: valid for startTime within self.externalTimeInterval. Extend for other cases (usefuls for hazards happening before simulation interval)
 		delta = self.externalTimeInterval.loc[1] - \
 			self.externalTimeInterval.loc[0]
-		filter = (self.externalTimeInterval >= startTime) & (
-			self.externalTimeInterval < startTime + delta*duration)
-		start, duration = self.externalTimeInterval[filter].dropna(
-		).index[0], self.externalTimeInterval[filter].dropna().index.size
+		filter = (self.externalTimeInterval >= startTime) & (self.externalTimeInterval < startTime + delta*duration)
+		start, duration = self.externalTimeInterval[filter].dropna().index[0], self.externalTimeInterval[filter].dropna().index.size
 		return Time(start, duration)
 
 	def initialize_model_sh(self, network, iterationNumber):
@@ -201,6 +200,11 @@ class Sim:
 
 	def initialize_model_rp(self, network, filename, iterationNumber, cv=0.1, maxTotalIteration=1000, nStrataSamples=10000, x_min=None, x_max=None):
 		databases = []
+
+		powerElements = {**network.lines, 
+						 **network.generators,
+						 **network.loads, 
+						 **network.transformers}
 
 		for j, fc in enumerate(network.fragilityCurves):
 			if j == 0:
@@ -221,38 +225,46 @@ class Sim:
 			warnings.warn(f'Warning: selected x_max is greater than the data provided for the fragility curves: {x_max} > {xmax}')
 
 		network.return_period.update_return_period(filename)
-		z = network.return_period.generate_samples(x_min, x_max, nStrataSamples)
-		self.stratResults = network.calc_stratas(z, cv=cv)
+		self.samples = network.return_period.generate_samples(x_min, x_max, nStrataSamples)
+		self.stratResults = network.calc_stratas(self.samples, cv=cv)
 
 		if self.stratResults["Allocation"].sum()*iterationNumber >  maxTotalIteration:
 			warnings.warn(f'Warning: Estimated needed starta samples to reach cv = {cv} are greater than maxTotalIteration = {maxTotalIteration}')
 
 		iteration_number = 0
+		df_temp = pd.DataFrame()
 		for strata in range(len(self.stratResults.index)):
-			sample_pool = z[(z > self.stratResults["Lower_X1"].values[strata]) & (z < self.stratResults["Upper_X1"].values[strata])]
+			sample_pool = self.samples[(self.samples > self.stratResults["Lower_X1"].values[strata]) & (self.samples < self.stratResults["Upper_X1"].values[strata])]
 			
 			if self.stratResults["Allocation"].sum()*iterationNumber <=  maxTotalIteration:
 				nsamples = self.stratResults["Allocation"].values[strata]*iterationNumber
 			else:
 				nsamples = round(self.stratResults["Allocation"].values[strata]*maxTotalIteration/self.stratResults["Allocation"].sum())
-			
+					
 			print(f'Strata = {strata}')
 			print(f'number of samples = {nsamples}')
 			print(f'Intensity samples between {self.stratResults["Lower_X1"].values[strata]} and {self.stratResults["Upper_X1"].values[strata]}')
-			for i in range(int(nsamples)):
+			df_temp["strata"] = [strata]
+
+			for i in range(int(nsamples)):			
 				event_intensity = sample_pool[random.randint(0, len(sample_pool))]
 				network.update_failure_probability(intensity=event_intensity)
-				
 				iteration_number += 1
-				print(f'Iteration {iteration_number}: intensity = {event_intensity}')
-				
-				#for key, value in network.lines.items():
-				#	print(f'{key} : {value.failureProb}')
-				
+	
 				network.calculate_outages_schedule(self.time, self.hazardTime)
 				network.propagate_outages_to_network_elements()
 				databases.append(network.build_montecarlo_database(self.time))
 
+				df_temp["iteration"] = [iteration_number]
+				df_temp["event intensity"] = [event_intensity]
+
+				for key, value in powerElements.items():
+					df_temp["power element"] = [key]
+					df_temp["element type"] = [value.__class__.__name__]
+					df_temp["failure probability"] = [value.failureProb]
+					self.failureProbs = self.failureProbs.append(df_temp)
+
+		self.failureProbs.reset_index()
 		out = build_database(range(iteration_number+1), databases, self.externalTimeInterval)
 		out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
 		
