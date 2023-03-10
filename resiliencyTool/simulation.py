@@ -190,8 +190,8 @@ class Sim:
 	def initialize_model_sh(self, network, iterationNumber):
 		databases = []
 		iterations = range(iterationNumber)
+		network.update_failure_probability()
 		for i in iterations:
-			print(f'Iteration = {i}')
 			network.calculate_outages_schedule(self.time, self.hazardTime)
 			network.propagate_outages_to_network_elements()
 			databases.append(network.build_montecarlo_database(self.time))
@@ -225,6 +225,7 @@ class Sim:
 			warnings.warn(f'Warning: selected x_max is greater than the data provided for the fragility curves: {x_max} > {xmax}')
 
 		network.return_period.update_return_period(filename)
+		
 		self.samples = network.return_period.generate_samples(x_min, x_max, nStrataSamples)
 		self.stratResults = network.calc_stratas(self.samples, cv=cv)
 
