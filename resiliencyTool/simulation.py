@@ -193,7 +193,8 @@ class Sim:
 		network.update_failure_probability()
 		for i in iterations:
 			network.calculate_outages_schedule(self.time, self.hazardTime)
-			network.propagate_outages_to_network_elements()
+			network.calculate_switches_schedule(self.time)
+			network.propagate_schedules_to_network_elements()
 			databases.append(network.build_montecarlo_database(self.time))
 		out = build_database(iterations, databases, self.externalTimeInterval)
 		out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
@@ -274,7 +275,6 @@ class Sim:
 		time_ = self.time
 		if time:
 			time_ = time
-		
 		df_montecarlo = convert_index_to_internal_time(read_database(
 			config.path.montecarloDatabaseFile(self.simulationName)), self.externalTimeInterval)
 		iterations = df_montecarlo.columns.get_level_values(
@@ -285,7 +285,7 @@ class Sim:
 		databases = []
 		for i in iterations:
 			print(f'Iteration = {i}')
-			network.updateGrid(df_montecarlo[i])
+			network.update_grid(df_montecarlo[i])
 			databases.append(network.run(time_,**kwargs))
 		self.results = enrich_database(build_database(iterations, databases, self.externalTimeInterval))
 		if saveOutput:
