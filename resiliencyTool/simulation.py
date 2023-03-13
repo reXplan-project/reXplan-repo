@@ -252,9 +252,10 @@ class Sim:
 				event_intensity = sample_pool[random.randint(0, len(sample_pool))]
 				network.update_failure_probability(intensity=event_intensity)
 				iteration_number += 1
-	
+
 				network.calculate_outages_schedule(self.time, self.hazardTime)
-				network.propagate_outages_to_network_elements()
+				network.calculate_switches_schedule(self.time)
+				network.propagate_schedules_to_network_elements()
 				databases.append(network.build_montecarlo_database(self.time))
 
 				df_temp["iteration"] = [iteration_number]
