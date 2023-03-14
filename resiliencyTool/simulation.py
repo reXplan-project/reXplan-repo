@@ -199,7 +199,7 @@ class Sim:
 		out = build_database(iterations, databases, self.externalTimeInterval)
 		out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
 
-	def initialize_model_rp(self, network, filename, iterationNumber, cv=0.1, maxTotalIteration=1000, nStrataSamples=10000, x_min=None, x_max=None):
+	def initialize_model_rp(self, network, iterationNumber, ref_return_period, cv=0.1, maxTotalIteration=1000, nStrataSamples=10000, x_min=None, x_max=None):
 		databases = []
 
 		powerElements = {**network.lines, 
@@ -224,11 +224,9 @@ class Sim:
 			x_max = xmax
 		elif x_max > xmax:
 			warnings.warn(f'Warning: selected x_max is greater than the data provided for the fragility curves: {x_max} > {xmax}')
-
-		network.return_period.update_return_period(filename)
 		
-		self.samples = network.return_period.generate_samples(x_min, x_max, nStrataSamples)
-		self.stratResults = network.calc_stratas(self.samples, cv=cv)
+		self.samples = network.returnPeriods[ref_return_period].generate_samples(x_min, x_max, nStrataSamples)
+		self.stratResults = network.calc_stratas(self.samples, network.returnPeriods[ref_return_period], cv=cv)
 
 		if self.stratResults["Allocation"].sum()*iterationNumber >  maxTotalIteration:
 			warnings.warn(f'Warning: Estimated needed starta samples to reach cv = {cv} are greater than maxTotalIteration = {maxTotalIteration}')
@@ -276,10 +274,8 @@ class Sim:
 		time_ = self.time
 		if time:
 			time_ = time
-		df_montecarlo = convert_index_to_internal_time(read_database(
-			config.path.montecarloDatabaseFile(self.simulationName)), self.externalTimeInterval)
-		iterations = df_montecarlo.columns.get_level_values(
-			level='iteration').drop_duplicates()
+		df_montecarlo = convert_index_to_internal_time(read_database(config.path.montecarloDatabaseFile(self.simulationName)), self.externalTimeInterval)
+		iterations = df_montecarlo.columns.get_level_values(level='iteration').drop_duplicates()
 		if iterationSet:
 			iterations = [i for i in iterations if i in iterationSet]
 		

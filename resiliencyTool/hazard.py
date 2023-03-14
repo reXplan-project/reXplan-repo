@@ -24,9 +24,6 @@ import PIL
 # To fit the return period using the GAM method
 from pygam import LinearGAM, s
 
-# for stratification using the jenks natural breaks method
-import jenkspy as jp
-
 class Hazard:
 	'''
 	Hazard Class:
@@ -438,7 +435,33 @@ class Hazard:
 		for i in time_steps:
 			jpg_filename = config.path.hazardGifFile(self.simulationName, str(i)+'.jpg')
 			os.remove(jpg_filename)
+
+def readReturnPeriods(simulationName):
+	'''
+	:param simulationName: string, name of the simulation case.
+	:return return_period_list: list, list of tuples containing the original data from the fragility curves
+	'''
+	return_period_list = []
+	directory = config.path.returnPeriodFolder(simulationName)
+
+	exclude = set(['.ipynb_checkpoints'])
+	for _,dirs,files in os.walk(directory):
+		dirs[:] = [d for d in dirs if d not in exclude]
+		for file in files:
+			if file.endswith(".csv"):
+				df = pd.read_csv(os.path.join(directory,file), sep=';')
+				x = df["time_yr"].values
+				for col in df.columns[1:]:
+					return_period_list.append((col,x,df[col].values))
+	return return_period_list
+
+def build_return_period_database(simulationName):
+	rps = readReturnPeriods(simulationName)
+	dict_return_periods = {}
 	
+	for rp in rps:
+		dict_return_periods[rp[0]] = ReturnPeriod(rp[0], list(rp[1]), list(rp[2]))
+	return dict_return_periods
 
 class ReturnPeriod:
 	'''
@@ -449,25 +472,17 @@ class ReturnPeriod:
 	:method interpolate_return_period(newX):
 	'''
 
-	def __init__(self, simulationName):
-		'''
-		:param simulationName: string, name of the simulation case.
-		:param filename: string, filename of the csv file. Must end with .csv and in the directory: file/input/*project name*/hazards/
+	def __init__(self, name, x, y):
+		self.x_data = x
+		self.y_data = y
+		self.name = name
 
-		Reads the df_return_period attribute from the csv file provided in file/input/*project name*/hazards/
-		'''	
-		self.df_return_period = pd.DataFrame()
-		self.simulationName = simulationName
-
-	def update_return_period(self, filename):
-		self.df_return_period = pd.read_csv(config.path.hazardFile(self.simulationName, filename), 
-										sep=';',header=0)
-		X = np.array([[i] for i in self.df_return_period['intensity'].values])
-		logY = np.log(self.df_return_period['return_period'].values)
+		X = np.array([[i] for i in self.y_data])
+		logY = np.log(self.x_data)
 		self.log_gam = LinearGAM(s(0, n_splines=len(X))).gridsearch(X, logY)
 
-		y = self.df_return_period['intensity'].values
-		logx = np.log(np.array([[i] for i in self.df_return_period['return_period'].values]))
+		y = self.y_data
+		logx = np.log(np.array([[i] for i in self.x_data]))
 		self.inv_log_gam = LinearGAM(s(0, n_splines=len(logx))).gridsearch(logx, y)
 
 	def interpolate_return_period(self, newX):
@@ -486,17 +501,3 @@ class ReturnPeriod:
 		samples = self.interpolate_inv_return_period(return_period_resampled)
 
 		return samples
-
-	def stratify_old(self, x_min, x_max, N, fragilitycurve, n_stratas):
-		X = np.linspace(x_min,x_max,N)
-		CDF = [1-1/r for r in self.interpolate_return_period(X)]
-		CDF_new_samples = np.linspace(CDF[0], CDF[-1], N)
-
-		return_period_resampled = [1/(1-cdf) for cdf in CDF_new_samples]
-		samples = self.interpolate_inv_return_period(return_period_resampled)
-
-		pf_samples = fragilitycurve.interpolate(samples)
-
-		bins = jp.jenks_breaks(pf_samples, n_classes=n_stratas)
-
-		return pf_samples, bins

@@ -71,7 +71,6 @@ def get_datatype_elements(object, class_):
 		out = []
 	return out + list(itertools.chain(*[get_datatype_elements(x, class_) for x in iterateOver]))
 
-
 def build_database(standard_dict_list, get_value_from_content=True):
 	columnNames = [*standard_dict_list[0]]
 	columnNames.remove('content')
@@ -118,7 +117,7 @@ class Network:
 
 		self.fragilityCurves = fragilitycurve.build_fragility_curve_database(simulationName)
 		self.event = hazard.Hazard(simulationName)
-		self.return_period = hazard.ReturnPeriod(simulationName) 
+		self.returnPeriods = hazard.build_return_period_database(simulationName)
 
 		self.pp_network = None
 
@@ -680,7 +679,13 @@ class Network:
 		# TODO: to include an argument to choose which elements will not be considered in the timeseries simulation. For instance, running a simulation with/without switches
 		return self.calculationEngine.run(self.build_timeseries_database(time), **kwargs)
 
-	def calc_stratas(self, data, cv=0.1):
+	def calc_stratas(self, data, ref_rp, cv=0.1):
+
+		powerElements = {**self.lines, 
+						 **self.generators,
+						 **self.loads, 
+						 **self.transformers}
+
 		stratify = importr('SamplingStrata')
 		base = importr('base')
 		pandas2ri.activate()
@@ -693,10 +698,17 @@ class Network:
 		cv_ = ["DOM1"]
 		CV_ = ["DOM"]
 
+		fc_rp_list = []
+		for _, value in powerElements.items():
+			if value.fragilityCurve != None and value.return_period != None:
+				temp = [value.fragilityCurve, value.return_period]
+				if temp not in fc_rp_list:
+					fc_rp_list.append(temp)
+
 		n = 1
-		for fc_name, fc in self.fragilityCurves.items():
-			Y.append(fc_name)
-			y.append(fc.interpolate(data))
+		for fc_rp in fc_rp_list:
+			Y.append(fc_rp[0]+'_'+fc_rp[1])
+			y.append(self.fragilityCurves[fc_rp[0]].projected_fc(self.returnPeriods[fc_rp[1]], ref_rp ,data))
 			cv_.append(cv)
 			CV_.append(str("CV" + str(n)))
 			n += 1
@@ -734,7 +746,6 @@ class Network:
 												progress=False)
 
 		return(robjects.conversion.rpy2py(strataStructure))
-
 
 class MonteCarloVariable:
 	def __init__(self, element, id, field):
@@ -815,6 +826,8 @@ class PowerElement:
 		self.in_service = None
 		self.i_montecarlo = None
 		self.priority = None
+		self.return_period = None
+
 		for key, value in kwargs.items():
 			if hasattr(self, key):
 				setattr(self, key, value)

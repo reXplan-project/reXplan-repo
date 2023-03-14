@@ -96,3 +96,4 @@ in_ka,in_ka,,
 associated elements,associated_elements,,
 ignore montecarlo,i_montecarlo,,
 repair priority,priority,,
+return_period,return_period,,string

@@ -111,10 +111,18 @@ class FragilityCurve:
 		:return ynew: interpolated failure probabilities
 
 		Uses gam to interpolate the fragility curve data to a new x array. values above 1 are cliped.
-		...
 		'''
-
 		return self.gam.predict(xnew).clip(0,1)
+
+	def projected_fc(self, rp, ref_rp, xnew):
+		'''
+		:param fc: reference fragility curve
+		:return ynew: interpolated failure probabilities for the projected fragility into the reference return period intensities
+		'''
+		if rp == ref_rp:
+			return self.interpolate(xnew)
+		else:
+			return self.interpolate(rp.interpolate_inv_return_period(ref_rp.interpolate_return_period(xnew)))
 
 	def plot_fc(self, xnew):
 		'''
