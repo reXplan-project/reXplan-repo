@@ -114,15 +114,14 @@ class FragilityCurve:
 		'''
 		return self.gam.predict(xnew).clip(0,1)
 
-	def projected_fc(self, rp, ref_rp, xnew):
-		'''
-		:param fc: reference fragility curve
-		:return ynew: interpolated failure probabilities for the projected fragility into the reference return period intensities
-		'''
+	def projected_intensity(self, rp, ref_rp, x):
 		if rp == ref_rp:
-			return self.interpolate(xnew)
+			return x
 		else:
-			return self.interpolate(rp.interpolate_inv_return_period(ref_rp.interpolate_return_period(xnew)))
+			return rp.interpolate_inv_return_period(ref_rp.interpolate_return_period(x))
+
+	def projected_fc(self, rp, ref_rp, xnew):
+		return self.interpolate(self.projected_intensity(rp, ref_rp, xnew))
 
 	def plot_fc(self, xnew):
 		'''

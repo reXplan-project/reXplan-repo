@@ -335,11 +335,11 @@ class Hazard:
 
 		# if startTime and Endtime are not provided use the entire hazard time by default
 		if startTime == None:
-			idx_startTime = self.time.get_loc(self.datetimes[0], method='nearest')
+			idx_startTime = self.time.get_loc(self.time[0], method='nearest')
 		else:
 			idx_startTime = self.time.get_loc(startTime, method='nearest')
 		if endTime == None:
-			idx_endTime = self.time.get_loc(self.datetimes[-1], method='nearest')
+			idx_endTime = self.time.get_loc(self.time[-1], method='nearest')
 		else:
 			idx_endTime = self.time.get_loc(endTime, method='nearest')
 		

@@ -222,7 +222,7 @@ class Network:
 				df_cost=df_cost
 			)
 
-	def update_failure_probability(self, intensity=None):
+	def update_failure_probability(self, intensity=None, ref_return_period=None):
 		'''
 		This function updates the failure probability of the power elements of the network.
 		The event object must be defined before calling this method.
@@ -234,7 +234,7 @@ class Network:
 						 **self.transformers}
 
 		for el in powerElements.values():
-			el.update_failure_probability(self, intensity=intensity)
+			el.update_failure_probability(self, intensity=intensity, ref_return_period=ref_return_period)
 		return powerElements
 
 	def build_pp_network(self, df_network, df_bus, df_tr, df_tr_type, df_ln, df_ln_type, df_load, df_ex_gen, df_gen, df_switch, df_cost):
@@ -730,15 +730,21 @@ class Network:
 											errors=df_cv,
 											maxclusters = 10,
 											showPlot = False)
-
-		nstrat = np.unique(robjects.conversion.rpy2py(kmean)["suggestions"].values).size
-
-		sugg = stratify.prepareSuggestion(kmean=kmean, frame=frame, nstrat=nstrat)
-
-		solution = stratify.optimStrata(method = "continuous", errors = df_cv,
+		try:
+			nstrat = np.unique(robjects.conversion.rpy2py(kmean)["suggestions"].values).size
+			sugg = stratify.prepareSuggestion(kmean=kmean, frame=frame, nstrat=nstrat)
+			solution = stratify.optimStrata(method = "continuous", errors = df_cv,
 										framesamp = frame, iter = 50,
 										pops = 20, nStrata = nstrat,
-										suggestions = sugg, showPlot = False,
+										suggestions = sugg, 
+										showPlot = False,
+										parallel=True)
+		except:
+			warnings.warn(f'Cannot find optimal number of stratas... Please try with a different reference return period. Continuing with 5 stratas')
+			solution = stratify.optimStrata(method = "continuous", errors = df_cv,
+										framesamp = frame, iter = 50,
+										pops = 20, nStrata = 5, 
+										showPlot = False,
 										parallel=True)
 
 		strataStructure = stratify.summaryStrata(robjects.conversion.rpy2py(solution)[2],
@@ -865,7 +871,7 @@ class PowerElement:
 		self.in_service = in_service
 		# self.kw = kw
 
-	def update_failure_probability(self, network, intensity=None):
+	def update_failure_probability(self, network, intensity=None, ref_return_period=None):
 		if self.fragilityCurve == None:
 			self.failureProb = 0
 		else:
@@ -873,7 +879,12 @@ class PowerElement:
 			if intensity == None:
 				_, event_intensity = network.event.get_intensity(node.longitude, node.latitude)
 				intensity = event_intensity.max()
-			self.failureProb = network.fragilityCurves[self.fragilityCurve].interpolate(intensity)[0]
+			if self.return_period != None and ref_return_period != None:
+				self.failureProb = network.fragilityCurves[self.fragilityCurve].projected_fc(rp=network.returnPeriods[self.return_period],
+																							ref_rp=network.returnPeriods[ref_return_period],
+																							xnew=intensity)[0]
+			else:
+				self.failureProb = network.fragilityCurves[self.fragilityCurve].interpolate(intensity)[0]
 
 	def fail(self):
 		'''
@@ -913,14 +924,19 @@ class Bus(PowerElement):
 		self.min_vm_pu = None
 		super().__init__(**kwargs)
 
-	def update_failure_probability(self, network, intensity=None):			
+	def update_failure_probability(self, network, intensity=None, ref_return_period=None):			
 		if self.fragilityCurve == None:
 			self.failureProb = 0
 		else:
 			if intensity == None:
 				_, event_intensity = network.event.get_intensity(self.longitude, self.latitude)
 				intensity = event_intensity.max()
-			self.failureProb = network.fragilityCurves[self.fragilityCurve].interpolate(intensity)[0]
+			if self.return_period != None and ref_return_period != None:
+				self.failureProb = network.fragilityCurves[self.fragilityCurve].projected_fc(rp=network.returnPeriods[self.return_period],
+																							ref_rp=network.returnPeriods[ref_return_period],
+																							xnew=intensity)[0]
+			else:
+				self.failureProb = network.fragilityCurves[self.fragilityCurve].interpolate(intensity)[0]
 
 class Switch(PowerElement):
 	def __init__(self, kwargs):
@@ -1004,7 +1020,7 @@ class Transformer(PowerElement):
 		super().__init__(**kwargs)
 
 
-	def update_failure_probability(self, network, intensity=None):
+	def update_failure_probability(self, network, intensity=None, ref_return_period=None):
 		if self.fragilityCurve == None:
 			self.failureProb = 0
 		else:
@@ -1012,7 +1028,12 @@ class Transformer(PowerElement):
 			if intensity == None:
 				_, event_intensity = network.event.get_intensity(node.longitude, node.latitude)
 				intensity = event_intensity.max()
-			self.failureProb = network.fragilityCurves[self.fragilityCurve].interpolate(intensity)[0]
+			if self.return_period != None and ref_return_period != None:
+				self.failureProb = network.fragilityCurves[self.fragilityCurve].projected_fc(rp=network.returnPeriods[self.return_period],
+																							ref_rp=network.returnPeriods[ref_return_period],
+																							xnew=intensity)[0]
+			else:
+				self.failureProb = network.fragilityCurves[self.fragilityCurve].interpolate(intensity)[0]
 
 class Line(PowerElement):
 	'''
@@ -1039,7 +1060,7 @@ class Line(PowerElement):
 		self.towers = None  # TODO: Firas's code
 		super().__init__(**kwargs)
 
-	def update_failure_probability(self, network, intensity=None):
+	def update_failure_probability(self, network, intensity=None, ref_return_period=None):
 		if self.fragilityCurve == None:
 			self.failureProb = 0
 		else:
@@ -1053,7 +1074,12 @@ class Line(PowerElement):
 				if intensity == None:
 					_, event_intensity = network.event.get_intensity(lon, lat)
 					intensity = event_intensity.max()
-				probFailure.append(network.fragilityCurves[self.fragilityCurve].interpolate(intensity))		
+				if self.return_period != None and ref_return_period != None:
+					probFailure.append(network.fragilityCurves[self.fragilityCurve].projected_fc(rp=network.returnPeriods[self.return_period],
+																								ref_rp=network.returnPeriods[ref_return_period],
+																								xnew=intensity))
+				else:
+					probFailure.append(network.fragilityCurves[self.fragilityCurve].interpolate(intensity))		
 			self.failureProb = 1-np.prod(1-np.array(probFailure))
 
 class Crew:
