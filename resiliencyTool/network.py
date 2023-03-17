@@ -876,9 +876,12 @@ class PowerElement:
 			self.failureProb = 0
 		else:
 			node = network.nodes[self.node]
-			if intensity == None:
+			if intensity == None and network.event.intensity != None:
 				_, event_intensity = network.event.get_intensity(node.longitude, node.latitude)
 				intensity = event_intensity.max()
+			elif network.event.intensity == None:
+				warnings.warn(f'Hazard event is not defined')
+
 			if self.return_period != None and ref_return_period != None:
 				self.failureProb = network.fragilityCurves[self.fragilityCurve].projected_fc(rp=network.returnPeriods[self.return_period],
 																							ref_rp=network.returnPeriods[ref_return_period],
