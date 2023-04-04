@@ -127,3 +127,5 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+jupyter_notebooks/Test.ipynb
+.vscode/settings.json
