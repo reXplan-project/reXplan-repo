@@ -218,6 +218,7 @@ class Sim:
 			databases.append(network.build_montecarlo_database(self.time))
 		out = build_database(iterations, [databases], self.externalTimeInterval)
 		out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
+		return network.outagesSchedule
 
 	def initialize_model_rp(self, network, iterationNumber, ref_return_period, cv=0.1, maxTotalIteration=1000, nStrataSamples=10000, x_min=None, x_max=None):
 		powerElements = {**network.lines, 
@@ -326,7 +327,6 @@ class Sim:
 		time_ = self.time
 		if time:
 			time_ = time
-		print(time_)
 		df_montecarlo = convert_index_to_internal_time(read_database(config.path.montecarloDatabaseFile(self.simulationName)), self.externalTimeInterval)
 		stratas = df_montecarlo.columns.get_level_values(level='strata').drop_duplicates()
 		databases = []
@@ -355,6 +355,7 @@ class Time():
 	def __init__(self, start, duration):
 		self.start = start
 		self.duration = duration
+		self.maxduration = duration
 		self.stop = duration + start
 		self.interval = list(range(start, duration + start))
 		print(f'start= {self.start}, stop= {self.stop}')

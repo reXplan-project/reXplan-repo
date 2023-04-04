@@ -538,7 +538,7 @@ class Network:
 
 	def calculate_outages_schedule(self, simulationTime, hazardTime):
 		'''
-		outagesSchedule = 1 iif powerElement is available
+		outagesSchedule = 1 if powerElement is available
 		'''
 		failureCandidates = self.get_failure_candidates()
 
@@ -552,13 +552,46 @@ class Network:
 		failure = np.where((randomNumber <= failureProbability), 
 							np.random.randint(hazardTime.start, [hazardTime.stop]*len(failureCandidates)),
 							simulationTime.stop)
-		crewSchedule = pd.DataFrame([[1]*len(self.crews)]*simulationTime.duration,
+
+		crewSchedule = pd.DataFrame([[1]*len(self.crews)]*simulationTime.maxduration,
 									columns=self.crews.keys(), index=simulationTime.interval)
+
 		outagesSchedule = pd.DataFrame([[STATUS['on']]*len(failureCandidates)] *
-									   simulationTime.duration, columns=failureCandidates.keys(), index=simulationTime.interval)
+									   simulationTime.maxduration, columns=failureCandidates.keys(), index=simulationTime.interval)
+
 		for index, column in zip(failure, outagesSchedule):
-			# outagesSchedule[column].loc[(outagesSchedule.index >= failure[i])] = STATUS['off']
 			outagesSchedule[column].loc[index:] = STATUS['off']
+		
+		'''
+		for i in range(1, simulationTime.duration+2):
+									if i == 1:
+										crewSchedule = pd.DataFrame([[1]*len(self.crews)],columns=self.crews.keys(), index=[i])
+						
+										outagesSchedule_row = pd.DataFrame([[STATUS['on']]*len(failureCandidates)], columns=failureCandidates.keys(), index=[i])
+										outagesSchedule = outagesSchedule_row
+									else:
+										crewSchedule = pd.concat([crewSchedule, 
+																	pd.DataFrame([[1]*len(self.crews)],columns=self.crews.keys(),index=[i])])
+										
+										outagesSchedule_row = pd.DataFrame([list(np.where(np.array(failure) < i, STATUS['off'], STATUS['on']))],
+																				columns=failureCandidates.keys(), index=[i])
+										for col in outagesSchedule_row.columns:
+											if waiting_counter > 0:
+												new_status = STATUS['waiting']
+											elif repairing_counter > 0:
+												new_status = STATUS['reparing']
+											elif repair_complete == True:
+												new_status = STATUS['on']
+											outagesSchedule_row[]
+						
+										outagesSchedule = pd.concat([outagesSchedule, outagesSchedule_row])
+			
+			failureElements = [c for i, c in enumerate(outagesSchedule_row.columns) if 0 in outagesSchedule_row[c].values]
+			availableCrews = crewSchedule.loc[i][crewSchedule.loc[i] == 1].index.tolist()
+			elementsToRepair, repairingCrews = self.get_closest_available_crews(availableCrews, failureElements)
+			crewsTravelingTime = self.get_crews_traveling_time(repairingCrews, elementsToRepair)
+			repairingTime = self.get_reparing_time(elementsToRepair, failureCandidates)
+		'''
 
 		for index, row in outagesSchedule.iterrows():
 			failureElements = row.index[row == 0].tolist()
@@ -579,6 +612,7 @@ class Network:
 				self.outagesSchedule = outagesSchedule
 				self.crewSchedule = crewSchedule
 				return
+
 		self.outagesSchedule = outagesSchedule
 		self.crewSchedule = crewSchedule
 
@@ -592,9 +626,9 @@ class Network:
 		OBS: If a powerElement is excluded from self.outagesSchedule (e.g. i_montecarlo = True) then it will play no role on the determination of its associated switches' status.
 		"""
 		switchesSchedule = pd.DataFrame.from_dict(
-			{k: [v.closed_]*simulationTime.duration for k, v in self.get_switch_candidates().items()}, dtype='int')  # forcing int is important!
+			{k: [v.closed_]*simulationTime.maxduration for k, v in self.get_switch_candidates().items()}, dtype='int')  # forcing int is important!
 		# switchesSchedule2 = pd.DataFrame.from_dict(
-		# 	{k: [v.closed_]*simulationTime.duration for k, v  in self.switches.items() if v.associated_elements != None}, dtype='int') 
+		# 	{k: [v.closed_]*simulationTime.maxduration for k, v  in self.switches.items() if v.associated_elements != None}, dtype='int') 
 		switchesSchedule.index = simulationTime.interval
 		for switch_id in switchesSchedule:
 		# for switch_id in [x for x in switchesSchedule if self.switches[x].associated_elements is not None]:
@@ -876,10 +910,10 @@ class PowerElement:
 			self.failureProb = 0
 		else:
 			node = network.nodes[self.node]
-			if intensity == None and network.event.intensity != None:
+			if intensity == None and network.event.intensity is not None:
 				_, event_intensity = network.event.get_intensity(node.longitude, node.latitude)
 				intensity = event_intensity.max()
-			elif network.event.intensity == None:
+			elif network.event.intensity is None:
 				warnings.warn(f'Hazard event is not defined')
 
 			if self.return_period != None and ref_return_period != None:
