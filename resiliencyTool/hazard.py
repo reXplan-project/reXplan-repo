@@ -21,6 +21,9 @@ from mpl_toolkits.basemap import Basemap
 # To make a gif from a series of jpeg files
 import PIL
 
+# To fit the return period using the GAM method
+from pygam import LinearGAM, s
+
 class Hazard:
 	'''
 	Hazard Class:
@@ -30,21 +33,21 @@ class Hazard:
 	:attribute time: array, list of the datetimes covered by the hazard
 	:attribute intensity: array, The intensity of the hazard event for each datetime, lat and lon
 
-	:method read_nc(simulationName, filename):
+	:method read_nc(filename):
 	:method geospatial_generator(geodata1, geodata2, delta_km):
 	:method datetime_generator(sdate,edate,frequency):
 	:method geospatialGrid_generator():
 	:method epicenterTrajectory_generator(epicenter_radius, epicenter_intensity, epicenter_lat, epicenter_lon):
-	:method epicenterTrajectory_reader(simulationName, filename):
+	:method epicenterTrajectory_reader(filename):
 	:method intensityGrid_generator(max_intensity, max_radius):
 	:method grid_generator(max_intensity, max_radius):
-	:method to_nc(df, simulationName, filename, intensity_unit='m/s', intensity_name='wind speed', title='Sythetic storm'):
+	:method to_nc(df, filename, intensity_unit='m/s', intensity_name='wind speed', title='Sythetic storm'):
 	:method get_intensity(lon, lat, startTime=None, endTime=None):
 	:method plot(time_idx):
-	:method plot_gif(simulationName, speed=3)
+	:method plot_gif(speed=3)
 	'''
 
-	def __init__(self):
+	def __init__(self, simulationName):
 		# variables read from the ncdf file
 		self.intensity = None
 		self.lon = None
@@ -56,23 +59,22 @@ class Hazard:
 		self.longitudes = []
 		self.datetimes = []
 		self.df_trajectory = pd.DataFrame()
+		self.simulationName = simulationName
 
-	def hazardFromNC(self, simulationName, filename):
+	def hazardFromNC(self, filename):
 		'''
-		:param simulationName: string, name of the simulation case.
 		:param filename: string, filename of the nc file. Must end with .nc and must be in the directory: file/input/*project name*/hazards/
 		
 		Initializes the Hazard object using a .nc file
 		'''
 		self.clear()
-		self.read_nc(simulationName, filename)
+		self.read_nc(filename)
 	
-	def hazardFromTrajectory(self, simulationName, filename, 
+	def hazardFromTrajectory(self, filename, 
 								max_intensity, max_radius,
 								sdate, edate, geodata1, geodata2, 
 								delta_km, frequency='1H'):
 		'''
-		:param simulationName: string, name of the simulation case.
 		:param filename: string, filename of the csv file. Must end with .csv and must be in the directory: file/input/*project name*/hazards/
 		:param max_intensity: float, the rated intensity used for p.u. values in the trajectory data.
 		:param max_radius: float, the rated radius used for p.u. values in the trajectory data.
@@ -89,20 +91,19 @@ class Hazard:
 
 		self.datetime_generator(sdate,edate,frequency)
 		self.geospatial_generator(geodata1, geodata2, delta_km)
-		self.epicenterTrajectory_reader(simulationName, filename)
+		self.epicenterTrajectory_reader(filename)
 
 		hazard_grid = self.grid_generator(max_intensity, max_radius)
 		nc_filename = filename.split('.')[0] + '.nc'
-		self.to_nc(hazard_grid, simulationName, nc_filename)
-		self.read_nc(simulationName, nc_filename)
+		self.to_nc(hazard_grid, nc_filename)
+		self.read_nc(nc_filename)
 
-	def hazardFromStaticInput(self, simulationName, filename, 
+	def hazardFromStaticInput(self, filename, 
 								max_intensity, max_radius,
 								sdate, edate, geodata1, geodata2, delta_km,
 								epicenter_lat, epicenter_lon, 
 								frequency='1H', epicenter_radius=1, epicenter_intensity=1):
 		'''
-		:param simulationName: string, name of the simulation case.
 		:param filename: string, filename of the csv file. Must end with .csv and must be in the directory: file/input/*project name*/hazards/
 		:param max_intensity: float, the rated intensity used for p.u. values in the trajectory data.
 		:param max_radius: float, the rated radius used for p.u. values in the trajectory data.
@@ -126,8 +127,8 @@ class Hazard:
 		self.epicenterTrajectory_generator(epicenter_radius, epicenter_intensity, epicenter_lat, epicenter_lon)
 
 		hazard_grid = self.grid_generator(max_intensity, max_radius)
-		self.to_nc(hazard_grid, simulationName, filename)
-		self.read_nc(simulationName, filename)
+		self.to_nc(hazard_grid, filename)
+		self.read_nc(filename)
 
 	def clear(self):
 		'''
@@ -142,9 +143,8 @@ class Hazard:
 		self.datetimes = []
 		self.df_trajectory = pd.DataFrame()
 
-	def read_nc(self, simulationName, filename):
+	def read_nc(self, filename):
 		'''
-		:param simulationName: string, name of the simulation case.
 		:param filename: string, filename of the nc file. Must end with .nc and must be in the directory: file/input/*project name*/hazards/
 		:return cols: list,
 		:return Hazard.lon: array, list of the longitudes covered by the hazard
@@ -154,7 +154,7 @@ class Hazard:
 
 		Reads the nc file provided in file/input/*project name*/hazards/ and populates the hazards attributes.
 		'''
-		ncdf = nc.Dataset(config.path.hazardFile(simulationName, filename), mode='r')
+		ncdf = nc.Dataset(config.path.hazardFile(self.simulationName, filename), mode='r')
 		cols = []
 		for att in ncdf.variables:
 			if att == 'longitude':
@@ -243,15 +243,14 @@ class Hazard:
 		self.df_trajectory['radius'] = [epicenter_radius]*len(self.df_trajectory.index)
 		return self.df_trajectory
 
-	def epicenterTrajectory_reader(self, simulationName, filename):
+	def epicenterTrajectory_reader(self, filename):
 		'''
-		:param simulationName: string, name of the simulation case.
 		:param filename: string, filename of the csv file. Must end with .csv and in the directory: file/input/*project name*/hazards/
 		:return Hazard.df_trajectory: pandas.Dataframe, trajectory, and intensity of the epicenter of the hazard event.
 
 		Reads the df_trajectory attribute from the csv file provided in file/input/*project name*/hazards/
 		'''	
-		self.df_trajectory = pd.read_csv(config.path.hazardFile(simulationName, filename), 
+		self.df_trajectory = pd.read_csv(config.path.hazardFile(self.simulationName, filename), 
 										sep=';',header=0)
 		self.df_trajectory['time'].apply(pd.to_datetime)
 		return self.df_trajectory
@@ -297,10 +296,9 @@ class Hazard:
 		df = pd.DataFrame(list(zip(grid_datetimes, grid_latitudes, grid_longitudes, grid_intensity)), columns=colnames)
 		return df
 
-	def to_nc(self, df, simulationName, filename, intensity_unit='m/s', intensity_name='wind speed', title='Sythetic storm'):
+	def to_nc(self, df, filename, intensity_unit='m/s', intensity_name='wind speed', title='Sythetic storm'):
 		'''
 		:param df: pandas.DataFrame, use the function hazard.grid_generator() to generate a dataframe with all the data needed to generate the ncdf file
-		:param simulationName: string, name of the simulation case
 		:param filename: string, ncdf filename, must end with .nc
 		:param intensity_unit: string, the unit of the intensity used for the ncdf file, default='m/s'
 		:param intensity_name: string, the attribute name of the intensity used for the ncdf file, default='wind speed'
@@ -318,7 +316,7 @@ class Hazard:
 		xr1.attrs={'Conventions':'CF-1.6', 'title':title, 'summary':'Syntheticly generate hazard'}
 
 		# save to netCDF usinf the filename provided as input
-		xr1.to_netcdf(config.path.hazardFile(simulationName, filename))
+		xr1.to_netcdf(config.path.hazardFile(self.simulationName, filename))
 
 	def get_intensity(self, lon, lat, startTime=None, endTime=None):
 		'''
@@ -337,11 +335,11 @@ class Hazard:
 
 		# if startTime and Endtime are not provided use the entire hazard time by default
 		if startTime == None:
-			idx_startTime = self.time.get_loc(self.datetimes[0], method='nearest')
+			idx_startTime = self.time.get_loc(self.time[0], method='nearest')
 		else:
 			idx_startTime = self.time.get_loc(startTime, method='nearest')
 		if endTime == None:
-			idx_endTime = self.time.get_loc(self.datetimes[-1], method='nearest')
+			idx_endTime = self.time.get_loc(self.time[-1], method='nearest')
 		else:
 			idx_endTime = self.time.get_loc(endTime, method='nearest')
 		
@@ -401,9 +399,8 @@ class Hazard:
 
 		return fig, ax
 
-	def plot_gif(self, simulationName, filename, speed=3, projection='cyl', edge_pad=0):
+	def plot_gif(self, filename, speed=3, projection='cyl', edge_pad=0):
 		'''
-		:param simulationName: int, should be between 0 and the maximum number of timesteps defined in the Hazard
 		:param filename: sting, filename of the generated gif file. must end with .gif
 		:param speed: int, default=3, the reply speed of the gif
 		:param projection: string, projection used by Basemap, default='cyl' espg projections can be used as well
@@ -416,7 +413,7 @@ class Hazard:
 			fig,ax = self.plot(i, projection=projection, edge_pad=edge_pad)
 			plt.title('Intensity '+str(i)+' time')
 
-			jpg_filename = config.path.hazardGifFile(simulationName, str(i)+'.jpg')
+			jpg_filename = config.path.hazardGifFile(self.simulationName, str(i)+'.jpg')
 			plt.savefig(jpg_filename)
 			
 			fig.clear()
@@ -426,15 +423,81 @@ class Hazard:
 		# put all the frames together and create the gif file
 		image_frames = [] # creating a empty list to be appended later on
 		for k in time_steps:
-			jpg_filename = config.path.hazardGifFile(simulationName, str(k)+'.jpg')
+			jpg_filename = config.path.hazardGifFile(self.simulationName, str(k)+'.jpg')
 			new_fram = PIL.Image.open(jpg_filename) 
 			image_frames.append(new_fram)
 
-		image_frames[0].save(config.path.hazardGifFile(simulationName, filename),format='GIF',
+		image_frames[0].save(config.path.hazardGifFile(self.simulationName, filename),format='GIF',
 							append_images = image_frames[1:],
 							save_all = True, duration = len(self.datetimes)*speed,loop = 0)
 
 		# cleanup, removing the jpg files generated
 		for i in time_steps:
-			jpg_filename = config.path.hazardGifFile(simulationName, str(i)+'.jpg')
+			jpg_filename = config.path.hazardGifFile(self.simulationName, str(i)+'.jpg')
 			os.remove(jpg_filename)
+
+def readReturnPeriods(simulationName):
+	'''
+	:param simulationName: string, name of the simulation case.
+	:return return_period_list: list, list of tuples containing the original data from the fragility curves
+	'''
+	return_period_list = []
+	directory = config.path.returnPeriodFolder(simulationName)
+
+	exclude = set(['.ipynb_checkpoints'])
+	for _,dirs,files in os.walk(directory):
+		dirs[:] = [d for d in dirs if d not in exclude]
+		for file in files:
+			if file.endswith(".csv"):
+				df = pd.read_csv(os.path.join(directory,file), sep=';')
+				x = df["time_yr"].values
+				for col in df.columns[1:]:
+					return_period_list.append((col,x,df[col].values))
+	return return_period_list
+
+def build_return_period_database(simulationName):
+	rps = readReturnPeriods(simulationName)
+	dict_return_periods = {}
+	
+	for rp in rps:
+		dict_return_periods[rp[0]] = ReturnPeriod(rp[0], list(rp[1]), list(rp[2]))
+	return dict_return_periods
+
+class ReturnPeriod:
+	'''
+	ReturnPeriod Class:
+
+	:attribute df_return_period: dataFrame, intensity and return period to be used for the analysis
+
+	:method interpolate_return_period(newX):
+	'''
+
+	def __init__(self, name, x, y):
+		self.x_data = x
+		self.y_data = y
+		self.name = name
+
+		X = np.array([[i] for i in self.y_data])
+		logY = np.log(self.x_data)
+		self.log_gam = LinearGAM(s(0, n_splines=len(X))).gridsearch(X, logY)
+
+		y = self.y_data
+		logx = np.log(np.array([[i] for i in self.x_data]))
+		self.inv_log_gam = LinearGAM(s(0, n_splines=len(logx))).gridsearch(logx, y)
+
+	def interpolate_return_period(self, newX):
+		return np.exp(self.log_gam.predict(newX))
+
+	def interpolate_inv_return_period(self, newX):
+		return self.inv_log_gam.predict(np.log(newX))
+
+	def generate_samples(self, x_min, x_max, N):
+		X = np.linspace(x_min,x_max,N)
+		
+		CDF = [1-1/r for r in self.interpolate_return_period(X)]
+		CDF_new_samples = np.linspace(CDF[0], CDF[-1], N)
+
+		return_period_resampled = [1/(1-cdf) for cdf in CDF_new_samples]
+		samples = self.interpolate_inv_return_period(return_period_resampled)
+
+		return samples

@@ -24,12 +24,15 @@ class Path():
         self.fcDatabase = 'fragilityCurves'
         self.hazardFolder = 'hazards'
         self.hazardGifFolder = 'gif'
+        self.rpDatabase = 'returnPeriods'
         #self.hazard = 'trajectory.csv'
 
     def networkFile(self, simulationName):
         return os.path.join(self.inputFolder, simulationName, self.network)
     def fragilityCurveFolder(self, simulationName):
         return os.path.join(self.inputFolder, simulationName, self.fcDatabase)
+    def returnPeriodFolder(self, simulationName):
+        return os.path.join(self.inputFolder, simulationName, self.rpDatabase)
     def hazardFile(self, simulationName, filename):
         return os.path.join(self.inputFolder, simulationName, self.hazardFolder, filename)
     def hazardGifFile(self, simulationName, filename):

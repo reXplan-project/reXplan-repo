@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import numpy as np
 
 # For displaying warnings
 import warnings
@@ -10,8 +11,8 @@ from . import config
 # For plotting
 import matplotlib.pyplot as plt
 
-# For interpolation using spline
-from scipy.interpolate import interp1d, splrep, splev
+# To fit the fragility curve using the GAM method
+from pygam import LinearGAM, s
 
 def readFragilityCurves(simulationName):
 	'''
@@ -54,21 +55,17 @@ def plotFragilityCurves(dict_fc, xnew, k=3):
 	'''
 	:param dict_fc: dict of Fragility curve objects, can be generated using build_fragility_curve_database(simulationName) 
 	:param xnew: list, new intensity vector
-	:param k: int, must be between 1 and 5, default=3, interpolation order
 	:return fig: matplotlib.pyplot figure
 	:return ax: matplotlib.pyplot axis
 
 	Uses spline to interpolate the fragility curve data to a new x array. values above 1 are cliped.
 	Plots the original data and the interpolated data for all fragility curves
 
-	k = 1 -> linear interpolation
-	k = 2 -> quadratic interpolation
-	k = 3 -> cubic interpolation
 	'''
 	fig, ax = plt.subplots(tight_layout=True)
 
 	for fc in dict_fc.values():
-		ynew = fc.interpolate(xnew, k)
+		ynew = fc.interpolate(xnew)
 		plt.plot(xnew, ynew)
 	
 	plt.gca().set_prop_cycle(None)
@@ -105,28 +102,28 @@ class FragilityCurve:
 		self.y_data = y
 		self.name = name
 
-	def interpolate(self, xnew, k=3):
+		X = np.array([[i] for i in self.x_data])
+		self.gam = LinearGAM(s(0, n_splines=len(X))).gridsearch(X, self.y_data)
+
+	def interpolate(self, xnew):
 		'''
 		:param xnew: list, new intensity vector
-		:param k: int, must be between 1 and 5, default=3, interpolation order
 		:return ynew: interpolated failure probabilities
 
-		Uses spline to interpolate the fragility curve data to a new x array. values above 1 are cliped.
-
-		k = 1 -> linear interpolation
-		k = 2 -> quadratic interpolation
-		k = 3 -> cubic interpolation
-		...
+		Uses gam to interpolate the fragility curve data to a new x array. values above 1 are cliped.
 		'''
-		if k > 0 and k < 6:
-			tck = splrep(self.x_data, self.y_data)
-			ynew = splev(xnew, (tck[0],tck[1],k), der=0)
-		else:
-			warnings.warn(f'k = {k} is invalid, please choose a value for k between 1 and 5')
-			return
-		return ynew.clip(0,1)
+		return self.gam.predict(xnew).clip(0,1)
 
-	def plot_fc(self, xnew, k=3):
+	def projected_intensity(self, rp, ref_rp, x):
+		if rp == ref_rp:
+			return x
+		else:
+			return rp.interpolate_inv_return_period(ref_rp.interpolate_return_period(x))
+
+	def projected_fc(self, rp, ref_rp, xnew):
+		return self.interpolate(self.projected_intensity(rp, ref_rp, xnew))
+
+	def plot_fc(self, xnew):
 		'''
 		:param xnew: list, new intensity vector
 		:param k: int, must be between 1 and 5, default=3, interpolation order
@@ -136,7 +133,7 @@ class FragilityCurve:
 		Plots the interpolated and original data of the fragility curve
 		'''
 		fig, ax = plt.subplots(tight_layout=True)
-		ynew = self.interpolate(xnew, k)
+		ynew = self.interpolate(xnew)
 		plt.plot(xnew, ynew)
 		plt.plot(self.x_data, self.y_data, 'o')
 
