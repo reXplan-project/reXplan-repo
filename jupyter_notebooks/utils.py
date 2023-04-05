@@ -49,9 +49,10 @@ def enrich_database(df):
 def filter_non_converged_iterations(df):
     df = df.copy()
     i_dropped = []
-    for iteration in df.index.get_level_values(level = 'iteration').drop_duplicates():
-        if (df.loc[iteration] == 0).all(axis = 0).any():
-            df.drop(index = iteration, level = 'iteration', inplace = True)
-            i_dropped.append(iteration)
+    for strata in df.index.get_level_values(level='strata').drop_duplicates():
+        for iteration in df.loc[strata].index.get_level_values(level='iteration').drop_duplicates():
+            if (df.loc[strata, iteration] == 0).all(axis=0).any():
+                df.drop(index = iteration, level = 'iteration', inplace = True)
+                i_dropped.append(iteration)
     print(f'iterations droped : {i_dropped}')
     return df
