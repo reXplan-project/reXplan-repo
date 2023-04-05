@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="resiliencyTool",
-    version="0.0.2",
+    version="0.0.3",
     packages=['resiliencyTool'],
     zip_safe=False,
     author="ENGIE impact",
@@ -35,7 +35,6 @@ setuptools.setup(
         'pandas>=1.4.3',
         'plotly>=5.9.0',
         'nbformat>=4.2.0',
-        'basemap>=1.3.3',
         'openpyxl>=3.0.10',
         'julia>=0.5.7',
         'xarray>=2023.1.0'
@@ -43,5 +42,3 @@ setuptools.setup(
     package_data={'': ['fields_map.csv']},
     include_package_data=True,
 )
-# pip install numba --upgrade --user
-# pip install pandas = 1.2.3
