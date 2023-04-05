@@ -5,10 +5,9 @@ A research project to create a tool that evaluates the resiliency of power grids
 run the following code on cmd inside the reXplan directory:
 ```
 python -m venv venv
-```
 venv\Scripts\activate.bat
-```
 pip install -r requirements.txt
+```
 
 ## Installation
 With pip go to the source folder and run the following command: `pip install -e .`
