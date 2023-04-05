@@ -22,7 +22,7 @@ executing==1.2.0
 fastjsonschema==2.16.3
 Flask==2.2.3
 fonttools==4.39.3
-ipykernel=6.22.0
+ipykernel==6.22.0
 ipython==8.12.0
 itsdangerous==2.1.2
 jedi==0.18.2
@@ -44,7 +44,7 @@ openpyxl==3.1.2
 ordered-set==4.1.0
 packaging==23.0
 pandapower==2.11.1
-pandas==1.5.3
+pandas==2.0.0
 parso==0.8.3
 pickleshare==0.7.5
 Pillow==9.5.0
@@ -55,7 +55,7 @@ prompt-toolkit==3.0.38
 psutil==5.9.4
 pure-eval==0.2.2
 pycparser==2.21
-pygam==0.9.0
+pygam==0.8.0
 Pygments==2.14.0
 pyparsing==3.0.9
 pyproj==3.4.1
@@ -80,4 +80,4 @@ tzdata==2023.3
 tzlocal==4.3
 wcwidth==0.2.6
 Werkzeug==2.2.3
-xarray==2023.3.0
+xarray==2023.1.0
