@@ -2,6 +2,7 @@
 A research project to create a tool that evaluates the resiliency of power grids to extreme events.
 
 ## Installation
+reXplan is supported for python 3.10.x
 run the following code on cmd inside the reXplan directory to create and activate a new virtual environment:
 
 ```
