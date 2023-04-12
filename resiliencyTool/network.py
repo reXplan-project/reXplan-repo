@@ -131,6 +131,12 @@ class Network:
 		self.build_network(config.path.networkFile(simulationName))
 		self.calculationEngine = engine.pandapower(self.pp_network)
 
+		self.powerElements = {**self.lines,
+								**self.generators,
+								**self.loads,
+								**self.transformers,
+								**self.nodes}
+
 	def build_network_parameters(self, networkFile):
 		df_network = pd.read_excel(networkFile, sheet_name=SHEET_NAME_NETWORK)
 		for index, row in utils.df_to_internal_fields(df_network).iterrows():
@@ -228,14 +234,9 @@ class Network:
 		The event object must be defined before calling this method.
 		If this method is called the failure probabilities entered in the excel file will not be considered.
 		'''
-		powerElements = {**self.lines,
-						 **self.generators,
-						 **self.loads,
-						 **self.transformers}
-
-		for el in powerElements.values():
+		for el in self.powerElements.values():
 			el.update_failure_probability(self, intensity=intensity, ref_return_period=ref_return_period)
-		return powerElements
+		return self.powerElements
 
 	def build_pp_network(self, df_network, df_bus, df_tr, df_tr_type, df_ln, df_ln_type, df_load, df_ex_gen, df_gen, df_switch, df_cost):
 		# TODO: it seems this funciton is missplaced. Can it be moved to engine.pandapower?
@@ -518,8 +519,7 @@ class Network:
 	def get_failure_candidates(self):
 		candidates = {}
 		for x in [x for x in self.__dict__.values() if isinstance(x, dict)]:
-			candidates.update({y.id:y for y in x.values() if hasattr(y, 'failureProb')
-					   and y.failureProb != None and y.i_montecarlo != True})
+			candidates.update({y.id:y for y in x.values() if hasattr(y, 'failureProb') and y.failureProb != None and y.i_montecarlo != True})
 		priorities = [x.priority if x.priority  != None else float('inf') for x in candidates.values()] # infinity for None priorities
 		return {x:candidates[x] for _,x  in sorted(zip(priorities, candidates))}
 
@@ -639,7 +639,7 @@ class Network:
 
 	def get_powerelement(self, id):
 		# It assumes ids are unique!
-		return next((x[id] for x in [self.loads, self.generators, self.transformers, self.lines, self.switches] if id in x), None)
+		return next((x[id] for x in [self.loads, self.generators, self.transformers, self.lines, self.switches, self.nodes] if id in x), None)
 
 	def propagate_schedules_to_network_elements(self):
 		"""
@@ -715,11 +715,6 @@ class Network:
 
 	def calc_stratas(self, data, ref_rp, cv=0.1):
 
-		powerElements = {**self.lines, 
-						 **self.generators,
-						 **self.loads, 
-						 **self.transformers}
-
 		stratify = importr('SamplingStrata')
 		base = importr('base')
 		pandas2ri.activate()
@@ -733,7 +728,7 @@ class Network:
 		CV_ = ["DOM"]
 
 		fc_rp_list = []
-		for _, value in powerElements.items():
+		for _, value in self.powerElements.items():
 			if value.fragilityCurve != None and value.return_period != None:
 				temp = [value.fragilityCurve, value.return_period]
 				if temp not in fc_rp_list:
@@ -907,7 +902,7 @@ class PowerElement:
 
 	def update_failure_probability(self, network, intensity=None, ref_return_period=None):
 		if self.fragilityCurve == None:
-			self.failureProb = 0
+			self.failureProb = None
 		else:
 			node = network.nodes[self.node]
 			if intensity == None and network.event.intensity is not None:
@@ -961,9 +956,9 @@ class Bus(PowerElement):
 		self.min_vm_pu = None
 		super().__init__(**kwargs)
 
-	def update_failure_probability(self, network, intensity=None, ref_return_period=None):			
+	def update_failure_probability(self, network, intensity=None, ref_return_period=None):		
 		if self.fragilityCurve == None:
-			self.failureProb = 0
+			self.failureProb = None
 		else:
 			if intensity == None:
 				_, event_intensity = network.event.get_intensity(self.longitude, self.latitude)
@@ -1059,7 +1054,7 @@ class Transformer(PowerElement):
 
 	def update_failure_probability(self, network, intensity=None, ref_return_period=None):
 		if self.fragilityCurve == None:
-			self.failureProb = 0
+			self.failureProb = None
 		else:
 			node = network.nodes[self.node_p]
 			if intensity == None:
@@ -1099,7 +1094,7 @@ class Line(PowerElement):
 
 	def update_failure_probability(self, network, intensity=None, ref_return_period=None):
 		if self.fragilityCurve == None:
-			self.failureProb = 0
+			self.failureProb = None
 		else:
 			node1 = network.nodes[self.from_bus]
 			node2 = network.nodes[self.to_bus]

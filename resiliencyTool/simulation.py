@@ -221,16 +221,12 @@ class Sim:
 		return network.outagesSchedule
 
 	def initialize_model_rp(self, network, iterationNumber, ref_return_period, cv=0.1, maxTotalIteration=1000, nStrataSamples=10000, x_min=None, x_max=None):
-		powerElements = {**network.lines, 
-						 **network.generators,
-						 **network.loads,
-						 **network.transformers}
 
 		# DEPRICATED
 		'''
 		# Create Unique list fo combinations of fragility curves and return periods
 		fc_rp_list = []
-		for _, value in powerElements.items():
+		for _, value in network.powerElements.items():
 			if value.fragilityCurve != None and value.return_period != None:
 				temp = [value.fragilityCurve, value.return_period]
 				if temp not in fc_rp_list:
@@ -305,7 +301,7 @@ class Sim:
 
 				df_temp["iteration"] = [iteration_number]
 
-				for key, value in powerElements.items():
+				for key, value in network.powerElements.items():
 					if value.return_period != None:
 						df_temp["event intensity"] = network.fragilityCurves[value.fragilityCurve].projected_intensity(rp=network.returnPeriods[value.return_period],
 																														ref_rp=network.returnPeriods[ref_return_period],
