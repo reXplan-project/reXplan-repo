@@ -15,7 +15,7 @@ from . import config
 
 
 rt_pp_map = {'Generator': 'gen', 'Line': 'line',
-			 'Load': 'load', 'Transformer': 'trafo','Switch':'switch'}
+             'Load': 'load', 'Transformer': 'trafo', 'Switch': 'switch', 'Bus': 'bus'}
 
 REGEX = r"(?:res_)?(\w+)\."
 
@@ -63,6 +63,7 @@ class pandapower():
 		ow.log_variable('gen', 'in_service')
 		ow.log_variable('line', 'in_service')
 		ow.log_variable('trafo', 'in_service')
+		ow.log_variable('bus', 'in_service')
 		ow.log_variable('switch', 'closed')
 
 		return ow

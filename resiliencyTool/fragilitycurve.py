@@ -12,7 +12,7 @@ from . import config
 import matplotlib.pyplot as plt
 
 # To fit the fragility curve using the GAM method
-from pygam import LinearGAM, s
+from pygam import LinearGAM, s, f
 
 def readFragilityCurves(simulationName):
 	'''
@@ -103,7 +103,9 @@ class FragilityCurve:
 		self.name = name
 
 		X = np.array([[i] for i in self.x_data])
-		self.gam = LinearGAM(s(0, n_splines=len(X))).gridsearch(X, self.y_data)
+		#self.gam = LinearGAM(s(0, n_splines=len(X))).gridsearch(X, self.y_data)
+		self.gam = LinearGAM(s(0, n_splines=len(X))).fit(X, self.y_data)
+
 
 	def interpolate(self, xnew):
 		'''
