@@ -548,7 +548,7 @@ class Network:
 		# randomNumber = 1
 		# while (randomNumber > failureProbability).all():  # random until a failure happens
 		#   randomNumber = np.random.rand()
-		randomNumber = np.random.rand()
+		randomNumber = np.random.rand(len(failureProbability))
 		failure = np.where((randomNumber <= failureProbability), 
 							np.random.randint(hazardTime.start, [hazardTime.stop]*len(failureCandidates)),
 							simulationTime.stop)
@@ -599,7 +599,6 @@ class Network:
 			elementsToRepair, repairingCrews = self.get_closest_available_crews(availableCrews, failureElements)
 			crewsTravelingTime = self.get_crews_traveling_time(repairingCrews, elementsToRepair)
 			repairingTime = self.get_reparing_time(elementsToRepair, failureCandidates)
-
 			for t_0, t_1, e, c in zip(crewsTravelingTime, repairingTime, elementsToRepair, repairingCrews):
 				outagesSchedule.loc[index+1:index + t_0, e] = STATUS['waiting']
 				outagesSchedule.loc[index+t_0+1:index + t_0 + t_1, e] = STATUS['reparing']
@@ -676,7 +675,7 @@ class Network:
 		From the list [loads, generators, transformers, lines, switches] it creates a database with all the fields corresponding to timeseries
 		TODO: Replace list by a function that will recognise powerElement-type instances
 		"""
-		return build_database(get_datatype_elements([self.loads, self.generators, self.transformers, self.lines, self.switches], TIMESERIES_CLASS)).loc[time.start: time.stop-1]
+		return build_database(get_datatype_elements([self.loads, self.generators, self.transformers, self.lines, self.switches, self.nodes], TIMESERIES_CLASS)).loc[time.start: time.stop-1]
 
 	def calculate_metrics(self):
 		# DEPRECATED
