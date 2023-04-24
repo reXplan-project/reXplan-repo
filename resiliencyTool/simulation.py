@@ -337,7 +337,10 @@ class Sim:
 			for i in iterations:
 				print(f'Strata = {s}; Iteration = {i}')
 				network.update_grid(df_montecarlo[s][i])
-				strata_db.append(network.run(time_,**kwargs))
+				try:
+					strata_db.append(network.run(time_,**kwargs))
+				except Exception as e:
+					print(f'Iteration {i} did not execute succeffuly. {str(e)}')
 			databases.append(strata_db)
 		
 		self.results = enrich_database(build_database(total_iteration, databases, self.externalTimeInterval))
