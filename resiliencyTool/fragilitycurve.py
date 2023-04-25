@@ -121,7 +121,6 @@ class FragilityCurve:
 		else:
 			self.gam = None
 
-
 	def interpolate(self, xnew):
 		'''
 		:param xnew: list, new intensity vector
@@ -144,11 +143,11 @@ class FragilityCurve:
 		else:
 			if isinstance(xnew, (list, np.ndarray)):
 				x1, x2, x3 = self.cut_data(np.array(xnew))
-				return np.concatenate((np.zeros(len(x1)), np.ones(len(x3))), axis=0)
+				return np.concatenate((np.zeros(len(x1)), np.ones(len(x2)), np.ones(len(x3))), axis=0)
 			else:
-				if self.in_boud(xnew) == 'inbound' or self.in_boud(xnew) == 'under':
+				if self.in_boud(xnew) == 'under':
 					return np.array([0])
-				elif self.in_boud(xnew) == 'over':
+				elif self.in_boud(xnew) == 'inbound' or self.in_boud(xnew) == 'over':
 					return np.array([1])
 
 	def in_boud(self, x):
@@ -161,8 +160,10 @@ class FragilityCurve:
 		
 	def cut_data(self, x):
 		x1 = x[np.where(x < self.x_data[self.idx_min])]
-		x2 = x[np.where(np.logical_and(x >= self.x_data[self.idx_min], x <= self.x_data[self.idx_max]))]
-		x3 = x[np.where(x > self.x_data[self.idx_max])]
+
+		x2 = x[np.where(np.logical_and(x >= self.x_data[self.idx_min], x < self.x_data[self.idx_max]))]
+
+		x3 = x[np.where(x >= self.x_data[self.idx_max])]
 		return x1, x2, x3
 
 	def projected_intensity(self, rp, ref_rp, x):
