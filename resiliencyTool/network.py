@@ -662,10 +662,16 @@ class Network:
 		if not element or element['field'] != standard_dict['field']:
 			self.mcVariables.append(standard_dict)
 
-	def update_grid(self, montecarlo_database):
+	def update_grid(self, montecarlo_database, debug=None):
 		for type, id, field in montecarlo_database.columns.dropna():  # useful for empty database
+			if id == debug and field == 'in_service':
+				print(
+					f'before update_grid: {debug} is {self.get_powerelement(id).in_service}')
 			setattr(self.get_powerelement(id), field,
 					montecarlo_database[type, id, field])
+			if id == debug and field == 'in_service':
+				print(
+					f'after update_grid {debug} is {self.get_powerelement(id).in_service}')
 
 	def build_montecarlo_database(self, time):
 		return build_database(self.mcVariables).loc[time.start: time.stop-1]
@@ -708,11 +714,11 @@ class Network:
 			out.append(df)
 		return pd.concat(out, axis=1)
 
-	def run(self, time, **kwargs):
+	def run(self, time, debug=None, **kwargs):
 		# TODO: to include an argument to choose which elements will not be considered in the timeseries simulation. For instance, running a simulation with/without switches
-		return self.calculationEngine.run(self.build_timeseries_database(time), **kwargs)
+		return self.calculationEngine.run(self.build_timeseries_database(time), debug=debug **kwargs)
 
-	def calc_stratas(self, data, ref_rp, cv=0.1):
+	def calc_stratas(self, data, ref_rp, cv=0.1, maxStrata=10):
 
 		stratify = importr('SamplingStrata')
 		base = importr('base')
@@ -756,7 +762,7 @@ class Network:
 
 		kmean = stratify.KmeansSolution2(frame=frame,
 											errors=df_cv,
-											maxclusters = 10,
+											maxclusters = maxStrata,
 											showPlot = False)
 		try:
 			nstrat = np.unique(robjects.conversion.rpy2py(kmean)["suggestions"].values).size

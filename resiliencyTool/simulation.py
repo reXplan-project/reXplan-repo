@@ -220,7 +220,7 @@ class Sim:
 		out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
 		return network.outagesSchedule
 
-	def initialize_model_rp(self, network, iterationNumber, ref_return_period, cv=0.1, maxTotalIteration=1000, nStrataSamples=10000, x_min=None, x_max=None):
+	def initialize_model_rp(self, network, iterationNumber, ref_return_period, cv=0.1, maxTotalIteration=1000, nStrataSamples=10000, x_min=None, x_max=None, maxStrata=10):
 
 		# DEPRICATED
 		'''
@@ -267,7 +267,8 @@ class Sim:
 			warnings.warn(f'Warning: selected x_max is greater than the data provided for the fragility curves: {x_max} > {xmax}')
 		
 		self.samples = network.returnPeriods[ref_return_period].generate_samples(x_min, x_max, nStrataSamples)
-		self.stratResults = network.calc_stratas(self.samples, network.returnPeriods[ref_return_period], cv=cv)
+		self.stratResults = network.calc_stratas(
+			self.samples, network.returnPeriods[ref_return_period], cv=cv, maxStrata=maxStrata)
 
 		if self.stratResults["Allocation"].sum()*iterationNumber >  maxTotalIteration:
 			warnings.warn(f'Warning: Estimated needed starta samples to reach cv = {cv} are greater than maxTotalIteration = {maxTotalIteration}')
@@ -318,7 +319,7 @@ class Sim:
 		out = build_database(range(iteration_number+1), databases, self.externalTimeInterval)
 		out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
 		
-	def run(self, network, iterationSet = None, saveOutput = True, time = None, **kwargs):
+	def run(self, network, iterationSet = None, saveOutput = True, time = None, debug = None, **kwargs):
 		# TODO: call const.py instead of 'iteration'
 		time_ = self.time
 		if time:
@@ -336,9 +337,9 @@ class Sim:
 
 			for i in iterations:
 				print(f'Strata = {s}; Iteration = {i}')
-				network.update_grid(df_montecarlo[s][i])
+				network.update_grid(df_montecarlo[s][i], debug = debug)
 				try:
-					strata_db.append(network.run(time_,**kwargs))
+					strata_db.append(network.run(time_, debug = debug, **kwargs))
 				except Exception as e:
 					print(f'Iteration {i} did not execute succeffuly. {str(e)}')
 			databases.append(strata_db)
