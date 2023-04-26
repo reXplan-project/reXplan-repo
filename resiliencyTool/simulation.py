@@ -341,7 +341,7 @@ class Sim:
 				try:
 					strata_db.append(network.run(time_, debug = debug, **kwargs))
 				except Exception as e:
-					print(f'Iteration {i} did not execute succeffuly. {str(e)}')
+					print(f'Iteration {i} did not execute successfully. {str(e)}')
 			databases.append(strata_db)
 		
 		self.results = enrich_database(build_database(total_iteration, databases, self.externalTimeInterval))

@@ -86,7 +86,7 @@ class pandapower():
 					'field', 'type'], axis=1))
 		return pd.concat(out, axis=1)
 
-	def run(self, df_timeseries, debug=None, **kwargs):
+	def run(self, df_timeseries, debug=None, ** kwargs):
 		self.create_controllers(df_timeseries)
 		output = self.configure_output_writer(
 			df_timeseries.index)

@@ -716,7 +716,7 @@ class Network:
 
 	def run(self, time, debug=None, **kwargs):
 		# TODO: to include an argument to choose which elements will not be considered in the timeseries simulation. For instance, running a simulation with/without switches
-		return self.calculationEngine.run(self.build_timeseries_database(time), debug=debug **kwargs)
+		return self.calculationEngine.run(self.build_timeseries_database(time), debug=debug, **kwargs)
 
 	def calc_stratas(self, data, ref_rp, cv=0.1, maxStrata=10):
 
@@ -765,7 +765,10 @@ class Network:
 											maxclusters = maxStrata,
 											showPlot = False)
 		try:
-			nstrat = np.unique(robjects.conversion.rpy2py(kmean)["suggestions"].values).size
+			if maxStrata == 1:
+				nstrat = 1
+			else:
+				nstrat = np.unique(robjects.conversion.rpy2py(kmean)["suggestions"].values).size
 			sugg = stratify.prepareSuggestion(kmean=kmean, frame=frame, nstrat=nstrat)
 			solution = stratify.optimStrata(method = "continuous", errors = df_cv,
 										framesamp = frame, iter = 50,
