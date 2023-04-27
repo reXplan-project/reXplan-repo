@@ -221,30 +221,6 @@ class Sim:
 		return network.outagesSchedule
 
 	def initialize_model_rp(self, network, iterationNumber, ref_return_period, cv=0.1, maxTotalIteration=1000, nStrataSamples=10000, x_min=None, x_max=None, maxStrata=10):
-
-		# DEPRICATED
-		'''
-		# Create Unique list fo combinations of fragility curves and return periods
-		fc_rp_list = []
-		for _, value in network.powerElements.items():
-			if value.fragilityCurve != None and value.return_period != None:
-				temp = [value.fragilityCurve, value.return_period]
-				if temp not in fc_rp_list:
-					fc_rp_list.append(temp)
-
-		# Calculate default bounderies for the event intensity
-		for j, fc_rp in enumerate(fc_rp_list):
-			xp = network.fragilityCurves[fc_rp[0]].projected_intensity(network.returnPeriods[fc_rp[1]], 
-																		network.returnPeriods[ref_return_period],
-																		network.fragilityCurves[fc_rp[0]].x_data)
-			if j == 0:
-				xmin = min(xp)
-				xmax =max(xp)
-			else:
-				xmin = min(xmin, min(xp))
-				xmax = max(xmax, max(xp))
-		'''
-
 		# Calculate default bounderies for the event intensity
 		for j, (key, rp) in enumerate(network.returnPeriods.items()):
 			if j == 0:
@@ -268,7 +244,7 @@ class Sim:
 		
 		self.samples = network.returnPeriods[ref_return_period].generate_samples(x_min, x_max, nStrataSamples)
 		self.stratResults = network.calc_stratas(
-			self.samples, network.returnPeriods[ref_return_period], cv=cv, maxStrata=maxStrata)
+			self.samples, network.returnPeriods[ref_return_period], xmin=x_min, xmax=x_max, cv=cv, maxStrata=maxStrata)
 
 		if self.stratResults["Allocation"].sum()*iterationNumber >  maxTotalIteration:
 			warnings.warn(f'Warning: Estimated needed starta samples to reach cv = {cv} are greater than maxTotalIteration = {maxTotalIteration}')

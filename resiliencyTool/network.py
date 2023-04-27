@@ -718,77 +718,77 @@ class Network:
 		# TODO: to include an argument to choose which elements will not be considered in the timeseries simulation. For instance, running a simulation with/without switches
 		return self.calculationEngine.run(self.build_timeseries_database(time), debug=debug, **kwargs)
 
-	def calc_stratas(self, data, ref_rp, cv=0.1, maxStrata=10):
+	def calc_stratas(self, data, ref_rp, xmin, xmax, cv=0.1, maxStrata=10):
+		if maxStrata == 1:
+			return pd.DataFrame({'Allocation': [1], 'Lower_X1': [xmin], 'Upper_X1': [xmax]})
+		else:
+			stratify = importr('SamplingStrata')
+			base = importr('base')
+			pandas2ri.activate()
 
-		stratify = importr('SamplingStrata')
-		base = importr('base')
-		pandas2ri.activate()
+			ids = list(range(len(data)))
+			domain = [1]*len(data)
 
-		ids = list(range(len(data)))
-		domain = [1]*len(data)
+			Y = ["id"]
+			y = [ids]
+			cv_ = ["DOM1"]
+			CV_ = ["DOM"]
 
-		Y = ["id"]
-		y = [ids]
-		cv_ = ["DOM1"]
-		CV_ = ["DOM"]
+			fc_rp_list = []
+			for _, value in self.powerElements.items():
+				if value.fragilityCurve != None and value.return_period != None:
+					temp = [value.fragilityCurve, value.return_period]
+					if temp not in fc_rp_list:
+						fc_rp_list.append(temp)
 
-		fc_rp_list = []
-		for _, value in self.powerElements.items():
-			if value.fragilityCurve != None and value.return_period != None:
-				temp = [value.fragilityCurve, value.return_period]
-				if temp not in fc_rp_list:
-					fc_rp_list.append(temp)
+			n = 1
+			for fc_rp in fc_rp_list:
+				Y.append(fc_rp[0]+'_'+fc_rp[1])
+				y.append(self.fragilityCurves[fc_rp[0]].projected_fc(self.returnPeriods[fc_rp[1]], ref_rp ,data))
+				cv_.append(cv)
+				CV_.append(str("CV" + str(n)))
+				n += 1
+			
+			Y.extend(["x", "domain"])
+			y.extend([data, domain])
+			cv_.append(1)
+			CV_.append("domainvalue")
 
-		n = 1
-		for fc_rp in fc_rp_list:
-			Y.append(fc_rp[0]+'_'+fc_rp[1])
-			y.append(self.fragilityCurves[fc_rp[0]].projected_fc(self.returnPeriods[fc_rp[1]], ref_rp ,data))
-			cv_.append(cv)
-			CV_.append(str("CV" + str(n)))
-			n += 1
-		
-		Y.extend(["x", "domain"])
-		y.extend([data, domain])
-		cv_.append(1)
-		CV_.append("domainvalue")
+			df = pd.DataFrame(np.transpose(np.array(y)), columns=Y)
 
-		df = pd.DataFrame(np.transpose(np.array(y)), columns=Y)
+			frame = stratify.buildFrameDF(df=robjects.conversion.py2rpy(df),
+											id = "id", X = ["x"], Y = Y[1:-2],
+											domainvalue = "domain")
 
-		frame = stratify.buildFrameDF(df=robjects.conversion.py2rpy(df),
-										id = "id", X = ["x"], Y = Y[1:-2],
-										domainvalue = "domain")
+			df_cv = base.as_data_frame(rlc.TaggedList(cv_, tags=tuple(CV_)))
 
-		df_cv = base.as_data_frame(rlc.TaggedList(cv_, tags=tuple(CV_)))
-
-		kmean = stratify.KmeansSolution2(frame=frame,
-											errors=df_cv,
-											maxclusters = maxStrata,
-											showPlot = False)
-		try:
-			if maxStrata == 1:
-				nstrat = 1
-			else:
-				nstrat = np.unique(robjects.conversion.rpy2py(kmean)["suggestions"].values).size
-			sugg = stratify.prepareSuggestion(kmean=kmean, frame=frame, nstrat=nstrat)
-			solution = stratify.optimStrata(method = "continuous", errors = df_cv,
-										framesamp = frame, iter = 50,
-										pops = 20, nStrata = nstrat,
-										suggestions = sugg, 
-										showPlot = False,
-										parallel=True)
-		except:
-			warnings.warn(f'Cannot find optimal number of stratas... Please try with a different reference return period. Continuing with 5 stratas')
-			solution = stratify.optimStrata(method = "continuous", errors = df_cv,
-										framesamp = frame, iter = 50,
-										pops = 20, nStrata = 5, 
-										showPlot = False,
-										parallel=True)
-
-		strataStructure = stratify.summaryStrata(robjects.conversion.rpy2py(solution)[2],
-												robjects.conversion.rpy2py(solution)[1],
-												progress=False)
-
-		return(robjects.conversion.rpy2py(strataStructure))
+			kmean = stratify.KmeansSolution2(frame=frame,
+												errors=df_cv,
+												maxclusters = maxStrata,
+												showPlot = False)
+			try:
+				if maxStrata == 1:
+					nstrat = 1
+				else:
+					nstrat = np.unique(robjects.conversion.rpy2py(kmean)["suggestions"].values).size
+				sugg = stratify.prepareSuggestion(kmean=kmean, frame=frame, nstrat=nstrat)
+				solution = stratify.optimStrata(method = "continuous", errors = df_cv,
+											framesamp = frame, iter = 50,
+											pops = 20, nStrata = nstrat,
+											suggestions = sugg, 
+											showPlot = False,
+											parallel=True)
+			except:
+				warnings.warn(f'Cannot find optimal number of stratas... Please try with a different reference return period. Continuing with 5 stratas')
+				solution = stratify.optimStrata(method = "continuous", errors = df_cv,
+											framesamp = frame, iter = 50,
+											pops = 20, nStrata = 5, 
+											showPlot = False,
+											parallel=True)
+			strataStructure = stratify.summaryStrata(robjects.conversion.rpy2py(solution)[2],
+													robjects.conversion.rpy2py(solution)[1],
+													progress=False)
+			return(robjects.conversion.rpy2py(strataStructure))
 
 class MonteCarloVariable:
 	def __init__(self, element, id, field):
