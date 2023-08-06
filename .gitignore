@@ -69,10 +69,7 @@ instance/
 .scrapy
 
 # Sphinx documentation
-docs/_build/
-
-# PyBuilder
-target/
+docs/
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -109,7 +106,6 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-reX_env/
 
 # Spyder project settings
 .spyderproject
@@ -117,9 +113,6 @@ reX_env/
 
 # Rope project settings
 .ropeproject
-
-# mkdocs documentation
-/site
 
 # mypy
 .mypy_cache/
@@ -129,5 +122,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 .vscode/settings.json
+
+# Misc files
 jupyter_notebooks/Test.ipynb
+resiliencyTool/test.py
 
