@@ -5,7 +5,7 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import plotly.figure_factory as ff
-import resiliencyTool as rt
+import reXplan as rx
 from dash import dcc, html
 from plotly.subplots import make_subplots
 
@@ -25,7 +25,7 @@ app = dash.Dash(__name__, title='Interactive Model Dashboard', external_styleshe
 
 simulationName = 'Simulation_1'
 
-df = pd.read_csv(rt.config.path.globalDatabaseFile(simulationName), index_col = [0,1,2,3,4])
+df = pd.read_csv(rx.config.path.globalDatabaseFile(simulationName), index_col = [0,1,2,3,4])
 df.columns = df.columns.astype(int)
 df = df.dropna() # get rid of scalar values
 df.columns.name = TIMEINDEX #TODO: initialize this while before saving the dataframe ?

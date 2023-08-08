@@ -1,6 +1,6 @@
 import sys
 # sys.path.insert(0, '..')
-import resiliencyTool as rt
+import reXplan as rx
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -16,8 +16,8 @@ if args.simulation == '':
 print(f'Pre-run: {args.prerun}')
 print(f'Number of iterations: {args.number_simulations}')
 
-network = rt.network.Network(args.simulation);
-simulation = rt.simulation.Sim(args.simulation);
+network = rx.network.Network(args.simulation);
+simulation = rx.simulation.Sim(args.simulation);
 n = args.number_simulations
 if args.prerun:
 	simulation.pre_run(network, n)
