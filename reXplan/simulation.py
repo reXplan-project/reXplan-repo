@@ -21,6 +21,12 @@ def convert_index_to_internal_time(df, df_int_ext_time):
 def convert_index_to_external_time(df, df_int_ext_time):
 	return df.rename(index=df_int_ext_time.to_dict())
 
+'''
+def build_database(iterations, databases, df_int_ext_time):
+	# TODO: call const.py for names
+	# TODO: too many things at the same time
+	return convert_index_to_external_time(pd.concat(dict(zip(iterations, databases)), names=['iteration'], axis=1), df_int_ext_time).T
+'''
 def build_database(iterations, databases, df_int_ext_time):
 	# TODO: call const.py for names
 	# TODO: too many things at the same time
@@ -33,8 +39,14 @@ def build_database(iterations, databases, df_int_ext_time):
 			db.append(pd.concat(dict(zip(sub_iterations, df)), names=['iteration'], axis=1))
 			stratas.append(i)
 			iter_offset += len(df)
+
 	return convert_index_to_external_time(pd.concat(dict(zip(stratas, db)), names=['strata'], axis=1), df_int_ext_time).T
 
+'''
+def read_database(dababaseFile):
+	# TODO: call const.py for index_col
+	return pd.read_csv(dababaseFile,  index_col=[0, 1, 2, 3]).T
+'''
 def read_database(dababaseFile):
 	# TODO: call const.py for index_col
 	return pd.read_csv(dababaseFile,  index_col=[0, 1, 2, 3, 4]).T
@@ -297,7 +309,7 @@ class Sim:
 		out = build_database(range(iteration_number+1), databases, self.externalTimeInterval)
 		out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
 		
-	def run(self, network, iterationSet = None, saveOutput = True, time = None, debug = None, **kwargs):
+	def run(self, network, iterationSet = None, saveOutput = True, time = None, **kwargs):
 		# TODO: call const.py instead of 'iteration'
 		# TODO: @TIM needs documentation
 		"""
