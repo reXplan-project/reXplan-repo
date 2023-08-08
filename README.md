@@ -53,7 +53,7 @@ venv\Scripts\activate.bat
 
 3.3 Upgrade Pip and install Packages & Dependencies:
 ```
-pip install --upgrade pip
+py -m pip install --upgrade pip
 pip install .
 ```
 
