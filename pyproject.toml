@@ -1,0 +1,35 @@
+[build-system]
+    requires = ["setuptools>=45", "setuptools-scm[toml]>=6.2"]
+    build-backend = "setuptools.build_meta"
+
+[project]
+    name = "reXplan"
+    description = "This module provides tool to evaluate the resiliency of electrical grids against extreme events"
+    version = "0.1"
+    readme = "README.md"
+    requires-python = ">=3.10"
+    authors = [{ name = "Tractebel GmbH", email = "devteam@tractebel.engie.com" }]
+    maintainers = [{ name = "Tim", email = "tim.hoffmann@tractebel.engie.com" }]
+    dynamic = ["dependencies"]
+
+[project.urls]
+    Documentation = "https://readthedocs.com/to-be-published"
+    Repository = "https://github.com/FirasJrad/reXplan"
+
+[project.optional-dependencies]
+    doc = [
+        "Sphinx==5.3.0",
+        "rst-to-myst==0.3.4",
+        "myst-parser==1.0.0",
+        "nbsphinx==0.9.2",
+        "sphinx-rtd-theme==1.2.2",
+        "sphinx_copybutton==0.5.2",
+        "sphinx-autobuild==2021.3.14"
+    ]
+
+[tool.setuptools]
+    packages=['reXplan']
+
+[tool.setuptools.dynamic]
+    dependencies = {file = ["requirements.txt"]}
+
