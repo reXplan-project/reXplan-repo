@@ -578,13 +578,11 @@ class Network:
 	def update_grid(self, montecarlo_database, debug=None):
 		for type, id, field in montecarlo_database.columns.dropna():  # useful for empty database
 			if id == debug and field == 'in_service':
-				print(
-					f'before update_grid: {debug} is {self.get_powerelement(id).in_service}')
+				print(f'before update_grid: {debug} is {self.get_powerelement(id).in_service}')
 			setattr(self.get_powerelement(id), field,
 					montecarlo_database[type, id, field])
 			if id == debug and field == 'in_service':
-				print(
-					f'after update_grid {debug} is {self.get_powerelement(id).in_service}')
+				print(f'after update_grid {debug} is {self.get_powerelement(id).in_service}')
 
 	def build_montecarlo_database(self, time):
 		return build_database(self.mcVariables).loc[time.start: time.stop-1]
@@ -657,7 +655,7 @@ class Network:
 			n = 1
 			for fc_rp in fc_rp_list:
 				Y.append(fc_rp[0]+'_'+fc_rp[1])
-				y.append(self.fragilityCurves[fc_rp[0]].projected_fc(self.returnPeriods[fc_rp[1]], ref_rp ,data))
+				y.append(self.fragilityCurves[fc_rp[0]].projected_fc(self.returnPeriods[fc_rp[1]], ref_rp, data))
 				cv_.append(cv)
 				CV_.append(str("CV" + str(n)))
 				n += 1
@@ -685,23 +683,24 @@ class Network:
 				else:
 					nstrat = np.unique(robjects.conversion.rpy2py(kmean)["suggestions"].values).size
 				sugg = stratify.prepareSuggestion(kmean=kmean, frame=frame, nstrat=nstrat)
-				solution = stratify.optimStrata(method = "continuous", errors = df_cv,
-											framesamp = frame, iter = 50,
-											pops = 20, nStrata = nstrat,
-											suggestions = sugg, 
-											showPlot = False,
-											parallel=True)
+				solution = stratify.optimStrata(method= "continuous", errors = df_cv,
+                                    framesamp = frame, iter = 50,
+                                    pops = 20, nStrata = nstrat,
+									suggestions = sugg,
+                                    showPlot = False,
+                                    parallel=True)
 			except:
-				warnings.warn(f'Cannot find optimal number of stratas... Please try with a different reference return period. Continuing with 5 stratas')
-				solution = stratify.optimStrata(method = "continuous", errors = df_cv,
-											framesamp = frame, iter = 50,
-											pops = 20, nStrata = 5, 
-											showPlot = False,
-											parallel=True)
+				warnings.warn(
+				    f'Cannot find optimal number of stratas... Please try with a different reference return period. Continuing with 5 stratas')
+				solution = stratify.optimStrata(method= "continuous", errors = df_cv,
+                                    framesamp = frame, iter = 50,
+											pops = 20, nStrata = 5,
+                                    showPlot = False,
+                                    parallel=True)
 			strataStructure = stratify.summaryStrata(robjects.conversion.rpy2py(solution)[2],
-													robjects.conversion.rpy2py(solution)[1],
-													progress=False)
-			return(robjects.conversion.rpy2py(strataStructure))
+                                            robjects.conversion.rpy2py(solution)[1],
+                            progress=False)
+			return (robjects.conversion.rpy2py(strataStructure))
 
 class MonteCarloVariable:
 	def __init__(self, element, id, field):

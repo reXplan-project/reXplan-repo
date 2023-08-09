@@ -105,8 +105,7 @@ class FragilityCurve:
 		X = np.array([[i] for i in self.x_data])
 		#self.gam = LinearGAM(s(0, n_splines=len(X))).gridsearch(X, self.y_data)
 		self.gam = LinearGAM(s(0, n_splines=len(X))).fit(X, self.y_data)
-
-
+		
 	def interpolate(self, xnew):
 		'''
 		:param xnew: list, new intensity vector

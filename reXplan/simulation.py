@@ -309,7 +309,7 @@ class Sim:
 		out = build_database(range(iteration_number+1), databases, self.externalTimeInterval)
 		out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
 		
-	def run(self, network, iterationSet = None, saveOutput = True, time = None, **kwargs):
+	def run(self, network, iterationSet = None, saveOutput = True, time = None, debug=None, **kwargs):
 		# TODO: call const.py instead of 'iteration'
 		# TODO: @TIM needs documentation
 		"""
@@ -338,9 +338,9 @@ class Sim:
 
 			for i in iterations:
 				print(f'Strata = {s}; Iteration = {i}')
-				network.update_grid(df_montecarlo[s][i], debug = debug)
+				network.update_grid(df_montecarlo[s][i], debug=debug)
 				try:
-					strata_db.append(network.run(time_, debug = debug, **kwargs))
+					strata_db.append(network.run(time_, debug=debug, **kwargs))
 				except Exception as e:
 					print(f'Iteration {i} did not execute successfully. {str(e)}')
 			databases.append(strata_db)

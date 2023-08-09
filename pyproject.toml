@@ -4,17 +4,17 @@
 
 [project]
     name = "reXplan"
-    description = "This module provides tool to evaluate the resiliency of electrical grids against extreme events"
+    description = "reXplan is a Python library for resilient electrical system planning under extreme hazard events, such as windstorms, earthquakes, floods, wildfire, etc. It is designed to help power system operators and planners make better-informed decisions to create more resilient and secure power grids."
     version = "0.1"
     readme = "README.md"
     requires-python = ">=3.10"
-    authors = [{ name = "Tractebel GmbH", email = "devteam@tractebel.engie.com" }]
-    maintainers = [{ name = "Tim", email = "tim.hoffmann@tractebel.engie.com" }]
+    authors = [{ name = "Tractebel GmbH", email = "rexplan@tractebel.engie.com" }]
+    maintainers = [{ name = "R&D Team", email = "rexplan@tractebel.engie.com" }]
     dynamic = ["dependencies"]
 
 [project.urls]
     Documentation = "https://readthedocs.com/to-be-published"
-    Repository = "https://github.com/FirasJrad/reXplan"
+    Repository = "https://github.com/Tractebel-Engineering/reXplan-repo"
 
 [project.optional-dependencies]
     doc = [
