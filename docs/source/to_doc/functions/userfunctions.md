@@ -42,9 +42,9 @@ The random samples of the hazard intensity for the methodology of return periods
 ```
 
 
-#### Methodology SH (?)
+#### Methodology Single Hazard
 
-The random samples of the hazard intensity for the methodology of SH are selected from the `where?`.
+The random samples of the hazard intensity for the methodology of single hazards are selected from the `where?`.
 
 ```{eval-rst}
 .. autofunction:: reXplan.simulation.Sim.initialize_model_sh
