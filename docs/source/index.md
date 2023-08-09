@@ -9,25 +9,26 @@ This library is under heavy development.
 ```{toctree}
 :titlesonly:
 welcome
-todos
 ```
 
 ```{toctree}
 :caption: '🚀 Getting Started'
 
-Basic Example <to_doc/gettingstarted/jup_basic_example>
+Basic Example <to_doc/gettingstarted/basic_example>
 Installation <to_doc/gettingstarted/installation>
 ```
 
 ```{toctree}
 :caption: '🌐 Modeling'
 
-Basic Structure <to_doc/modeling/jup_basic_structure>
+Basic Structure <to_doc/modeling/basic_structure>
 to_doc/modeling/input_data
-to_doc/modeling/grid_modeling
-to_doc/modeling/fragility_curve
-to_doc/modeling/hazard_modeling
+to_doc/modeling/in_grid_modeling
+to_doc/modeling/in_fragility_curve
+to_doc/modeling/in_hazard_modeling
 to_doc/modeling/output_data
+to_doc/modeling/out_monte_carlo
+to_doc/modeling/out_engine
 ```
 
 ```{toctree}

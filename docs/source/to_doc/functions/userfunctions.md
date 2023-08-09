@@ -1,15 +1,6 @@
 
 # Functions for Users
 
-{py:func}`reXplan.network.Network`
-{py:func}`reXplan.simulation.Sim`
-{py:func}`reXplan.hazard.Hazard.hazardFromNC`
-{py:func}`reXplan.hazard.Hazard.hazardFromTrajectory`
-{py:func}`reXplan.hazard.Hazard.hazardFromStaticInput`
-{py:func}`reXplan.simulation.Sim.initialize_model_rp`
-{py:func}`reXplan.simulation.Sim.initialize_model_sh`
-{py:func}`reXplan.simulation.Sim.run`
-
 ## Network
 
 ```{eval-rst}
