@@ -21,12 +21,6 @@ def convert_index_to_internal_time(df, df_int_ext_time):
 def convert_index_to_external_time(df, df_int_ext_time):
 	return df.rename(index=df_int_ext_time.to_dict())
 
-'''
-def build_database(iterations, databases, df_int_ext_time):
-	# TODO: call const.py for names
-	# TODO: too many things at the same time
-	return convert_index_to_external_time(pd.concat(dict(zip(iterations, databases)), names=['iteration'], axis=1), df_int_ext_time).T
-'''
 def build_database(iterations, databases, df_int_ext_time):
 	# TODO: call const.py for names
 	# TODO: too many things at the same time
@@ -42,11 +36,6 @@ def build_database(iterations, databases, df_int_ext_time):
 
 	return convert_index_to_external_time(pd.concat(dict(zip(stratas, db)), names=['strata'], axis=1), df_int_ext_time).T
 
-'''
-def read_database(dababaseFile):
-	# TODO: call const.py for index_col
-	return pd.read_csv(dababaseFile,  index_col=[0, 1, 2, 3]).T
-'''
 def read_database(dababaseFile):
 	# TODO: call const.py for index_col
 	return pd.read_csv(dababaseFile,  index_col=[0, 1, 2, 3, 4]).T
@@ -65,8 +54,7 @@ def get_index_as_dataSeries(df):
 	return df.index.to_frame(index=False)[0]
 
 def enrich_database(df):
-	#TODO: put this in another library?
-
+	# TODO: @TIM add description
 	def get_number_of_hours_per_timesteps(df):
 		hours = (df.columns[1:] - df.columns[:-1])/np.timedelta64(1,'h')
 		if hours.size == 0:
@@ -79,21 +67,22 @@ def enrich_database(df):
 		return pd.concat({tuple(keys): df}, names=names).reorder_levels(['strata','iteration', 'field','type', 'id'])
 
 	def loss_of_load():
+		# TODO: @TIM add description
 		field = 'loss_of_load_p_mw'
 		type = 'load'
 		content = df.loc[:,:, 'max_p_mw','load',:] - df.loc[:,:, 'p_mw','load',:]
 		return format_to_multiindex(content, [field, type], ['field', 'type'])
-		# return pd.concat({(field, type): content}, names=['field', 'type']).reorder_levels(['iteration', 'field','type', 'id'])
 
 	def loss_of_load_percentage():
+		# TODO: @TIM add description
 		field = 'loss_of_load_p_percentage'
 		type = 'load'
-		# content = (df.loc[:, 'max_p_mw','load',:] - df.loc[:, 'p_mw','load',:]) / df.loc[:, 'max_p_mw','load',:]*100
 		content = loss_of_load().groupby(['strata','iteration', 'id']).sum()/df.loc[:,:, 'max_p_mw','load',:]*100
 		content.fillna(0, inplace = True) # load of zero considered as supplied
 		return format_to_multiindex(content, [field, type], ['field', 'type'])
 	
 	def loss_of_load_duration():
+		# TODO: @TIM add description
 		field = 'loss_of_load_p_duration_h'
 		type = 'load'
 		hours = get_number_of_hours_per_timesteps(df)
@@ -105,49 +94,47 @@ def enrich_database(df):
 		return format_to_multiindex(content, [field, type], ['field', 'type'])
 
 	def energy_not_served():
+		# TODO: @TIM add description
 		field = 'energy_not_served_mwh'
 		type = 'load'
-		# hours = get_number_of_hours_per_timesteps(df)  # todo: change to loss_of_load_duration
 		hours = loss_of_load_duration().groupby(['strata','iteration', 'id']).sum()
-		# content = loss_of_load().loc[:, 'loss_of_load_p_mw','load',:].multiply(hours, axis = 1)
 		content = loss_of_load().groupby(['strata','iteration', 'id']).sum().multiply(hours, axis = 1)
 		return format_to_multiindex(content, [field, type], ['field', 'type'])
 
 	def total_loss_of_load():
+		# TODO: @TIM add description
 		field = 'loss_of_load_p_mw'
 		type = 'network'
 		id = ''
-		# content = (df.loc[:, 'max_p_mw','load',:] - df.loc[:, 'p_mw','load',:]).groupby('iteration').sum()
 		content = loss_of_load().groupby(['strata','iteration']).sum()
 		return format_to_multiindex(content, [field, type, id], ['field', 'type', 'id'])
 
 	def total_loss_of_load_percentage():
+		# TODO: @TIM add description
 		field = 'loss_of_load_p_percentage'
 		type = 'network'
 		id = ''
-		# content = (df.loc[:, 'max_p_mw','load',:] - df.loc[:, 'p_mw','load',:]).groupby('iteration').sum() / df.loc[:, 'max_p_mw','load',:].groupby('iteration').sum() * 100 
 		content = total_loss_of_load().groupby(['strata','iteration']).sum() / df.loc[:,:, 'max_p_mw','load',:].groupby(['strata','iteration']).sum() * 100 
 		content.fillna(0, inplace = True) # load of zero considered as supplied
 		return format_to_multiindex(content, [field, type, id], ['field', 'type', 'id'])
 
 	def total_loss_of_load_duration():
+		# TODO: @TIM add description
 		field = 'loss_of_load_p_duration_h'
 		type = 'network'
 		id = ''
 		hours = get_number_of_hours_per_timesteps(df)
-		# filter = (df.loc[:, 'max_p_mw','load',:] - df.loc[:, 'p_mw','load',:]).groupby('iteration').sum() / df.loc[:, 'max_p_mw','load',:].groupby('iteration').sum() * 100
 		filter = total_loss_of_load_percentage().groupby(['strata','iteration']).sum() # get rid of unused fields
 		filter = filter.round(DECIMAL_PRECISION)!=0 # DECIMAL_PRECISION = 1 means that less than 0.1% is NOT cosnidered as a loss of load.
 		content = filter.multiply(hours, axis = 1)
 		return format_to_multiindex(content, [field, type, id], ['field', 'type', 'id'])
 
 	def total_energy_not_served():
+		# TODO: @TIM add description
 		field = 'energy_not_served_mwh'
 		type = 'network'
 		id = ''
-		# hours = get_number_of_hours_per_timesteps(df) # todo: change to total_loss_of_load_duration
 		hours = total_loss_of_load_duration().groupby(['strata','iteration']).sum()
-		# content = loss_of_load().loc[:, 'loss_of_load_p_mw','load',:].multiply(hours, axis = 1)
 		content = energy_not_served().groupby(['strata','iteration']).sum()
 		return format_to_multiindex(content, [field, type, id], ['field', 'type', 'id'])
 
@@ -167,6 +154,7 @@ def enrich_database(df):
 
 class Sim:
 	'''
+	# TODO: @TIM add description
 	Add description of Sim class here
 	'''
 	def __init__(self,
@@ -199,7 +187,7 @@ class Sim:
 
 	# To be updated to consider stratas!
 	def initialize_model_sh(self, network, iterationNumber):
-		# TODO: @TIM needs documentation
+		# TODO: @TIM add description
 		"""
 		The function initializes a model, performs iterations, calculates schedules, builds a database,
 		saves it to a file, and returns the outages schedule.
@@ -222,7 +210,7 @@ class Sim:
 		return network.outagesSchedule
 
 	def initialize_model_rp(self, network, iterationNumber, ref_return_period, cv=0.1, maxTotalIteration=1000, nStrataSamples=10000, x_min=None, x_max=None, maxStrata=10):
-		# TODO: @TIM needs documentation
+		# TODO: @TIM add description
 		"""
 		The function `initialize_model_rp` initializes a model for reliability analysis using fragility
 		curves and return periods.
@@ -311,7 +299,7 @@ class Sim:
 		
 	def run(self, network, iterationSet = None, saveOutput = True, time = None, debug=None, **kwargs):
 		# TODO: call const.py instead of 'iteration'
-		# TODO: @TIM needs documentation
+		# TODO: @TIM add description
 		"""
 		The function `run` takes in a network and a set of iterations, updates the network grid based on
 		the Monte Carlo database, runs the network simulation for each iteration, and saves the results to
@@ -353,7 +341,7 @@ class Sim:
 
 class Time():
 	# TODO: error raising for uncompatible times
-	# TODO: @TIM needs documentation
+	# TODO: @TIM add description
 	def __init__(self, start, duration):
 		self.start = start
 		self.duration = duration

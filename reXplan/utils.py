@@ -22,26 +22,3 @@ def format_data_type(df):
 
 def df_to_internal_fields(df):
 	return df.rename(columns=INPUT_FIELD_MAP[COL_NAME_INTERNAL_FIELD].to_dict())
-
-
-# def get_elements_with_field(object, field):
-# 	# DEPRECATED
-# 	if isinstance(object, list):
-# 		# commented code can be replaced by itertools.chain.from_iterable
-# 		# out = []
-# 		# for x in object:
-# 		# 	out += get_element_with_field_(x, field)
-# 		# return out
-# 		return list(itertools.chain(*[get_element_with_field(x, field) for x in object])) 	
-# 	else:
-# 		if hasattr(object, "__dict__"):
-# 			return [x for x in [object] if hasattr(x, field)] + get_element_with_field([x for x in vars(object).values() if isinstance(x, list)], field)
-# 			# out = []		
-# 			# if hasattr(object, field):
-# 			# 	out += [object]
-# 			# return out + get_element_with_field([x for x in vars(object).values() if isinstance(x, list)], field)
-# 		else:
-# 			return []
-
-
-

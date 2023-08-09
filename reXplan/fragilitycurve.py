@@ -16,6 +16,7 @@ from pygam import LinearGAM, s, f
 
 def readFragilityCurves(simulationName):
 	'''
+	# TODO: @TIM add description
 	:param simulationName: string, name of the simulation case.
 	:return fragility_curve_list: list, list of tuples containing the original data from the fragility curves
 	'''
@@ -35,6 +36,7 @@ def readFragilityCurves(simulationName):
 
 def build_fragility_curve_database(simulationName):
 	'''
+	# TODO: @TIM add description
 	:param simulationName: string, name of the simulation case.
 	:param xnew: list, new intensity vector
 	:return dict_fragility_curves: dictionary with fragility curve objects
@@ -53,6 +55,7 @@ def build_fragility_curve_database(simulationName):
 
 def plotFragilityCurves(dict_fc, xnew, k=3):
 	'''
+	# TODO: @TIM add description
 	:param dict_fc: dict of Fragility curve objects, can be generated using build_fragility_curve_database(simulationName) 
 	:param xnew: list, new intensity vector
 	:return fig: matplotlib.pyplot figure
@@ -81,6 +84,7 @@ def plotFragilityCurves(dict_fc, xnew, k=3):
 
 class FragilityCurve:
 	'''
+	# TODO: @TIM add description
 	FragilityCurve Class:
 
 	:attribute name: string, fragility curve name/type
@@ -108,6 +112,7 @@ class FragilityCurve:
 		
 	def interpolate(self, xnew):
 		'''
+		# TODO: @TIM add description
 		:param xnew: list, new intensity vector
 		:return ynew: interpolated failure probabilities
 
@@ -126,6 +131,7 @@ class FragilityCurve:
 
 	def plot_fc(self, xnew):
 		'''
+		# TODO: @TIM add description
 		:param xnew: list, new intensity vector
 		:param k: int, must be between 1 and 5, default=3, interpolation order
 		:return fig: matplotlib.pyplot figure
