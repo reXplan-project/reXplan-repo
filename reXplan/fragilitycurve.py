@@ -102,25 +102,10 @@ class FragilityCurve:
 		self.y_data = y
 		self.name = name
 
+		X = np.array([[i] for i in self.x_data])
 		#self.gam = LinearGAM(s(0, n_splines=len(X))).gridsearch(X, self.y_data)
+		self.gam = LinearGAM(s(0, n_splines=len(X))).fit(X, self.y_data)
 		
-		self.idx_max = len(self.y_data)-1
-		self.idx_min = 0
-		
-		for i in list(np.where(np.diff(self.y_data) == 0)[0]):
-			if self.y_data[i] == 0:
-				self.idx_min = min(max(self.idx_min, i+2), len(self.y_data)-1)
-			elif self.y_data[i] == 1:
-				self.idx_max = min(self.idx_max, i+1)
-		
-		X = np.array([[i] for i in self.x_data[self.idx_min:self.idx_max]])
-		Y = self.y_data[self.idx_min:self.idx_max]
-
-		if self.idx_max - self.idx_min > 1:
-			self.gam = LinearGAM(s(0, n_splines=len(X))).fit(X, Y)
-		else:
-			self.gam = None
-
 	def interpolate(self, xnew):
 		'''
 		:param xnew: list, new intensity vector
@@ -128,43 +113,7 @@ class FragilityCurve:
 
 		Uses gam to interpolate the fragility curve data to a new x array. values above 1 are cliped.
 		'''
-		if self.gam:
-			if isinstance(xnew, (list, np.ndarray)):
-				x1, x2, x3 = self.cut_data(np.array(xnew))
-				return np.concatenate((np.zeros(len(x1)), self.gam.predict(
-					x2).clip(0, 1), np.ones(len(x3))), axis=0)
-			else:
-				if self.in_boud(xnew) == 'inbound':
-					return self.gam.predict(xnew).clip(0, 1)
-				elif self.in_boud(xnew) == 'over':
-					return np.array([1])
-				elif self.in_boud(xnew) == 'under':
-					return np.array([0])
-		else:
-			if isinstance(xnew, (list, np.ndarray)):
-				x1, x2, x3 = self.cut_data(np.array(xnew))
-				return np.concatenate((np.zeros(len(x1)), np.ones(len(x2)), np.ones(len(x3))), axis=0)
-			else:
-				if self.in_boud(xnew) == 'under':
-					return np.array([0])
-				elif self.in_boud(xnew) == 'inbound' or self.in_boud(xnew) == 'over':
-					return np.array([1])
-
-	def in_boud(self, x):
-		if x < self.x_data[self.idx_min]:
-			return 'under'
-		elif x > self.x_data[self.idx_max]:
-			return 'over'
-		else:
-			return 'inbound'
-		
-	def cut_data(self, x):
-		x1 = x[np.where(x < self.x_data[self.idx_min])]
-
-		x2 = x[np.where(np.logical_and(x >= self.x_data[self.idx_min], x < self.x_data[self.idx_max]))]
-
-		x3 = x[np.where(x >= self.x_data[self.idx_max])]
-		return x1, x2, x3
+		return self.gam.predict(xnew).clip(0,1)
 
 	def projected_intensity(self, rp, ref_rp, x):
 		if rp == ref_rp:
