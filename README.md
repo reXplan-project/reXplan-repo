@@ -1,56 +1,67 @@
-# reXplan
-A research project to create a tool that evaluates the resiliency of power grids to extreme events.
+# Welcome to the reXplan repository!
 
-## Installation
-reXplan is supported for python 3.10.x
-run the following code on cmd inside the reXplan directory to create and activate a new virtual environment:
+**Simulating Power System Resilience**
 
-```
-python -m venv venv
-venv\Scripts\activate.bat
-```
-Then run the following to install all the necessary python packages
-```
-pip install -r requirements.txt
-```
-Finally run the following to install reXplan 
-```
-pip install -e .
-```
+ReXplan is a python library that evaluates the resiliency of power grids to extreme events, enabling a better decision making process for the infrastructure of power grids. <br>
+Created by the R&D-Team of the Energy System Consulting Department of Tractebel Engineering GmbH.
 
-<!-- ### Modify pandapower
-Before using pandapower, a modification must be introduced in the source code.
+<img src="./docs/source/_static/ENGIE_tractebel_solid_BLUE_RGB_300.png" alt="tractebel_logo" width="200"/>
 
-Go to pandapower's installation folder *~\Envs\env_name\lib\site-packages\pandapower*, where ~ is the user folder and *env_name* is the name of the environment where the package was installed.
+Please see below for the installation, documentation and more.
 
-Replace line 543 in *auxiliary.py*:
-```
-is_elements["line_is_idx"] = net["line"].index[net["line"].in_service.values]
-```
-by
-```
-is_elements["line_is_idx"] = net["line"].index[net["line"].in_service.values.astype(bool)]
-``` -->
+## Installation Guide
+### Step 1: Prerequisites
+1.1 **Python 3.10** [(Download, win x64)](https://www.python.org/ftp/python/3.10.10/python-3.10.10-amd64.exe)\
+1.2 **Julia 1.8.5** [(Download, win x64)](https://julialang-s3.julialang.org/bin/winnt/x64/1.8/julia-1.8.5-win64.exe)\
+1.3 **R 4.2.2** [(Download, win x64)](https://ftp.fau.de/cran/bin/windows/base/old/4.2.2)\
+1.4 **GitHub Repository** [(here)](https://github.com/FirasJrad/reXplan)
 
-# Needed Julia packages
-After installing Julia (latest version tested was 1.8.5), in the python shell type the following commands:
+### Step 2: Imports and Module Management Julia & R
+2.1 Import and Install Julia **through Python Shell**:
 ```
 import julia
 julia.install()
 ```
 
-Then in the Julia shell, go to the package manager using `]` and run the following commands
+2.2 Add Julia Packages **through Julia Shell**, using the integrated Package Manager, which is accessable using " `]` " _(AltGr + 9)_:
 ```
 add PowerModules@0.19.8
 add PandaModules@0.7.1
 ```
 
-# Needed R packages
-After installing R (latest tested version was 4.2.2 (2022-10-31 ucrt)) run the following command in the R shell
+2.3 Add R Package **through R Shell**:
 ```
 install.packages("SamplingStrata")
 ```
-The tested version for the SamplingStrata package is 1.5-4.
 
-## Importing
-Python: `import resiliencyTool`
+### Step 3: Creating a Virtual Environment
+
+3.1 Go to repository. Either use Windows Command Prompt (CMD)...
+```
+cd ..\reXplan
+```
+
+...or VSC Terminal with Command Prompt Profile (recommended).
+
+---
+
+3.2 Create and activate Environment:
+```
+py -3.10 -m venv venv
+venv\Scripts\activate.bat
+```
+
+3.3 Upgrade Pip and install Packages & Dependencies:
+```
+pip install --upgrade pip
+pip install .
+```
+
+## Documentation
+In development. Contact tim.hoffmann@tractebel.engie.com for further information.
+
+## Contribute
+[Become a Contributor on GitHub!](https://github.com/FirasJrad/reXplan)
+
+## License
+tba

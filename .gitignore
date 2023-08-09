@@ -104,6 +104,8 @@ celerybeat.pid
 env/
 venv/
 ENV/
+rex_venv/
+rex_env/
 env.bak/
 venv.bak/
 
@@ -125,5 +127,4 @@ dmypy.json
 
 # Misc files
 jupyter_notebooks/Test.ipynb
-resiliencyTool/test.py
 
