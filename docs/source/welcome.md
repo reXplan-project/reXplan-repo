@@ -24,7 +24,7 @@ In response to the need for more resilient power grids, the **R&D team of the En
 
 ### How does reXplan work?
 
-The repository utilizes [**Jupyter**](https://jupyter.org/) and [**Pluto**](https://plutojl.org/) notebooks. Having the advantage to not only execute the code, but also **structure the code into cells** and to provide context with narrative text, reXplan can be easily learned and used. Everything that needs to be accessed by the notebooks is already stored in the reXplan module. An extensive documentation of how to import the module correctly is provided under [Basic Example](/to_doc/gettingstarted/basic_example.ipynb#Step-1:-Library-and-Data-Import).<br><br> Prior experience in Python and Julia is advantageous.
+The repository utilizes [**Jupyter**](https://jupyter.org/) and [**Pluto**](https://plutojl.org/) notebooks. Having the advantage to not only execute the code, but also **structure the code into cells** and to provide context with narrative text, reXplan can be easily learned and used. Everything that needs to be accessed by the notebooks is already stored in the reXplan module. An extensive documentation of how to import the module correctly is provided under [Basic Example](/to_doc/gettingstarted/basic_example_sphinx.ipynb#Step-1:-Library-and-Data-Import).<br><br> Prior experience in Python and Julia is advantageous.
 General information can be found at [https://www.python.org/](https://www.python.org/) and [https://julialang.org/](https://julialang.org/).
 
 ---

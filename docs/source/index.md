@@ -14,7 +14,7 @@ welcome
 ```{toctree}
 :caption: '🚀 Getting Started'
 
-Basic Example <to_doc/gettingstarted/basic_example>
+Basic Example <to_doc/gettingstarted/basic_example_sphinx>
 Installation <to_doc/gettingstarted/installation>
 ```
 
