@@ -764,7 +764,7 @@ class GeoData:
 		self.latitude = latitude
 		self.longitude = longitude
 
-
+# TODO @Tim; document classes
 class PowerElement:
 	'''
 	Add description of PowerElement class here

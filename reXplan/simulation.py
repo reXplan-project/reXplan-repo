@@ -199,16 +199,20 @@ class Sim:
 
 	# To be updated to consider stratas!
 	def initialize_model_sh(self, network, iterationNumber):
-		# TODO: @TIM needs documentation
+		# TODO @Tim Check Docstring
 		"""
-		The function initializes a model, performs iterations, calculates schedules, builds a database,
-		saves it to a file, and returns the outages schedule.
-		Usually shortened to *simulation.initialize_model_sh*
+		The function `initialize_model_sh()` initializes a model for reliability analysis using fragility curves and single hazards.
+		Performs iterations, calculates schedules, builds a database, saves it to `montecarlo_database.csv`, and returns the outages schedule.
 		
-		:param network: The "network" parameter is an object that represents a network model. It likely	contains information about the network topology, elements, and their properties
-		:param iterationNumber: The parameter `iterationNumber` represents the number of iterations or simulations that will be performed. It determines how many times the model will be run to generate the Monte Carlo database
-		:return: the outages schedule of the network.
+		:param network: Contains information about the network topology, elements, and their properties. See {py:func}`reXplan.simulation.Sim.initialize_model_rp`
+		:param iterationNumber: Number of times the model will be run to generate the Monte Carlo database
+
+		:network type: reXplan.network.Network
+		:iterationNumber type: int
+		:return: outages schedule of the network
+		:rtype: pandas.core.frame.DataFrame
 		"""
+
 		databases = []
 		iterations = range(iterationNumber)
 		network.update_failure_probability()
@@ -222,19 +226,28 @@ class Sim:
 		return network.outagesSchedule
 
 	def initialize_model_rp(self, network, iterationNumber, ref_return_period, cv=0.1, maxTotalIteration=1000, nStrataSamples=10000, x_min=None, x_max=None, maxStrata=10):
-		# TODO: @TIM needs documentation
+		# TODO: @TIM Check Docstring; Check param iterationNumber
 		"""
-		The function `initialize_model_rp` initializes a model for reliability analysis using fragility
-		curves and return periods.
+		The function `initialize_model_rp()` initializes a model for reliability analysis using fragility curves and return periods.
+		Calculates stratas, performs iterations accordingly, calculates schedules, builds a database of class *pandas.core.frame.DataFrame*, saves it to a file, and returns the outages schedule.
 		
-		:param network: The network parameter is an object that represents the network being modeled. It contains information about the network's elements, fragility curves, return periods, and other relevant data
+		:param network: Contains information about the network topology, elements, and their properties. See [LINK]
 		:param iterationNumber: The number of iterations to perform in the Monte Carlo simulation. Each	iteration represents a sample from the fragility curves
-		:param ref_return_period: The reference return period is a parameter that specifies the return period for which the fragility curves are defined. It is used to generate samples for the Monte Carlo simulation and calculate the failure probabilities of network elements
-		:param cv: The parameter "cv" stands for coefficient of variation. It is a measure of the variability of a dataset relative to its mean. In this context, it is used to control the precision of the Monte Carlo simulation. A smaller value of cv will result in a more precise simulation, but it will also increase computational time.
-		:param maxTotalIteration: The maximum number of iterations for the Monte Carlo simulation. This parameter limits the total number of iterations performed during the simulation, defaults to 1000 (optional)
-		:param nStrataSamples: The parameter "nStrataSamples" represents the number of samples to be generated within each stratum. It determines the granularity of the sampling within each range of intensity values, defaults to 10000 (optional)
-		:param x_min: The minimum value of the x-axis for the fragility curves. If not provided, it will be set to the minimum value of the y-data in the fragility curves
-		:param x_max: The maximum value of the x-axis for the fragility curves. It is used to generate samples within the specified range for each strata. If not provided, the maximum value from the fragility curves will be used
+		:param ref_return_period: Reference return period for which the fragility curves are defined. It is used to generate samples for the Monte Carlo simulation and calculate the failure probabilities of network elements
+		:param cv: Coefficient of variation. Measure of variability of a dataset relative to its mean. In this context, it is used to control the precision of the Monte Carlo simulation. A smaller value of cv will result in a more precise simulation, but it will also increase computational time.
+		:param maxTotalIteration: Limit of iterations performed during the simulation.
+		:param nStrataSamples: Number of stratas per stratum
+		:param x_min: Min x-axis value of fragility curve
+		:param x_max: Max x-axis value of fragility curve
+
+		:network type: str
+		:iterationNumber type: int
+		:ref_return_period type:
+		:cv type: float
+		:maxTotalIteration type: int
+		:nStrataSamples type: int
+		:x_min type: numpy.float64
+		:x_max type: numpy.float64
 		"""
 		for j, (key, rp) in enumerate(network.returnPeriods.items()):
 			if j == 0:
@@ -311,16 +324,20 @@ class Sim:
 		
 	def run(self, network, iterationSet = None, saveOutput = True, time = None, debug=None, **kwargs):
 		# TODO: call const.py instead of 'iteration'
-		# TODO: @TIM needs documentation
+		# TODO: @TIM Check Docstring and Types; Check param time
 		"""
-		The function `run` takes in a network and a set of iterations, updates the network grid based on
-		the Monte Carlo database, runs the network simulation for each iteration, and saves the results to
-		an output database.
+		The function `run()` takes in a network and a set of iterations, updates the network grid based on the Monte Carlo database, runs the network simulation for each iteration, and saves the results to an output database.
 		
-		:param network: The `network` parameter is an instance of a network object that represents the network being simulated. It contains all the necessary information and methods to simulate the network
-		:param iterationSet: The `iterationSet` parameter is an optional set of specific iterations that you want to run. If provided, only those iterations will be executed. If not provided, all iterations will be executed
-		:param saveOutput: The `saveOutput` parameter is a boolean flag that determines whether the output database should be saved to a file or not. If `saveOutput` is set to `True`, the output database will be saved to a file. If it is set to `False`, the output database will not be, defaults to True (optional)
-		:param time: The `time` parameter is an optional argument that specifies the duration of the simulation run. If provided, it will override the default simulation time set in the `self.time` variable
+		:param network: Contains information about the network topology, elements, and their properties. See [LINK]
+		:param iterationSet: If provided, selected iterations will be executed. If not provided, all iterations will be executed.
+		:param saveOutput: Determines whether the output database should be saved to a file or not.
+		:param time: Specifies the duration of the simulation run. If provided, it will override the default simulation time set in the `self.time` variable
+		:param **kwargs: -> refer to pandapower run function [look in documentation, f.i. delta, run_type]
+		:network type: reXplan.network.Network [Link?]
+		:iterationSet type: list
+		:saveOutput type: bool	
+		:time type: class [double check] reXplan.simulation.Time
+
 		"""
 		time_ = self.time
 		if time:
@@ -353,8 +370,19 @@ class Sim:
 
 class Time():
 	# TODO: error raising for uncompatible times
-	# TODO: @TIM needs documentation
+	# TODO: @TIM needs more information
+	"""
+	Represents a time interval with a start time and duration # FOR WHAT REASON?
+	"""
 	def __init__(self, start, duration):
+		"""
+		Initializes an object with start and duration attributes, calculates the stop time, creates an interval list, and prints the start and stop values.
+		
+		:param start: Starting point of the interval. It is an integer value that indicates the first value in the interval
+		:param duration: Represents the length of the interval in units of time
+		:start type: int
+		:duration type: int
+		"""
 		self.start = start
 		self.duration = duration
 		self.maxduration = duration
