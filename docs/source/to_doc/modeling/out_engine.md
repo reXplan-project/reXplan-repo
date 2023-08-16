@@ -1,4 +1,4 @@
-# - Engine Database
+# Engine Database
 ```
 path: ../reXplan/jupyter_notebooks/file/output/[simulationName]
 ```

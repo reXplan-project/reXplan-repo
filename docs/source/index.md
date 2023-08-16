@@ -23,12 +23,12 @@ Installation <to_doc/gettingstarted/installation>
 
 Basic Structure <to_doc/modeling/basic_structure>
 to_doc/modeling/input_data
-to_doc/modeling/in_grid_modeling
-to_doc/modeling/in_fragility_curve
-to_doc/modeling/in_hazard_modeling
+- Grid Modeling <to_doc/modeling/in_grid_modeling>
+- Fragility Curve <to_doc/modeling/in_fragility_curve>
+- Hazard Modeling<to_doc/modeling/in_hazard_modeling>
 to_doc/modeling/output_data
-to_doc/modeling/out_monte_carlo
-to_doc/modeling/out_engine
+- Monte Carlo Database <to_doc/modeling/out_monte_carlo>
+- Engine Database <to_doc/modeling/out_engine>
 ```
 
 ```{toctree}

@@ -1,22 +1,39 @@
-# - Hazard Modeling
+# Hazard Modeling
 
 ## Methodologies
 
+Depending on the provided dataset, the user can choose a methodology.
+
 ### Method 1: Generate a hazard element by reading a .nc file
 
-Explain here
+The most precise method is using data from a [netCDF](https://www.unidata.ucar.edu/software/netcdf/) file. NetCDF is a standard file format for scientific data storage and exchange, which allows to store multidimensional data with self-describing metadata.
 
-### Method 2: Generate a hazard element by reading a trajectory csv file
+### Method 2: Generate a hazard element by reading a trajectory .csv file
 
-Explain here
+If the hazard has a trajectory like hurricanes, a .csv file can be supplied. Data can be easily changed manually.
 
-### Method 3: Generate a static hazard element by providing the location of the epicenter
+```{figure} ../../_static/trajectory.gif
+:name: equation-mensah
+:width: 400px
 
-Explain here
+#TODO Get current gif for sphinx doc; Scale for Windspeed!
+```
+
+### Method 3: Generate a static hazard element by providing epicenter data
+For hazards with a specified perimeter and epicenter like earthquakes. #TODO Difference to Method 1?
 
 ### Method 4: Simulate multiple events according a given return period
 
-[idea](https://hydro-informatics.com/exercises/ex-floods.html#terminology)
+A return period is an important tool for risk assessment and probability analysis. It refers to the average time between events with a defined intensity. The occurrence of a "100-year strom" has the same probability for each year, which is 1/100. Visit [hydro-informatics.com](https://hydro-informatics.com/exercises/ex-floods.html#terminology) for more information on return periods.
+
+Different return periods can be allocated to certain areas of interest. A great source for return period data is [the Worldbank](https://climateknowledgeportal.worldbank.org/country/germany/extremes) which provides data for extreme events.
+
+```{figure} ../../_static/return_period.png
+:name: return_period
+:width: 800px
+
+Figure from [Basic Example](../gettingstarted/basic_example_sphinx.ipynb).
+```
 
 ## Initialize Functions
 

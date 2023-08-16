@@ -1,4 +1,4 @@
-# - Monte Carlo Database
+# Monte Carlo Database
 ```
 path: ../reXplan/jupyter_notebooks/file/output/[simulationName]
 ```
