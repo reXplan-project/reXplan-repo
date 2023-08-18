@@ -31,4 +31,5 @@
 ```{eval-rst}
 .. automodule:: reXplan.test
 	:members:
+	:noindex:
 ```

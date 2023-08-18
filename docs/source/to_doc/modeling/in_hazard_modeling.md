@@ -1,16 +1,15 @@
 # Hazard Modeling
 
-## Methodologies
+The hazard needs to be modeled to generate the probability of failure of the power elements with the use of fragility curves. Depending on the provided dataset, the hazard can be defined in four different ways.
 
-Depending on the provided dataset, the user can choose a methodology.
+## Method 1: Generate a hazard element by reading a .nc file
 
-### Method 1: Generate a hazard element by reading a .nc file
+The most precise method is using data from a [netCDF](https://www.unidata.ucar.edu/software/netcdf/) file. NetCDF is a standard file format for scientific climate data storage and exchange, which allows to store multidimensional data with self-describing metadata. Once imported, the tool can analyse the data to identify the highest intensity at each point of the geographical grid. By mapping the power elements against this grid, reXplan can generate probabilities of failure for each element based on the intensity of the climate data and the equipment fragility curves. This 
+approach allows for a comprehensive assessment of the potential impacts of climate-related hazards on power equipment, providing insights into which elements are most at risk and where mitigation efforts should be focused. 
 
-The most precise method is using data from a [netCDF](https://www.unidata.ucar.edu/software/netcdf/) file. NetCDF is a standard file format for scientific data storage and exchange, which allows to store multidimensional data with self-describing metadata.
+## Method 2: Generate a hazard element by reading a trajectory .csv file
 
-### Method 2: Generate a hazard element by reading a trajectory .csv file
-
-If the hazard has a trajectory like hurricanes, a .csv file can be supplied. Data can be easily changed manually.
+If the hazard has a trajectory like Hurricanes, intensity can be described using a .csv file containing the time-series trajectory and radius of the event. The hazard model consists of a circle of varying radius with the point of maximum intensity at its centre. The intensity decreases as you move away from the centre. The centre of the circle also called the epicentre can be moved along geographical coordinates defined by the user, allowing for a more flexible and simple approach to hazard modelling. This method offers a way to visualize the spatial distribution of the hazard intensity over time, which can be useful in assessing the potential impact of the hazard on a specific location or region. By incorporating user-defined geographical coordinates, this approach can be tailored to specific events and locations, allowing for a more accurate and relevant analysis of the hazard.
 
 ```{figure} ../../_static/trajectory.gif
 :name: equation-mensah
@@ -19,37 +18,23 @@ If the hazard has a trajectory like hurricanes, a .csv file can be supplied. Dat
 #TODO Get current gif for sphinx doc; Scale for Windspeed!
 ```
 
-### Method 3: Generate a static hazard element by providing epicenter data
-For hazards with a specified perimeter and epicenter like earthquakes. #TODO Difference to Method 1?
+## Method 3: Generate a static hazard element by providing epicenter data
 
-### Method 4: Simulate multiple events according a given return period
+For simpler analysis or hazards with static geolocation like earthquakes, a constant value of the hazard intensity may be utilized. In this scenario, the same level of intensity for the extreme event is applied to each equipment’s fragility curve to generate failure probabilities.
 
-A return period is an important tool for risk assessment and probability analysis. It refers to the average time between events with a defined intensity. The occurrence of a "100-year strom" has the same probability for each year, which is 1/100. Visit [hydro-informatics.com](https://hydro-informatics.com/exercises/ex-floods.html#terminology) for more information on return periods.
+#TODO Difference to Method 1? Fileformat?
+
+## Method 4: Simulate multiple events according a given return period
+
+Another common way ([see an example from hydro studies](https://hydro-informatics.com/exercises/ex-floods.html#terminology)) in which hazard events are defined is by their return period. This method involves estimating the average time between events such as earthquakes, floods, landslides, or river discharge flows. 
 
 Different return periods can be allocated to certain areas of interest. A great source for return period data is [the Worldbank](https://climateknowledgeportal.worldbank.org/country/germany/extremes) which provides data for extreme events.
+ 
+Unlike other input methods in reXplan, which rely on a specific evolution of the hazard intensity, the return period method uses a stratified probability density function - derived from the return period - to sample from a wide range of intensities. ReXplan optimizes the sampling process through stratification, resulting in accurate Monte Carlo analysis with fewer data samples. This stratification approach employs the R library [SamplingStrata](https://CRAN.R-project.org/package=SamplingStrata) as its backend. A notable advantage of this approach is its ability to find optimal number of strata and the optimal stratification boundaries for multivariate problems or multiple fragility curves, which is particularly useful in addressing resiliency problems.
 
 ```{figure} ../../_static/return_period.png
 :name: return_period
-:width: 800px
+:width: 500px
 
 Figure from [Basic Example](../gettingstarted/basic_example_sphinx.ipynb).
 ```
-
-## Initialize Functions
-
-The initialize model functions {py:func}`resiliencyTool.simulation.Sim.initialize_model_rp` and
-{py:func}`resiliencyTool.simulation.Sim.initialize_model_sh` **create an outage schedule for each electrical equipment in the network as a database with timeseries**. It contains the operating information of all elements in the grid (“in service”, “out of service”, “awaiting repair”, “under repair”), which will be **used for the Monte Carlo simulation**.
-
----
-
-In a **standard Monte Carlo simulation**, random samples of the hazard **intensity are selected from the entire range** of expected hazards. Since higher intensity events are less common, there will be a smaller representation of those events among the Monte Carlo simulation. To achieve better accuracy a large quantity of iterations must be selected. This is not always possible for bigger networks as it quickly becomes **computationally expensive**.
-
-To counter this problem, a **stratification** method is used to divide the total range of possible intensities from the hazard into stratas with the objective being to minimize the total variance of the Monte Carlo samples within each strata. A separate Monte Carlo simulation can then be performed for each of the defined stratas with the number of samples as iterations. This method can achieve a similar accuracy compared to the Monte Carlo simulation without stratification with significantly fewer samples and thus **reducing the computational cost**.
-
-Each Monte Carlo iteration will select a random intensity value within the strata intensity boundaries. The probability of failure of each equipment type is then determined using the fragility curves defined for each type of electrical equipment. A random probability value is then selected for each electrical equipment and is compared to the probability of failure to determine which elements will fail in that specific Monte Carlo iteration.
-
-The time of failure is also selected randomly during the hazard period to avoid having all elements marked for failure, failing at the exact same time.
-
-Using a queue system with priorities for different elements of the network that can be defined by the user, a repair schedule is prepared. The repair schedule considers the number of crew available as well as the provided repair times for each of the electrical equipment.
-
-The equipment failure schedule in combination with the repair schedule form the `outage schedule`. One outage schedule is generated for each Monte Carlo iteration and are all stored in the `montecarlo_database.csv` file.

@@ -11,7 +11,7 @@ Type and unit system of intensity of fragility curve need to match the hazard de
 
 ## Finding Data
  
-Fragility curve data, which provides crucial insights into the vulnerability of structures like wind turbines under varying conditions, is often not readily accessible due to the reluctance of companies to release their proprietary information. The scarcity of available fragility curve data hinders researchers, regulators, and other stakeholders from conducting comprehensive risk assessments and implementing effective strategies to enhance wind turbine reliability and safety.
+Fragility curve data, which provides crucial insights into the vulnerability of structures like wind turbines under varying conditions, is often not readily accessible due to the reluctance of companies to release their proprietary information.
 
 Therefore, finding suitable data is an important task for the modeling of resilience. In the paper [Resilience Assessment of Electric Grids and Distributed Wind Generation under Hurricane Hazards](https://docslib.org/doc/4598583/resilience-assessment-of-electric-grids-and-distributed-wind-generation-under-hurricane-hazards) an equation can be found for the resiliency of transmission support towers. This can be used to model different types of towers.
 

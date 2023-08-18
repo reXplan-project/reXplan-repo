@@ -25,7 +25,8 @@ Basic Structure <to_doc/modeling/basic_structure>
 to_doc/modeling/input_data
 - Grid Modeling <to_doc/modeling/in_grid_modeling>
 - Fragility Curve <to_doc/modeling/in_fragility_curve>
-- Hazard Modeling<to_doc/modeling/in_hazard_modeling>
+- Hazard Modeling <to_doc/modeling/in_hazard_modeling>
+to_doc/modeling/mid_init_n_run
 to_doc/modeling/output_data
 - Monte Carlo Database <to_doc/modeling/out_monte_carlo>
 - Engine Database <to_doc/modeling/out_engine>

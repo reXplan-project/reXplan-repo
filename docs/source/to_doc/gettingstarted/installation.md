@@ -46,3 +46,5 @@ rex_venv\Scripts\activate.bat
 py -m pip install --upgrade pip
 pip install .
 ```
+
+3.4 Select the correct kernel and verify setup by running test file run_me.ipynb #TODO
