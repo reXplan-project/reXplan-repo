@@ -35,13 +35,8 @@ fig, ax = rx.fragilitycurve.plotFragilityCurves(network.fragilityCurves, xnew)
 ```
 as shown in the [Basic Example](../gettingstarted/basic_example_sphinx.ipynb):
 
-```{figure} ../../_static/Towers.png
-:height: 320px
+```{figure} ../../_static/TowersWithFrag.png
 :name: figure-towers
 
-Different types of towers equal different fragility curves
+Different types of towers equal different fragility curves. Intensity in m/s windspeed.
 ```
-
-- pic of frag curves next to pic of towers, #TODO
-
-

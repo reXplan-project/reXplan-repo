@@ -2,7 +2,7 @@
 
 This page describes the key functions of reXplan. Information on data outputs are on the next site.
 
-## Initialize Functions - Asset based KPIs
+## Initialize Functions
 
 The initialize model functions {py:func}`reXplan.simulation.Sim.initialize_model_rp` and
 {py:func}`reXplan.simulation.Sim.initialize_model_sh` **create an outage schedule for each electrical equipment in the network as a database with timeseries**. It contains the operating information of all elements in the grid (“in service”, “out of service”, “awaiting repair”, “under repair”), which will be **used for the (Monte Carlo) simulation**.
@@ -19,12 +19,15 @@ The time of failure is also selected randomly during the hazard period to avoid 
 
 Using a queue system with priorities for different elements of the network, that can be defined by the user, a repair schedule is prepared. The repair schedule considers the number of crew available as well as the provided estimated repair times (time-to-repair= TTR) for each of the electrical equipment.
 
-The equipment failure schedule in combination with the repair schedule form the `outage schedule`. For each Monte Carlo iteration one outage schedule is generated. The sum of all schedules is stored in the `montecarlo_database.csv` file.
+The equipment failure schedule in combination with the repair schedule form the *outage schedule*. For each Monte Carlo iteration one outage schedule is generated. The sum of all schedules is stored in the [`montecarlo_database.csv`](./out_monte_carlo.md) file.
 
-## Sim Function - OPF based KPIs
+## Sim Function
 
-The OPF is used to calculate the load curtailments necessary in each operating scenario, to avoid loading violations. The use of Julia programming language for OPF greatly reduced the computation time, compared to Python.
-The complete results of the simulations are stored in the tool as a single large multi-indexed data frame that can be 
-locally saved and loaded in any data science framework, to flexibly extract and analyse the simulation results. Interactive 
-templates with the calculation and visualization of the most 4 relevant results and KPIs are available in both Jupyter and 
-Pluto notebooks, to be used respectively with Python and Julia programming languages, depending on the user preference.
+
+The run function {py:func}`reXplan.simulation.Sim.run` executes the Monte Carlo simulation based on the [`montecarlo_database.csv`](./out_monte_carlo.md). Calculates the OPF (Optimal Power Flow) and stores data in [`engine_database.csv`](./out_engine.md)
+
+---
+
+The OPF is used to calculate the load curtailments necessary in each operating scenario, to avoid loading violations. The use of Julia programming language for OPF greatly reduced the computation time, compared to Python. The complete results of the simulations are stored in the tool as a single large multi-indexed data frame that can be locally saved and loaded in any data science framework, to flexibly extract and analyse the simulation results.
+
+[#TODO How many Iterations per MC Database?]
