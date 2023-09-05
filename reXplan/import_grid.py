@@ -44,7 +44,7 @@ def style_formatting(ws):
         cell.font = font
         cell.border = border
 
-def rename_element(column, values, sheet):
+def rename_element(sheet, column, values, rename = False):
     if column == 'name':
         for number in values.index:
             values[number] = rename_sheet[sheet] + str(number)
@@ -52,6 +52,8 @@ def rename_element(column, values, sheet):
     if column == 'node' or column == 'node_p' or column == 'node_s' or column == 'from_bus' or column == 'to_bus':
         for number in values.index:
             values[number] = 'bus' + str(values[number])
+    if rename:
+        print("hello World!")
 
     return values
 
@@ -59,7 +61,6 @@ def rename_element(column, values, sheet):
 #     if column == 'name' and values.isna().all() and rename == False:
 #         for number in values.index:
 #             values[number] = rename_sheet[sheet] + str(number)
-    
 #     elif column == 'node' or column == 'node_p' or column == 'node_s' or column == 'from_bus' or column == 'to_bus':
 #         if rename:
 #             for number in values.index:
@@ -70,10 +71,7 @@ def rename_element(column, values, sheet):
 #             for index in getattr(net, rename_sheet[sheet])['bus'].tolist():
 #                 name = getattr(net, 'bus').loc[index]['name']
 #                 names = pd.concat([names, pd.Series(name)], ignore_index=True)
-#             net.ext_grid['bus'] = names
-
-
-            
+#             net.ext_grid['bus'] = names 
 #             for index in getattr(net, rename_sheet[sheet])['bus'].tolist():
 #                 getattr(net, 'bus').loc[index]['name']
 #     return values
@@ -149,7 +147,7 @@ def import_grid(net, rename = False):
 
                     if column in dfs_dict[sheet].keys():
                         values = getattr(net, rename_sheet[sheet])[column]
-                        rename_element(net,sheet,column,values,rename)
+                        rename_element(sheet, column, values, rename)
                         if values.dtype == bool:
                             values = values.astype('object').map({True: 'True', False: 'False'})
                         if column == 'type':    # DEBUG HERE--------------------------------------------------------
@@ -162,7 +160,7 @@ def import_grid(net, rename = False):
                         column_update = next((key for key, value in rename_column.items() if value == column), None)
                         if column_update is not None:
                             values = getattr(net, rename_sheet[sheet])[column]
-                            values = rename_element(column_update, values, sheet, rename)
+                            values = rename_element(sheet, column_update, values, rename)
 
                             if values.dtype == bool:
                                 values = values.astype('object').map({True: 'True', False: 'False'})
@@ -170,7 +168,7 @@ def import_grid(net, rename = False):
 
                     elif (sheet == 'lines' and column in dfs_dict['ln_type'].keys()) or (sheet == 'transformers' and column in dfs_dict['tr_type'].keys()):
                         values = getattr(net, rename_sheet[sheet])[column]
-                        rename_element(column,values, sheet, rename)
+                        rename_element(sheet, column, values, rename)
 
                         if values.dtype == bool:
                             values = values.astype('object').map({True: 'True', False: 'False'})
