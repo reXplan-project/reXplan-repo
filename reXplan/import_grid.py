@@ -19,7 +19,10 @@ rename_sheet = {
     'lines'         : 'line',
 }
 
-rename_column = {}
+rename_column = {
+    'from_bus'      : 'from_bus',
+    'to_bus'        : 'to_bus',
+}
 
 def style_formatting(ws):
     for column in ws.columns:
@@ -46,27 +49,23 @@ def style_formatting(ws):
         cell.border = border
 
 def rename_element(sheet, column, values, net, rename = False):
+    # TODO: handling of [transformers][node_p],[node_s]; [lines][from_bus],[to_bus]
+    if sheet == 'lines' and column == 'from_bus':
+        print("Debug")
     if column == 'name' and values.isna().all() and not rename:
         for number in values.index:
             values[number] = rename_sheet[sheet] + str(number)
             
-    if column == 'node' or column == 'node_p' or column == 'node_s' or column == 'from_bus' or column == 'to_bus':
+    if column == 'node': 
         if rename:
             for number in values.index:
                 values[number] = 'bus' + str(values[number])
         # elif: Check for numerical #TODO Check if necessary
         else:
             if isinstance(net, pp.auxiliary.pandapowerNet):
-                bus_column = getattr(net, rename_sheet[sheet])['bus']
+                bus_column = getattr(net, rename_sheet[sheet])[rename_column[column]]   # renamed column??
                 bus_names = net.bus.loc[bus_column.tolist(), 'name']
-                #bus_names = pd.concat([bus_names, bus_names], ignore_index=True)
-                #temp_df = getattr(net,rename_sheet[sheet])
                 values = pd.concat([bus_names, bus_names], ignore_index=True)
-                #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                # setattr(temp_df,'bus', bus_names)
-                # setattr(net,rename_sheet[sheet],temp_df)
-                # values = getattr(net, rename_sheet[sheet])['bus']
-                #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             else:
                 raise TypeError('Provided datatype of network is not compliant')
     return values
@@ -177,7 +176,7 @@ def import_grid(net, rename = False):
                         values = getattr(net, rename_sheet[sheet])[column]
                         if sheet == 'transformers':
                             for index in values.index:
-                                values[index] = 'ttype' + str(index)
+                                values[index] = 'ttype' + str(index)    # TODO
                             dfs_dict['tr_type']['name'] = values
                         elif sheet == 'lines':
                             if column == 'std_type':
