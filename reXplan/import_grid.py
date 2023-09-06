@@ -1,4 +1,5 @@
 import pandapower.networks as pn
+import pandapower as pp
 import pandas as pd
 import os
 
@@ -44,37 +45,31 @@ def style_formatting(ws):
         cell.font = font
         cell.border = border
 
-def rename_element(sheet, column, values, rename = False):
-    if column == 'name':
+def rename_element(sheet, column, values, net, rename = False):
+    if column == 'name' and values.isna().all() and not rename:
         for number in values.index:
             values[number] = rename_sheet[sheet] + str(number)
             
     if column == 'node' or column == 'node_p' or column == 'node_s' or column == 'from_bus' or column == 'to_bus':
-        for number in values.index:
-            values[number] = 'bus' + str(values[number])
-    if rename:
-        print("hello World!")
-
+        if rename:
+            for number in values.index:
+                values[number] = 'bus' + str(values[number])
+        # elif: Check for numerical #TODO Check if necessary
+        else:
+            if isinstance(net, pp.auxiliary.pandapowerNet):
+                bus_column = getattr(net, rename_sheet[sheet])['bus']
+                bus_names = net.bus.loc[bus_column.tolist(), 'name']
+                #bus_names = pd.concat([bus_names, bus_names], ignore_index=True)
+                #temp_df = getattr(net,rename_sheet[sheet])
+                values = pd.concat([bus_names, bus_names], ignore_index=True)
+                #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                # setattr(temp_df,'bus', bus_names)
+                # setattr(net,rename_sheet[sheet],temp_df)
+                # values = getattr(net, rename_sheet[sheet])['bus']
+                #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            else:
+                raise TypeError('Provided datatype of network is not compliant')
     return values
-
-# def rename_element(net, sheet, column, values, rename = False):
-#     if column == 'name' and values.isna().all() and rename == False:
-#         for number in values.index:
-#             values[number] = rename_sheet[sheet] + str(number)
-#     elif column == 'node' or column == 'node_p' or column == 'node_s' or column == 'from_bus' or column == 'to_bus':
-#         if rename:
-#             for number in values.index:
-#                 values[number] = 'bus' + str(values[number])
-#         # elif values.isna().all() # check if only numericals
-#         else:
-#             names = pd.Series(dtype='object')
-#             for index in getattr(net, rename_sheet[sheet])['bus'].tolist():
-#                 name = getattr(net, 'bus').loc[index]['name']
-#                 names = pd.concat([names, pd.Series(name)], ignore_index=True)
-#             net.ext_grid['bus'] = names 
-#             for index in getattr(net, rename_sheet[sheet])['bus'].tolist():
-#                 getattr(net, 'bus').loc[index]['name']
-#     return values
 
 def import_grid(net, rename = False):
     """
@@ -82,7 +77,7 @@ def import_grid(net, rename = False):
 
     INPUT:
 		net (dict) - pandapower format network
-        rename (bool) - False: Naming as saved in net; True: Elements renamed
+        rename (bool) - False: Naming as saved in pandapower net; True: Elements renamed
 
     EXAMPLE:
 		>>> import_grid(net)
@@ -147,7 +142,7 @@ def import_grid(net, rename = False):
 
                     if column in dfs_dict[sheet].keys():
                         values = getattr(net, rename_sheet[sheet])[column]
-                        rename_element(sheet, column, values, rename)
+                        rename_element(sheet, column, values, net, rename)
                         if values.dtype == bool:
                             values = values.astype('object').map({True: 'True', False: 'False'})
                         if column == 'type':    # DEBUG HERE--------------------------------------------------------
@@ -156,11 +151,11 @@ def import_grid(net, rename = False):
                         else:
                             dfs_dict[sheet][column] = values
 
-                    elif column in rename_column.values():
+                    elif column in rename_column.values(): #and not values.isna().all ?
                         column_update = next((key for key, value in rename_column.items() if value == column), None)
                         if column_update is not None:
                             values = getattr(net, rename_sheet[sheet])[column]
-                            values = rename_element(sheet, column_update, values, rename)
+                            values = rename_element(sheet, column_update, values, net, rename) # returne hier ja keine values!
 
                             if values.dtype == bool:
                                 values = values.astype('object').map({True: 'True', False: 'False'})
@@ -168,7 +163,7 @@ def import_grid(net, rename = False):
 
                     elif (sheet == 'lines' and column in dfs_dict['ln_type'].keys()) or (sheet == 'transformers' and column in dfs_dict['tr_type'].keys()):
                         values = getattr(net, rename_sheet[sheet])[column]
-                        rename_element(sheet, column, values, rename)
+                        values = rename_element(sheet, column, values, net, rename)  # values = ?
 
                         if values.dtype == bool:
                             values = values.astype('object').map({True: 'True', False: 'False'})
@@ -192,7 +187,8 @@ def import_grid(net, rename = False):
                         dfs_dict[sheet]['type'] = values
 
                     else:
-                        print(f"\nSheet: {rename_sheet[sheet]}; Column: {column} is NOT used in template sheet")
+                        pass
+                        #print(f"\nSheet: {rename_sheet[sheet]}; Column: {column} is NOT used in template sheet")
 
                 if sheet == 'generators':
                     new_dict = {'sgen':pd.DataFrame()}
@@ -247,10 +243,10 @@ def import_grid(net, rename = False):
                         
                         new_dict['sgen'] = pd.concat([new_dict['sgen'], series_values], axis=1)
 
-
                     dfs_dict[sheet] = pd.concat([dfs_dict[sheet], new_dict['sgen']])
             except:
-                dfs_dict[sheet]
+                # dfs_dict[sheet]
+                print(f"[{sheet},{column}]")
 
     if net.bus_geodata.index.max() == net.bus.index.max():
         net.bus_geodata = net.bus_geodata.sort_index()
