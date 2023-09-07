@@ -50,22 +50,21 @@ def style_formatting(ws):
 
 def rename_element(sheet, column, values, net, rename = False):
     # TODO: handling of [transformers][node_p],[node_s]; [lines][from_bus],[to_bus]
-    if sheet == 'lines' and column == 'from_bus':
-        print("Debug")
     if column == 'name' and values.isna().all() and not rename:
         for number in values.index:
-            values[number] = rename_sheet[sheet] + str(number)
+            values[number] = rename_sheet[sheet] + str(number + 1)
             
-    if column == 'node': 
+    if column == 'node' or column == 'node_p' or column == 'node_s' or column == 'from_bus' or column == 'to_bus': 
         if rename:
             for number in values.index:
                 values[number] = 'bus' + str(values[number])
         # elif: Check for numerical #TODO Check if necessary
         else:
             if isinstance(net, pp.auxiliary.pandapowerNet):
+                
                 bus_column = getattr(net, rename_sheet[sheet])[rename_column[column]]   # renamed column??
                 bus_names = net.bus.loc[bus_column.tolist(), 'name']
-                values = pd.concat([bus_names, bus_names], ignore_index=True)
+                values = bus_names.reset_index(drop=True)
             else:
                 raise TypeError('Provided datatype of network is not compliant')
     return values
@@ -140,10 +139,11 @@ def import_grid(net, rename = False):
                 for column in columns:
 
                     if column in dfs_dict[sheet].keys():
-                        values = getattr(net, rename_sheet[sheet])[column]
-                        rename_element(sheet, column, values, net, rename)
+                        old_values = getattr(net, rename_sheet[sheet])[column]
+                        values = rename_element(sheet, column, old_values, net, rename)
                         if values.dtype == bool:
                             values = values.astype('object').map({True: 'True', False: 'False'})
+
                         if column == 'type':    # DEBUG HERE--------------------------------------------------------
                             if sheet == 'lines':
                                 dfs_dict['ln_type'][column] = values
@@ -154,36 +154,35 @@ def import_grid(net, rename = False):
                         column_update = next((key for key, value in rename_column.items() if value == column), None)
                         if column_update is not None:
                             values = getattr(net, rename_sheet[sheet])[column]
-                            values = rename_element(sheet, column_update, values, net, rename) # returne hier ja keine values!
+                            values = rename_element(sheet, column_update, values, net, rename)
 
                             if values.dtype == bool:
                                 values = values.astype('object').map({True: 'True', False: 'False'})
                             dfs_dict[sheet][column_update] = values
 
-                    elif (sheet == 'lines' and column in dfs_dict['ln_type'].keys()) or (sheet == 'transformers' and column in dfs_dict['tr_type'].keys()):
-                        values = getattr(net, rename_sheet[sheet])[column]
-                        values = rename_element(sheet, column, values, net, rename)  # values = ?
+                    # elif (sheet == 'lines' and column in dfs_dict['ln_type'].keys()) or (sheet == 'transformers' and column in dfs_dict['tr_type'].keys()):
+                    #     values = getattr(net, rename_sheet[sheet])[column]
+                    #     values = rename_element(sheet, column, values, net, rename)  # values = ?
 
-                        if values.dtype == bool:
-                            values = values.astype('object').map({True: 'True', False: 'False'})
+                    #     if values.dtype == bool:
+                    #         values = values.astype('object').map({True: 'True', False: 'False'})
                         
-                        if column in dfs_dict['ln_type'].keys():
-                            dfs_dict['ln_type'][column] = values
-                        elif column in dfs_dict['tr_type'].keys():
-                            dfs_dict['tr_type'][column] = values
-
-                    elif column == 'std_type':
-                        values = getattr(net, rename_sheet[sheet])[column]
-                        if sheet == 'transformers':
-                            for index in values.index:
-                                values[index] = 'ttype' + str(index)    # TODO
-                            dfs_dict['tr_type']['name'] = values
-                        elif sheet == 'lines':
-                            if column == 'std_type':
-                                for index in values.index:
-                                    values[index] = 'ltype' + str(index)
-                                dfs_dict['ln_type']['name'] = values
-                        dfs_dict[sheet]['type'] = values
+                    #     if column in dfs_dict['ln_type'].keys():
+                    #         dfs_dict['ln_type'][column] = values
+                    #     elif column in dfs_dict['tr_type'].keys():
+                    #         dfs_dict['tr_type'][column] = values
+                    # elif column == 'std_type':
+                    #     values = getattr(net, rename_sheet[sheet])[column]
+                    #     if sheet == 'transformers':
+                    #         for index in values.index:
+                    #             values[index] = 'ttype' + str(index)    # TODO
+                    #         dfs_dict['tr_type']['name'] = values
+                    #     elif sheet == 'lines':
+                    #         if column == 'std_type':
+                    #             for index in values.index:
+                    #                 values[index] = 'ltype' + str(index)
+                    #             dfs_dict['ln_type']['name'] = values
+                    #     dfs_dict[sheet]['type'] = values
 
                     else:
                         pass
