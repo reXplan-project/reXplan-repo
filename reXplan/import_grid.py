@@ -49,24 +49,36 @@ def style_formatting(ws):
         cell.border = border
 
 def rename_element(sheet, column, values, net, rename = False):
-    # TODO: handling of [transformers][node_p],[node_s]; [lines][from_bus],[to_bus]
-    if column == 'name' and values.isna().all() and not rename:
-        for number in values.index:
-            values[number] = rename_sheet[sheet] + str(number + 1)
-            
-    if column == 'node' or column == 'node_p' or column == 'node_s' or column == 'from_bus' or column == 'to_bus': 
-        if rename:
+    # TODO: handling of rename = True
+    if values.empty:
+        pass
+
+    elif values.dtype == bool:
+        values = values.astype('object').map({True: 'True', False: 'False'})
+
+    elif column == 'name' and rename:
+        if sheet == 'nodes':
             for number in values.index:
-                values[number] = 'bus' + str(values[number])
-        # elif: Check for numerical #TODO Check if necessary
+                values[number] = 'bus' + str(number + 1)
         else:
-            if isinstance(net, pp.auxiliary.pandapowerNet):
-                
-                bus_column = getattr(net, rename_sheet[sheet])[rename_column[column]]   # renamed column??
-                bus_names = net.bus.loc[bus_column.tolist(), 'name']
-                values = bus_names.reset_index(drop=True)
-            else:
-                raise TypeError('Provided datatype of network is not compliant')
+            values.reset_index(drop=True, inplace=True)
+            for number in values.index:
+                values[number] = rename_sheet[sheet] + str(number + 1)
+            
+    elif column == 'node' or column == 'node_p' or column == 'node_s' or column == 'from_bus' or column == 'to_bus': 
+
+        if isinstance(net, pp.auxiliary.pandapowerNet):              
+            bus_column = getattr(net, rename_sheet[sheet])[rename_column[column]]   # renamed column??
+            bus_names = net.bus.loc[bus_column.tolist(), 'name']
+            values = bus_names.reset_index(drop=True)
+            values = values.rename(column)
+        else:
+            raise TypeError('Provided datatype of network is not compliant')
+
+    else:
+        pass    
+        # print(f"No need to rename for: [{sheet}] - [{column}]")
+
     return values
 
 def import_grid(net, rename = False):
@@ -141,24 +153,21 @@ def import_grid(net, rename = False):
                     if column in dfs_dict[sheet].keys():
                         old_values = getattr(net, rename_sheet[sheet])[column]
                         values = rename_element(sheet, column, old_values, net, rename)
-                        if values.dtype == bool:
-                            values = values.astype('object').map({True: 'True', False: 'False'})
 
                         if column == 'type':    # DEBUG HERE--------------------------------------------------------
                             if sheet == 'lines':
                                 dfs_dict['ln_type'][column] = values
                         else:
                             dfs_dict[sheet][column] = values
+                            del values
 
                     elif column in rename_column.values(): #and not values.isna().all ?
                         column_update = next((key for key, value in rename_column.items() if value == column), None)
                         if column_update is not None:
-                            values = getattr(net, rename_sheet[sheet])[column]
-                            values = rename_element(sheet, column_update, values, net, rename)
-
-                            if values.dtype == bool:
-                                values = values.astype('object').map({True: 'True', False: 'False'})
-                            dfs_dict[sheet][column_update] = values
+                            old_values = getattr(net, rename_sheet[sheet])[column]
+                            values = rename_element(sheet, column_update, old_values, net, rename)
+                            dfs_dict[sheet][column_update] = values.values
+                            del values
 
                     # elif (sheet == 'lines' and column in dfs_dict['ln_type'].keys()) or (sheet == 'transformers' and column in dfs_dict['tr_type'].keys()):
                     #     values = getattr(net, rename_sheet[sheet])[column]
@@ -253,6 +262,7 @@ def import_grid(net, rename = False):
 
     dfs_dict['network']['sn_mva'] = pd.Series(net.sn_mva)
     dfs_dict['network']['f_hz'] = pd.Series(net.f_hz)
+    dfs_dict['network']['name'] = pd.Series(net.name)
 
     wb = Workbook()
     wb.remove(wb['Sheet'])
