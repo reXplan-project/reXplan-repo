@@ -49,7 +49,7 @@ def style_formatting(ws):
         cell.border = border
 
 def rename_element(sheet, column, values, net, rename = False):
-    # TODO: handling of rename = True
+    # TODO: handling of elements named with numericals ?
     if values.empty:
         pass
 
@@ -68,7 +68,7 @@ def rename_element(sheet, column, values, net, rename = False):
     elif column == 'node' or column == 'node_p' or column == 'node_s' or column == 'from_bus' or column == 'to_bus': 
 
         if isinstance(net, pp.auxiliary.pandapowerNet):              
-            bus_column = getattr(net, rename_sheet[sheet])[rename_column[column]]   # renamed column??
+            bus_column = getattr(net, rename_sheet[sheet])[rename_column[column]]
             bus_names = net.bus.loc[bus_column.tolist(), 'name']
             values = bus_names.reset_index(drop=True)
             values = values.rename(column)
@@ -87,7 +87,7 @@ def import_grid(net, rename = False):
 
     INPUT:
 		net (dict) - pandapower format network
-        rename (bool) - False: Naming as saved in pandapower net; True: Elements renamed
+        rename (bool) - False: Naming as provided in pandapower net; True: Elements renamed with respective index of bus
 
     EXAMPLE:
 		>>> import_grid(net)
@@ -154,12 +154,14 @@ def import_grid(net, rename = False):
                         old_values = getattr(net, rename_sheet[sheet])[column]
                         values = rename_element(sheet, column, old_values, net, rename)
 
-                        if column == 'type':    # DEBUG HERE--------------------------------------------------------
-                            if sheet == 'lines':
-                                dfs_dict['ln_type'][column] = values
-                        else:
-                            dfs_dict[sheet][column] = values
-                            del values
+                        # if column == 'type':    # DEBUG HERE--------------------------------------------------------
+                        #     if sheet == 'lines':
+                        #         dfs_dict['ln_type'][column] = values
+                        # else:
+                        #     dfs_dict[sheet][column] = values
+                        #     del values
+
+                        dfs_dict[sheet][column] = values.values #uncomment
 
                     elif column in rename_column.values(): #and not values.isna().all ?
                         column_update = next((key for key, value in rename_column.items() if value == column), None)
@@ -167,8 +169,8 @@ def import_grid(net, rename = False):
                             old_values = getattr(net, rename_sheet[sheet])[column]
                             values = rename_element(sheet, column_update, old_values, net, rename)
                             dfs_dict[sheet][column_update] = values.values
-                            del values
-
+                            #  del values
+                    # TODO: Handling of ln_type and tr_type sheets
                     # elif (sheet == 'lines' and column in dfs_dict['ln_type'].keys()) or (sheet == 'transformers' and column in dfs_dict['tr_type'].keys()):
                     #     values = getattr(net, rename_sheet[sheet])[column]
                     #     values = rename_element(sheet, column, values, net, rename)  # values = ?
@@ -184,7 +186,7 @@ def import_grid(net, rename = False):
                     #     values = getattr(net, rename_sheet[sheet])[column]
                     #     if sheet == 'transformers':
                     #         for index in values.index:
-                    #             values[index] = 'ttype' + str(index)    # TODO
+                    #             values[index] = 'ttype' + str(index)
                     #         dfs_dict['tr_type']['name'] = values
                     #     elif sheet == 'lines':
                     #         if column == 'std_type':
@@ -255,6 +257,7 @@ def import_grid(net, rename = False):
                 # dfs_dict[sheet]
                 print(f"[{sheet},{column}]")
 
+    # TODO: missing Geodata for busses with multiple entries
     if net.bus_geodata.index.max() == net.bus.index.max():
         net.bus_geodata = net.bus_geodata.sort_index()
         dfs_dict['nodes']['longitude'] = net.bus_geodata.x
