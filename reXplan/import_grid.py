@@ -93,6 +93,12 @@ def import_grid(net, rename = False):
 		>>> import_grid(net)
 		>>> import_grid(pn.case14())
     """
+    # TODO: FOR rename = FALSE:-------------------------------------
+    # TODO: - [lines] [type] incorrect
+    # TODO: - [ln_type] [name] incorrect
+    # TODO: - [ln_type] redundancy of identical types
+    # TODO: - [lines] geodata missing
+    # TODO: - [nodes] geodata handling for bus with multiple entries
 
     path = os.path.dirname(os.getcwd())
     fields_maps = pd.read_csv(os.path.join(path + "\\reXplan",'fields_map.csv'))
@@ -106,7 +112,7 @@ def import_grid(net, rename = False):
                 rename_column[key] = value
 
     for sheet in dfs_dict.keys():
-
+        
         if sheet == 'cost' and not dfs_dict['cost'].empty:
             columns = getattr(net, rename_sheet[sheet]).columns
 
@@ -144,62 +150,49 @@ def import_grid(net, rename = False):
             dfs_dict['profiles'] = pd.DataFrame(columns=columns_profile)
             dfs_dict['profiles'].loc[1] = ['field'] + ['max_p_mw'] * len(net.load)
 
-        else:
+        elif sheet == 'ln_type' :
+            columns = getattr(net, 'line').columns
+            for column in columns:
+                    if column in dfs_dict[sheet].keys():
+                        old_values = getattr(net, 'line')[column]
+                        values = rename_element(sheet, column, old_values, net, rename)
+                        dfs_dict[sheet][column] = values.values # .values?
+        
+        elif sheet == 'tr_type' :
+            columns = getattr(net, 'trafo').columns
+            for column in columns:
+                    if column in dfs_dict[sheet].keys():
+                        old_values = getattr(net, 'trafo')[column]
+                        values = rename_element(sheet, column, old_values, net, rename)
+                        dfs_dict[sheet][column] = values.values # .values?
 
+        else:
             try:
                 columns = getattr(net, rename_sheet[sheet]).columns
                 for column in columns:
-
                     if column in dfs_dict[sheet].keys():
                         old_values = getattr(net, rename_sheet[sheet])[column]
                         values = rename_element(sheet, column, old_values, net, rename)
+                        dfs_dict[sheet][column] = values.values # .values?
 
-                        # if column == 'type':    # DEBUG HERE--------------------------------------------------------
-                        #     if sheet == 'lines':
-                        #         dfs_dict['ln_type'][column] = values
-                        # else:
-                        #     dfs_dict[sheet][column] = values
-                        #     del values
-
-                        dfs_dict[sheet][column] = values.values #uncomment
-
-                    elif column in rename_column.values(): #and not values.isna().all ?
+                    elif column in rename_column.values():
                         column_update = next((key for key, value in rename_column.items() if value == column), None)
                         if column_update is not None:
                             old_values = getattr(net, rename_sheet[sheet])[column]
                             values = rename_element(sheet, column_update, old_values, net, rename)
                             dfs_dict[sheet][column_update] = values.values
-                            #  del values
-                    # TODO: Handling of ln_type and tr_type sheets
-                    # elif (sheet == 'lines' and column in dfs_dict['ln_type'].keys()) or (sheet == 'transformers' and column in dfs_dict['tr_type'].keys()):
-                    #     values = getattr(net, rename_sheet[sheet])[column]
-                    #     values = rename_element(sheet, column, values, net, rename)  # values = ?
 
-                    #     if values.dtype == bool:
-                    #         values = values.astype('object').map({True: 'True', False: 'False'})
-                        
-                    #     if column in dfs_dict['ln_type'].keys():
-                    #         dfs_dict['ln_type'][column] = values
-                    #     elif column in dfs_dict['tr_type'].keys():
-                    #         dfs_dict['tr_type'][column] = values
-                    # elif column == 'std_type':
-                    #     values = getattr(net, rename_sheet[sheet])[column]
-                    #     if sheet == 'transformers':
-                    #         for index in values.index:
-                    #             values[index] = 'ttype' + str(index)
-                    #         dfs_dict['tr_type']['name'] = values
-                    #     elif sheet == 'lines':
-                    #         if column == 'std_type':
-                    #             for index in values.index:
-                    #                 values[index] = 'ltype' + str(index)
-                    #             dfs_dict['ln_type']['name'] = values
-                    #     dfs_dict[sheet]['type'] = values
+                    elif column == 'std_type':
+                        old_values = getattr(net, rename_sheet[sheet])[column]
+                        values = rename_element(sheet, column, old_values, net, rename)
+                        dfs_dict[sheet]['type'] = values.values
 
                     else:
                         pass
                         #print(f"\nSheet: {rename_sheet[sheet]}; Column: {column} is NOT used in template sheet")
 
                 if sheet == 'generators':
+                    # TODO: Test this part!
                     new_dict = {'sgen':pd.DataFrame()}
                     sgen = getattr(net, 'sgen')
                     gen = getattr(net, 'gen')
@@ -255,9 +248,9 @@ def import_grid(net, rename = False):
                     dfs_dict[sheet] = pd.concat([dfs_dict[sheet], new_dict['sgen']])
             except:
                 # dfs_dict[sheet]
-                print(f"[{sheet},{column}]")
+                # print(f"[{sheet},{column}]")
+                pass
 
-    # TODO: missing Geodata for busses with multiple entries
     if net.bus_geodata.index.max() == net.bus.index.max():
         net.bus_geodata = net.bus_geodata.sort_index()
         dfs_dict['nodes']['longitude'] = net.bus_geodata.x
