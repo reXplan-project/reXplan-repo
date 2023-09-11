@@ -49,12 +49,20 @@ def style_formatting(ws):
         cell.border = border
 
 def rename_element(sheet, column, values, net, rename = False):
-    # TODO: handling of elements named with numericals ?
+
     if values.empty:
         pass
 
     elif values.dtype == bool:
         values = values.astype('object').map({True: 'True', False: 'False'})
+
+    elif sheet == 'ln_type' and column == 'name':
+        if isinstance(net, pp.auxiliary.pandapowerNet):   
+            values = getattr(net, 'line')['std_type']
+            # FILTER REPETETIVE PIECES
+
+        else:
+            raise TypeError('Provided datatype of network is not compliant')
 
     elif column == 'name' and rename:
         if sheet == 'nodes':
@@ -94,8 +102,6 @@ def import_grid(net, rename = False):
 		>>> import_grid(pn.case14())
     """
     # TODO: FOR rename = FALSE:-------------------------------------
-    # TODO: - [lines] [type] incorrect
-    # TODO: - [ln_type] [name] incorrect
     # TODO: - [ln_type] redundancy of identical types
     # TODO: - [lines] geodata missing
     # TODO: - [nodes] geodata handling for bus with multiple entries
@@ -170,7 +176,7 @@ def import_grid(net, rename = False):
             try:
                 columns = getattr(net, rename_sheet[sheet]).columns
                 for column in columns:
-                    if column in dfs_dict[sheet].keys():
+                    if column in dfs_dict[sheet].keys() and not (sheet == 'lines' and column == 'type'):
                         old_values = getattr(net, rename_sheet[sheet])[column]
                         values = rename_element(sheet, column, old_values, net, rename)
                         dfs_dict[sheet][column] = values.values # .values?
