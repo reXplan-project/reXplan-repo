@@ -50,21 +50,19 @@ def style_formatting(ws):
 
 def rename_element(sheet, column, values, net, rename = False):
 
-    if values.empty:
+    if values.empty and not column == 'name':
         pass
 
     elif values.dtype == bool:
         values = values.astype('object').map({True: 'True', False: 'False'})
 
-    elif sheet == 'ln_type' and column == 'name':
-        if isinstance(net, pp.auxiliary.pandapowerNet):   
-            values = getattr(net, 'line')['std_type']
-            # FILTER REPETETIVE PIECES
+    elif sheet == 'ln_type' and column == 'name':  
+        values = getattr(net, 'line')['std_type']
+    
+    elif sheet == 'tr_type' and column == 'name':  
+        values = getattr(net, 'trafo')['std_type']
 
-        else:
-            raise TypeError('Provided datatype of network is not compliant')
-
-    elif column == 'name' and rename:
+    elif column == 'name' and (rename or not values.empty or values.apply(lambda x: isinstance(x, (int, float))).all()): #only numericals
         if sheet == 'nodes':
             for number in values.index:
                 values[number] = 'bus' + str(number + 1)
@@ -102,9 +100,13 @@ def import_grid(net, rename = False):
 		>>> import_grid(pn.case14())
     """
     # TODO: FOR rename = FALSE:-------------------------------------
-    # TODO: - [ln_type] redundancy of identical types
+    # TODO: - [lines & trafo] [type] handling if <None>
+    # TODO: - [cost] [name & type]
     # TODO: - [lines] geodata missing
     # TODO: - [nodes] geodata handling for bus with multiple entries
+
+    # TODO: FOR rename = TRUE:--------------------------------------
+    # TODO: - Validate Functionality
 
     path = os.path.dirname(os.getcwd())
     fields_maps = pd.read_csv(os.path.join(path + "\\reXplan",'fields_map.csv'))
@@ -152,25 +154,23 @@ def import_grid(net, rename = False):
                     dfs_dict[sheet][column] = values
         
         elif sheet == 'profiles':
-            columns_profile = ['asset'] + ['load{}'.format(i) for i in range(len(net.load))]
+            load_names = getattr(net, 'load')['name'].tolist()
+            columns_profile = ['asset'] + load_names
             dfs_dict['profiles'] = pd.DataFrame(columns=columns_profile)
             dfs_dict['profiles'].loc[1] = ['field'] + ['max_p_mw'] * len(net.load)
 
-        elif sheet == 'ln_type' :
-            columns = getattr(net, 'line').columns
+        elif sheet == 'ln_type' or sheet == 'tr_type':
+            if sheet == 'ln_type':
+                var = 'line'
+            else:
+                var = 'trafo'
+            columns = getattr(net, var).columns
             for column in columns:
                     if column in dfs_dict[sheet].keys():
-                        old_values = getattr(net, 'line')[column]
+                        old_values = getattr(net, var)[column]
                         values = rename_element(sheet, column, old_values, net, rename)
                         dfs_dict[sheet][column] = values.values # .values?
-        
-        elif sheet == 'tr_type' :
-            columns = getattr(net, 'trafo').columns
-            for column in columns:
-                    if column in dfs_dict[sheet].keys():
-                        old_values = getattr(net, 'trafo')[column]
-                        values = rename_element(sheet, column, old_values, net, rename)
-                        dfs_dict[sheet][column] = values.values # .values?
+            dfs_dict[sheet] = dfs_dict[sheet].drop_duplicates()
 
         else:
             try:
