@@ -50,7 +50,7 @@ def style_formatting(ws):
 
 def rename_element(sheet, column, values, net, rename = False):
 
-    if values.empty and not column == 'name':
+    if values.empty:
         pass
 
     elif values.dtype == bool:
@@ -58,9 +58,23 @@ def rename_element(sheet, column, values, net, rename = False):
 
     elif sheet == 'ln_type' and column == 'name':  
         values = getattr(net, 'line')['std_type']
+
+    elif sheet == 'lines' and column == 'std_type':  
+        if values.isna().any():
+            values = getattr(net, 'line')['std_type']
+            values.reset_index(drop=True, inplace=True)
+            for number in values.index:
+                values[number] = 'line_type' + str(number + 1)
     
     elif sheet == 'tr_type' and column == 'name':  
         values = getattr(net, 'trafo')['std_type']
+
+    elif sheet == 'transformers' and column == 'std_type':  
+        if values.isna().any():
+            values = getattr(net, 'trafo')['std_type']
+            values.reset_index(drop=True, inplace=True)
+            for number in values.index:
+                values[number] = 'trafo_type' + str(number + 1)
 
     elif column == 'name' and (rename or not values.empty or values.apply(lambda x: isinstance(x, (int, float))).all()): #only numericals
         if sheet == 'nodes':
@@ -100,13 +114,13 @@ def import_grid(net, rename = False):
 		>>> import_grid(pn.case14())
     """
     # TODO: FOR rename = FALSE:-------------------------------------
-    # TODO: - [lines & trafo] [type] handling if <None>
+    # TODO: - Optimize Code of rename function
     # TODO: - [cost] [name & type]
     # TODO: - [lines] geodata missing
     # TODO: - [nodes] geodata handling for bus with multiple entries
 
     # TODO: FOR rename = TRUE:--------------------------------------
-    # TODO: - Validate Functionality
+    # TODO: - Validate same Functionality
 
     path = os.path.dirname(os.getcwd())
     fields_maps = pd.read_csv(os.path.join(path + "\\reXplan",'fields_map.csv'))
@@ -195,7 +209,7 @@ def import_grid(net, rename = False):
 
                     else:
                         pass
-                        #print(f"\nSheet: {rename_sheet[sheet]}; Column: {column} is NOT used in template sheet")
+                        #print(f"\nSheet: {rename_sheet[sheet]}; Column: {column} is NOT used in template sheet") # For Debugging
 
                 if sheet == 'generators':
                     # TODO: Test this part!
@@ -253,8 +267,7 @@ def import_grid(net, rename = False):
 
                     dfs_dict[sheet] = pd.concat([dfs_dict[sheet], new_dict['sgen']])
             except:
-                # dfs_dict[sheet]
-                # print(f"[{sheet},{column}]")
+                # print(f"[{sheet},{column}]") # For Debugging
                 pass
 
     if net.bus_geodata.index.max() == net.bus.index.max():
