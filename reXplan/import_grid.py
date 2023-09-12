@@ -56,37 +56,31 @@ def rename_element(sheet, column, values, net, rename = False):
     elif values.dtype == bool:
         values = values.astype('object').map({True: 'True', False: 'False'})
 
-    elif sheet == 'ln_type' and column == 'name':  
-        values = getattr(net, 'line')['std_type']
-
-    elif sheet == 'lines' and column == 'std_type':  
-        if values.isna().any():
+    elif column == 'name':
+        if sheet == 'ln_type':
             values = getattr(net, 'line')['std_type']
-            values.reset_index(drop=True, inplace=True)
-            for number in values.index:
-                values[number] = 'line_type' + str(number + 1)
-    
-    elif sheet == 'tr_type' and column == 'name':  
-        values = getattr(net, 'trafo')['std_type']
-
-    elif sheet == 'transformers' and column == 'std_type':  
-        if values.isna().any():
+        elif sheet == 'tr_type':
             values = getattr(net, 'trafo')['std_type']
+        elif rename or not values.empty or values.apply(lambda x: isinstance(x, (int, float))).all():
+            if sheet == 'nodes':
+                for number in values.index:
+                    values[number] = 'bus' + str(number + 1)
+            else:
+                values.reset_index(drop=True, inplace=True)
+                for number in values.index:
+                    values[number] = rename_sheet[sheet] + str(number + 1)
+    
+    elif column == 'std_type':
+        if values.isna().any():
+            values = getattr(net, rename_sheet[sheet])['std_type']
             values.reset_index(drop=True, inplace=True)
             for number in values.index:
-                values[number] = 'trafo_type' + str(number + 1)
-
-    elif column == 'name' and (rename or not values.empty or values.apply(lambda x: isinstance(x, (int, float))).all()): #only numericals
-        if sheet == 'nodes':
-            for number in values.index:
-                values[number] = 'bus' + str(number + 1)
-        else:
-            values.reset_index(drop=True, inplace=True)
-            for number in values.index:
-                values[number] = rename_sheet[sheet] + str(number + 1)
+                if sheet == 'lines':
+                    values[number] = 'line_type' + str(number + 1)
+                elif sheet == 'transformers':
+                    values[number] = 'trafo_type' + str(number + 1)
             
     elif column == 'node' or column == 'node_p' or column == 'node_s' or column == 'from_bus' or column == 'to_bus': 
-
         if isinstance(net, pp.auxiliary.pandapowerNet):              
             bus_column = getattr(net, rename_sheet[sheet])[rename_column[column]]
             bus_names = net.bus.loc[bus_column.tolist(), 'name']
@@ -114,7 +108,6 @@ def import_grid(net, rename = False):
 		>>> import_grid(pn.case14())
     """
     # TODO: FOR rename = FALSE:-------------------------------------
-    # TODO: - Optimize Code of rename function
     # TODO: - [cost] [name & type]
     # TODO: - [lines] geodata missing
     # TODO: - [nodes] geodata handling for bus with multiple entries
@@ -190,7 +183,7 @@ def import_grid(net, rename = False):
             try:
                 columns = getattr(net, rename_sheet[sheet]).columns
                 for column in columns:
-                    if column in dfs_dict[sheet].keys() and not (sheet == 'lines' and column == 'type'):
+                    if column in dfs_dict[sheet].keys() and not (sheet == 'lines' and column == 'type'): # and not ...?
                         old_values = getattr(net, rename_sheet[sheet])[column]
                         values = rename_element(sheet, column, old_values, net, rename)
                         dfs_dict[sheet][column] = values.values # .values?
