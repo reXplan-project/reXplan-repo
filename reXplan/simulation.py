@@ -326,17 +326,25 @@ class Sim:
 		# TODO: call const.py instead of 'iteration'
 		# TODO: @TIM Check Docstring and Types; Check param time
 		"""
-		The function `run()` takes in a network and a set of iterations, updates the network grid based on the Monte Carlo database, runs the network simulation for each iteration, and saves the results to an output database.
+		The `run()` function executes OPF calculations per timestep: Takes network information `(of network object)`
+		and outage schedule data `(montecarlo_database.csv)` and updates service status per fragile component of netwok
+		for each timestep accordingly. OPF run type is selectable.
 		
-		:param network: Contains information about the network topology, elements, and their properties. See [LINK]
+		:param network: Contains information about the network topology, elements, and their properties. See `network` class.
 		:param iterationSet: If provided, selected iterations will be executed. If not provided, all iterations will be executed.
-		:param saveOutput: Determines whether the output database should be saved to a file or not.
+		:param saveOutput: Determines whether the output database should be saved to a file `(engine_database.csv)` or not.
 		:param time: Specifies the duration of the simulation run. If provided, it will override the default simulation time set in the `self.time` variable
-		:param **kwargs: -> refer to pandapower run function [look in documentation, f.i. delta, run_type]
-		:network type: reXplan.network.Network [Link?]
+		:param run_type: Part of `**kwargs`: reXplan can utilize four different OPF approaches:
+			-> dc_opf	 - pypower
+			-> ac_opf	 - pypower
+			-> pm_dc_opf - PandaModels
+			-> pm_ac_opf - PandaModels
+			PandaModels is recommended, as PandaModels has better convergance properties
+		:network type: class
 		:iterationSet type: list
 		:saveOutput type: bool	
-		:time type: class [double check] reXplan.simulation.Time
+		:time type: class
+		:run_type type: string
 
 		"""
 		time_ = self.time

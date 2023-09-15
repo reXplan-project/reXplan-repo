@@ -87,7 +87,7 @@ def build_database(standard_dict_list, get_value_from_content=True):
 class Network:
 	# TODO: @TIM needs documentation
 	'''
-	Add description of Newtork class here
+	The network class has information on the pandapower `net` dataframe, the fragility curve and hazard event.
 	'''
 
 	def __init__(self, simulationName):
@@ -95,7 +95,7 @@ class Network:
 		self.f_hz = None
 		self.sn_mva = None
 
-		self.totalInstalledPower = 0
+		self.totalInstalledPower = 0	# TODO is used?
 		self.totalConventionalPower = 0
 		self.totalRenewablePower = 0
 		self.totalStoragePower = 0
@@ -201,7 +201,7 @@ class Network:
 		df_network = self.build_network_parameters(networkFile)
 		df_nodes = self.build_nodes(networkFile)
 		df_load = self.build_loads(networkFile)
-		df_gen, df_ex_gen = self.build_generators(networkFile)
+		df_gen, df_ex_gen = self.build_generators(networkFile) 	# TODO: Try-Catch for Gen if missing -> sgen
 		df_transformers, df_tr_types = self.build_transformers(networkFile)
 		df_lines, df_ln_types = self.build_lines(networkFile)
 		df_switches = self.build_switches(networkFile)
