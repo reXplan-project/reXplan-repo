@@ -482,11 +482,11 @@ class ReturnPeriod:
 
 		X = np.array([[i] for i in self.y_data])
 		logY = np.log(self.x_data)
-		self.log_gam = LinearGAM(s(0, n_splines=len(X))).gridsearch(X, logY)
+		self.log_gam = LinearGAM(s(0, n_splines=len(X))).gridsearch(X, logY, progress=False)
 
 		y = self.y_data
 		logx = np.log(np.array([[i] for i in self.x_data]))
-		self.inv_log_gam = LinearGAM(s(0, n_splines=len(logx))).gridsearch(logx, y)
+		self.inv_log_gam = LinearGAM(s(0, n_splines=len(logx))).gridsearch(logx, y, progress=False)
 
 	def interpolate_return_period(self, newX):
 		return np.exp(self.log_gam.predict(newX))

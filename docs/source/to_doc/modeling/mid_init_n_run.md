@@ -21,7 +21,7 @@ Using a queue system with priorities for different elements of the network, that
 
 The equipment failure schedule in combination with the repair schedule form the *outage schedule*. For each Monte Carlo iteration one outage schedule is generated. The sum of all schedules is stored in the [`montecarlo_database.csv`](./out_monte_carlo.md) file.
 
-## Sim Function
+## Run Function
 
 
 The run function {py:func}`reXplan.simulation.Sim.run` executes the Monte Carlo simulation based on the [`montecarlo_database.csv`](./out_monte_carlo.md). Calculates the OPF (Optimal Power Flow) and stores data in [`engine_database.csv`](./out_engine.md)
