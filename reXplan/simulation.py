@@ -336,7 +336,7 @@ class Sim:
 		# TODO: call const.py instead of 'iteration'
 		"""
 		The `run()` function uses the outage schedule `(montecarlo_database.csv)`, generated using one of the `initialize functions`.
-		A timeseries OPF is executed for the provided network object and updates `engine_database.csv` with the OPF results.
+		A timeseries OPF is executed for the provided network object and updates `engine_database.csv` with the OPF results.\n
 		The file is stored *file/output/project name/*, if **saveOutput** = True.
 		
 		:param network: Contains information about the network topology, elements, and their properties. See `Network` class.
@@ -348,7 +348,7 @@ class Sim:
 			-> **ac_opf**	 - pypower (Python)\n
 			-> **pm_dc_opf** - PandaModels (Julia)\n
 			-> **pm_ac_opf** - PandaModels (Julia)\n
-			PandaModels is recommended, as PandaModels has better convergance properties.
+			PandaModels is recommended, as PandaModels has better convergence properties.
 		:network type: reXplan.network.Network object
 		:iterationSet type: list
 		:saveOutput type: bool	
