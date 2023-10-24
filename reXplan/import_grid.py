@@ -19,7 +19,6 @@ rename_sheet = {
     'loads'             : 'load',
     'cost'              : 'poly_cost',
     'lines'             : 'line',
-
 }
 
 rename_column = {
@@ -99,6 +98,7 @@ def rename_element(sheet, column, values, net, rename = False):
     return values
 
 def import_grid(net, rename = False):
+
     """
 	Creates a reXplan compliant network as excel file from pandapower.
 
@@ -110,8 +110,8 @@ def import_grid(net, rename = False):
 		>>> import_grid(net)
 		>>> import_grid(pn.case14())
     """
+
     # TODO: FOR rename = FALSE:-------------------------------------
-    # TODO: - [cost] [name & type]
     # TODO: - [lines] [type] naming according to name of line -> ltype_lineX
     # TODO: - [lines] geodata missing
     # TODO: - [nodes] geodata handling for bus with multiple entries
@@ -132,27 +132,25 @@ def import_grid(net, rename = False):
 
     for sheet in dfs_dict.keys():
         
-        if sheet == 'cost': # TODO WORK IN PROGESS
+        if sheet == 'cost':
             df_cost = getattr(net, rename_sheet[sheet])
             df_cost = df_cost.sort_values(by='et')
-            for column in df_cost.columns:
-                if column in dfs_dict[sheet].keys():
-                    old_values = getattr(net, rename_sheet[sheet])[column]
-                    values = rename_element(sheet, column, old_values, net, rename)
-                    dfs_dict[sheet][column] = values.values
+            df_cost = df_cost.rename(columns={'et': 'type'})
 
             name_array = np.array([])
             for index in range(len(df_cost.index)):
-                if df_cost.iloc[index].et == 'ext_grid':
+                if df_cost.iloc[index].type == 'ext_grid':
                     from_sheet = 'external_gen'
-                elif df_cost.iloc[index].et == 'gen':
+                elif df_cost.iloc[index].type == 'gen':
                     from_sheet = 'generators'
-                elif df_cost.iloc[index].et == 'sgen':
+                elif df_cost.iloc[index].type == 'sgen':
                     from_sheet = 'static_generators'
                 name = dfs_dict[from_sheet].name[df_cost.iloc[index].element] # Extracted name!
                 name_array = np.append(name_array, name)
-            dfs_dict[sheet]['name'] = name_array
-            dfs_dict[sheet]['type'] = df_cost['et'].values
+
+            df_cost = df_cost.rename(columns={'element': 'name'})
+            dfs_dict[sheet] = df_cost
+            dfs_dict[sheet]['name'] = name_array         
 
         elif sheet == 'profiles':
             load_names = getattr(net, 'load')['name'].tolist()
