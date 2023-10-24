@@ -51,7 +51,7 @@ def style_formatting(ws):
         cell.border = border
 
 def rename_element(sheet, column, values, net, rename = False):
-
+    # TODO: Implement code for rename option!
     if values.empty:
         pass
 
@@ -112,7 +112,6 @@ def import_grid(net, rename = False):
     """
 
     # TODO: FOR rename = FALSE:-------------------------------------
-    # TODO: - [lines] [type] naming according to name of line -> ltype_lineX
     # TODO: - [lines] geodata missing
     # TODO: - [nodes] geodata handling for bus with multiple entries
 
