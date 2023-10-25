@@ -93,7 +93,7 @@ def rename_element(sheet, column, values, net, rename = False):
 
     else:
         pass    
-        # print(f"No need to rename for: [{sheet}] - [{column}]")
+        # print(f"No need to rename for: [{sheet}] - [{column}]") # For debugging
 
     return values
 
@@ -104,14 +104,15 @@ def import_grid(net, rename = False):
 
     INPUT:
 		net (dict) - pandapower format network
-        rename (bool) - False: Naming as provided in pandapower net; True: Elements renamed with respective index of bus
+        rename (bool) - False: Naming as provided in pandapower net; True: Elements renamed with respective naming of network (not implemented yet)
 
     EXAMPLE:
 		>>> import_grid(net)
-		>>> import_grid(pn.case14())
+		>>> import_grid(pn.case14(), rename=False)
     """
 
     # TODO: FOR rename = FALSE:-------------------------------------
+    # TODO: - [profiles] add data, if missing, better Error Message!
     # TODO: - [lines] geodata missing
     # TODO: - [nodes] geodata handling for bus with multiple entries
 
@@ -194,61 +195,6 @@ def import_grid(net, rename = False):
                     else:
                         pass
                         #print(f"\nSheet: {rename_sheet[sheet]}; Column: {column} is NOT used in template sheet") # For Debugging
-
-                # if sheet == 'generators':   # TODO: Rework!
-                #     new_dict = {'sgen':pd.DataFrame()}
-                #     sgen = getattr(net, 'sgen')
-                #     gen = getattr(net, 'gen')
-                #     ext_grid = getattr(net, 'ext_grid')
-
-                #     for column in dfs_dict[sheet]:
-                #         if column in sgen.columns and not column == 'type':
-                #             series_values = sgen[column].reset_index(drop=True)
-                            
-                #             if series_values.dtype == bool:
-                #                 series_values = series_values.astype('object').map({True: 'True', False: 'False'})
-
-                #             if column == 'name':
-                #                 for index in series_values.index:
-                #                     series_values[index] = 'sgen' + str(index)
-
-                #         elif column in rename_column.keys():
-                #             series_values = sgen[rename_column[column]].reset_index(drop=True)
-                #             bus_list = []
-                #             for index in series_values.values:
-                #                 bus_list.append(dfs_dict['nodes']['name'].iloc[index])
-                #                 series_values = pd.Series(bus_list, name = column)
-
-                #         elif column == 'vm_pu':
-                #             series_values = pd.Series(dtype='float64')    
-
-                #             for value in sgen['bus'].values:
-                #                 at_index = gen['bus'][gen['bus'] == value].index
-                                
-                #                 if len(at_index) == 0:
-                #                     at_index = ext_grid['bus'][ext_grid['bus'] == value].index
-                #                     series_values = pd.concat([series_values, ext_grid['vm_pu'][at_index]])
-
-                #                 else:
-                #                     series_values = pd.concat([series_values, gen['vm_pu'][at_index]])
-
-                #             series_values = series_values.reset_index(drop=True)
-                #             series_values.name = column
-
-                #         elif column == 'slack' or column == 'slack_weight':
-                #             if column == 'slack':
-                #                 series_values = pd.Series(['False'] * len(sgen['bus']), dtype='object')
-                #             if column == 'slack_weight':
-                #                 series_values = pd.Series([0] * len(sgen['bus']), dtype='object')
-                #             series_values.name = column
-
-                #         else:
-                #             series_values = pd.Series([] * len(sgen['bus']), dtype='object')
-                #             series_values.name = column
-                        
-                #         new_dict['sgen'] = pd.concat([new_dict['sgen'], series_values], axis=1)
-
-                #     dfs_dict[sheet] = pd.concat([dfs_dict[sheet], new_dict['sgen']])
             except:
                 # print(f"[{sheet},{column}]") # For Debugging
                 pass
@@ -266,7 +212,8 @@ def import_grid(net, rename = False):
     wb.remove(wb['Sheet'])
 
     for sheet_name, df in dfs_dict.items():
-        if not df.empty:
+        if not df.empty or sheet_name == 'switches':    # TODO: Better solution for necessary empty tabs in network.xlsx?
+        # if not df.empty:
             ws = wb.create_sheet(sheet_name)
             for row in dataframe_to_rows(df, index=False, header=True):
                 ws.append(row)
@@ -276,3 +223,6 @@ def import_grid(net, rename = False):
 
     wb.save('network.xlsx')
     print('\n- network.xlsx created successfully! - ')
+
+    # ---
+    # Tested with net = pn.case24_ieee_rts()
