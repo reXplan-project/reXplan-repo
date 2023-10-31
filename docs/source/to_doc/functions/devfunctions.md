@@ -4,32 +4,24 @@
 
 ```{eval-rst}
 .. automodule:: reXplan.fragilitycurve
-	:members:
+    :members:
 ```
 ## Hazard
 
 ```{eval-rst}
 .. automodule:: reXplan.hazard
-	:members:
+    :members:
 ```
 
 ## Network
 
 ```{eval-rst}
 .. automodule:: reXplan.network
-	:members:
+    :members:
 ```
 ## Simulation
 
 ```{eval-rst}
 .. automodule:: reXplan.simulation
-	:members:
-```
-
-## Test
-
-```{eval-rst}
-.. automodule:: reXplan.test
-	:members:
-	:noindex:
+    :members:
 ```

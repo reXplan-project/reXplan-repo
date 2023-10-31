@@ -86,9 +86,8 @@ def build_database(standard_dict_list, get_value_from_content=True):
 
 class Network:
 	# TODO: @TIM needs documentation
-	# TODO: ADD SGEN
 	'''
-	The network class has information on the pandapower `net` dataframe, the fragility curve and hazard event.
+	The network class contains information of the pandapower `net` dataframe, the fragility curve and hazard event.
 	'''
 
 	def __init__(self, simulationName):
@@ -239,7 +238,7 @@ class Network:
 		return self.powerElements
 
 	def build_pp_network(self, df_network, df_bus, df_tr, df_tr_type, df_ln, df_ln_type, df_load, df_ex_gen, df_gen, df_sgen, df_switch, df_cost):
-		# TODO: it seems this funciton is missplaced. Can it be moved to engine.pandapower?
+		# TODO: it seems this funciton is misplaced. Can it be moved to engine.pandapower?
 		# TODO: Condense creation of dictionaries by iteration
 		# TODO: update fields_map.csv accordingly
 		'''
@@ -392,7 +391,6 @@ class Network:
 			ex_gen_ids[row[COL_NAME_NAME]] = pp.create_ext_grid(
 				**{key: value for key, value in kwargs_ex_gen.items() if value is not None})
 		
-		# TODO include sgen
 		# Creating the static generator elements
 		df_sgen = df_sgen.replace({np.nan: None})
 		sgen_ids = {}
@@ -483,7 +481,7 @@ class Network:
 			elif row[COL_NAME_TYPE] == 'gen':
 				element = gen_ids[row[COL_NAME_NAME]]
 			elif row[COL_NAME_TYPE] == 'sgen':
-				element = sgen_ids[row[COL_NAME_NAME]]	#TODO IMPLEMENT SGENS!
+				element = sgen_ids[row[COL_NAME_NAME]]	#TODO IMPLEMENT SGENS FOR OPF CALCULATIONS!
 			kwargs_cost = dict(net=network,
 							   element=element,
 							   et=row[COL_NAME_TYPE],
@@ -820,7 +818,7 @@ class PowerElement:
 				warnings.warn(f'Input parameter "{key}" is not a valid attribute of the "{self.__class__.__name__}" class.')
 		if self.id is None:
 			self.id = utils.get_GLOBAL_ID()
-			warnings.warn(f'No "id" defined as input for {self}. The folloging identifier was assigned: {self.id}.')
+			warnings.warn(f'No "id" defined as input for {self}. The following identifier was assigned: {self.id}.')
 		if self.in_service == False:
 			if self.i_montecarlo == False:
 				warnings.warn(f'Forcing "ignore montecarlo" to "True" for {self.id}.')

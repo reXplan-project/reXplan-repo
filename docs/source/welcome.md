@@ -4,7 +4,7 @@
 ```{warning}
 This library is under development.
 ```
-# Welcome to reXplan!
+# Welcome to reXplan! 👋
 
 **Power systems** have traditionally been designed and operated to **ensure reliable supply of electricity** to customers, with a focus on minimizing the frequency and duration of outages.<br>
 In recent years, there has been a growing recognition that power systems are also **vulnerable to disruptions, such as climate driven extreme weather events**, physical- and cyber-attacks.<br>

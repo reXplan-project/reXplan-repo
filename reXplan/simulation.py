@@ -387,10 +387,9 @@ class Sim:
 
 class Time():
 	# TODO: error raising for uncompatible times
-	# TODO @tim write doc
 	"""
 	Contains information about the simulation time.
-	:param start: Starting point of the interval. It is an integer value that indicates the first value in the interval
+	:param start: Starting point of the simulation interval. It is an integer value that indicates the first value in the interval
 	:param duration: Represents the length of the interval in units of time
 	:start type: int
 	:duration type: int

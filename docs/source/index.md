@@ -39,7 +39,7 @@ to_doc/functions/userfunctions
 to_doc/functions/devfunctions
 ```
 
-```{toctree}
+<!-- ```{toctree}
 :caption: '🧤 Hands-on-Tutorial'
 
 Tutorial I: PLACEHOLDER I <to_doc/tutorials/jup_tutorial_1>
@@ -51,7 +51,7 @@ Tutorial II: PLACEHOLDER II <to_doc/tutorials/jup_tutorial_2>
 
 Showcase Färöer: PLACEHOLDER III <to_doc/currentprojects/jup_showcase_faeroeer>
 Showcase Iceland: PLACEHOLDER IV <to_doc/currentprojects/jup_showcase_iceland>
-```
+``` -->
 
 ```{toctree}
 :caption: '💫 Misc:'

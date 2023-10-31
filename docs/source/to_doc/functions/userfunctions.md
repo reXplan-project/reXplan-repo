@@ -4,13 +4,15 @@
 ## Network
 
 ```{eval-rst}
-.. autofunction:: reXplan.network.Network
+.. autoclass:: reXplan.network.Network
+    :noindex:
 ```
 
 ## Simulation
 
 ```{eval-rst}
-.. autofunction:: reXplan.simulation.Sim
+.. autoclass:: reXplan.simulation.Sim
+    :noindex:
 ```
 
 ### Initialize Functions
@@ -24,6 +26,7 @@ The random samples of the hazard intensity for the methodology of return periods
 
 ```{eval-rst}
 .. autofunction:: reXplan.simulation.Sim.initialize_model_rp
+    :noindex:
 ```
 
 
@@ -31,6 +34,7 @@ The random samples of the hazard intensity for the methodology of return periods
 
 ```{eval-rst}
 .. autofunction:: reXplan.simulation.Sim.initialize_model_sh
+    :noindex:
 ```
 
 ### Run
@@ -39,19 +43,23 @@ Running the optimal power flow -> cost analysis, load flow result
 
 ```{eval-rst}
 .. autofunction:: reXplan.simulation.Sim.run
+    :noindex:
 ```
 
 ## Hazard
 
 ```{eval-rst}
 .. autofunction:: reXplan.hazard.Hazard.hazardFromNC
+    :noindex:
 ```
 
 ```{eval-rst}
 .. autofunction:: reXplan.hazard.Hazard.hazardFromTrajectory
+    :noindex:
 ```
 
 ```{eval-rst}
 .. autofunction:: reXplan.hazard.Hazard.hazardFromStaticInput
+    :noindex:
 ```
 

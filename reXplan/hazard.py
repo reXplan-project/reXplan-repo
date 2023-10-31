@@ -44,7 +44,7 @@ class Hazard:
 	:method to_nc(df, filename, intensity_unit='m/s', intensity_name='wind speed', title='Sythetic storm'):
 	:method get_intensity(lon, lat, startTime=None, endTime=None):
 	:method plot(time_idx):
-	:method plot_gif(speed=3)
+	:method plot_gif(speed=3):
 	'''
 
 	def __init__(self, simulationName):

@@ -1,16 +1,4 @@
-# examplesI - lumache
-
-To create a recipe, you can use the {py:func}`reXplan.test.get_random_ingredients` function:
-
-```{eval-rst}
-.. autofunction:: reXplan.test.get_random_ingredients
-```
-
-Sometimes, an {py:exc}`..\reXplan.test.InvalidKindError` will be raised:
-
-```{eval-rst}
-.. autoexception:: reXplan.test.InvalidKindError
-```
+# examplesI
 
 Link to a doc like this {doc}`../gettingstarted/installation`.
 Link to a header like this [ref](../gettingstarted/installation.md).
