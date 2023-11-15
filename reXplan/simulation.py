@@ -14,9 +14,9 @@ DECIMAL_PRECISION = 1
 
 def convert_index_to_internal_time(df, df_int_ext_time):
 	map = df_int_ext_time.dt.strftime(
-		'%Y-%m-%d %hh:%mm:%ss').to_dict()  # need to conver to string
+		'%Y-%m-%d %hh:%mm:%ss').to_dict()  # need to convert to string
 	map = {y: x for x, y in map.items()}
-	return df.rename(index=map)  # otherwise renaiming won't work
+	return df.rename(index=map)  # otherwise renaming won't work
 
 def convert_index_to_external_time(df, df_int_ext_time):
 	return df.rename(index=df_int_ext_time.to_dict())
@@ -386,7 +386,7 @@ class Sim:
 			print ('done!')
 
 class Time():
-	# TODO: error raising for uncompatible times
+	# TODO: error raising for uncompatible times // STARTS AT 0 OR 1 ?
 	"""
 	Contains information about the simulation time.
 	:param start: Starting point of the simulation interval. It is an integer value that indicates the first value in the interval

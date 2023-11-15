@@ -211,8 +211,9 @@ def import_grid(net, rename = False):
     wb = Workbook()
     wb.remove(wb['Sheet'])
 
+    nec_sheet_names = ['switches', 'cost', 'tr_type', 'static_generators', 'transformers']
     for sheet_name, df in dfs_dict.items():
-        if not df.empty or sheet_name == 'switches':    # TODO: Better solution for necessary empty tabs in network.xlsx?
+        if not df.empty or sheet_name in nec_sheet_names: # TODO: Better solution for necessary empty tabs in network.xlsx?
         # if not df.empty:
             ws = wb.create_sheet(sheet_name)
             for row in dataframe_to_rows(df, index=False, header=True):
