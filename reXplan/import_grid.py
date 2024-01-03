@@ -97,7 +97,7 @@ def rename_element(sheet, column, values, net, rename = False):
 
     return values
 
-def import_grid(net, rename = False):
+def import_grid(net, rename = False, profiles = None): # Add profiles!
 
     """
 	Creates a reXplan compliant network as excel file from pandapower.
@@ -110,11 +110,15 @@ def import_grid(net, rename = False):
 		>>> import_grid(net)
 		>>> import_grid(pn.case14(), rename=False)
     """
+    # TODO: FOR profiles = VALUE:-----------------------------------
+    # TODO: - Write data correctly in profiles
 
     # TODO: FOR rename = FALSE:-------------------------------------
+    # TODO: - [switches] include dependency of element to et
     # TODO: - [profiles] add data, if missing, better Error Message!
     # TODO: - [lines] geodata missing
     # TODO: - [nodes] geodata handling for bus with multiple entries
+    # TODO: - Better solution for necessary empty tabs in network.xlsx? -> use keys of rename_column? 
 
     # TODO: FOR rename = TRUE:--------------------------------------
     # TODO: - Validate same Functionality
@@ -211,9 +215,9 @@ def import_grid(net, rename = False):
     wb = Workbook()
     wb.remove(wb['Sheet'])
 
-    nec_sheet_names = ['switches', 'cost', 'tr_type', 'static_generators', 'transformers']
+    nec_sheet_names = ['switches', 'cost', 'tr_type', 'static_generators', 'transformers', 'generators']
     for sheet_name, df in dfs_dict.items():
-        if not df.empty or sheet_name in nec_sheet_names: # TODO: Better solution for necessary empty tabs in network.xlsx?
+        if not df.empty or sheet_name in nec_sheet_names: 
         # if not df.empty:
             ws = wb.create_sheet(sheet_name)
             for row in dataframe_to_rows(df, index=False, header=True):
