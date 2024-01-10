@@ -59,7 +59,8 @@ venv\Scripts\activate.bat
 3.3 Upgrade pip and install packages & dependencies:
 ```
 py -m pip install --upgrade pip
-pip install .
+pip install -e . # For developers
+pip install . # For users
 ```
 
 3.4 //is this step optional or required? // Install Julia via cmd/VSC Terminal

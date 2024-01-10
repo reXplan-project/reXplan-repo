@@ -1,8 +1,8 @@
-import pandapower.networks as pn
-import pandapower as pp
-import pandas as pd
+
 import os
 import numpy as np
+import pandas as pd
+import pandapower as pp
 
 from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
@@ -90,12 +90,30 @@ def rename_element(sheet, column, values, net, rename = False):
             values = values.rename(column)
         else:
             raise TypeError('Provided datatype of network is not compliant')
-
+    
+    elif column == 'element':
+        values = values.astype('object')
+        element_type = getattr(net, rename_sheet[sheet])['et']
+        for index in range(len(element_type)):
+            if element_type.iloc[index] == 'l':
+                values.at[index] = getattr(net, rename_sheet['lines'])['name'].loc[values.iloc[index]]
+            elif element_type.iloc[index] == 'b':
+                values.at[index] = getattr(net, rename_sheet['nodes'])['name'].loc[values.iloc[index]]
+            elif element_type.iloc[index] == 't':
+                values.at[index] = getattr(net, rename_sheet['transformers'])['name'].loc[values.iloc[index]]
+            elif element_type.iloc[index] == 't3':
+                values.at[index] = getattr(net, rename_sheet['transformers_3w'])['name'].loc[values.iloc[index]]
+            else:
+                raise ValueError("Given element type of switch is unknown.")
     else:
         pass    
         # print(f"No need to rename for: [{sheet}] - [{column}]") # For debugging
-
     return values
+
+def subimport_profiles(profiles):
+    if isinstance(profiles, dict):
+        print("Heck yeah!")
+    print("Heck no!")
 
 def import_grid(net, rename = False, profiles = None): # Add profiles!
 
@@ -114,7 +132,6 @@ def import_grid(net, rename = False, profiles = None): # Add profiles!
     # TODO: - Write data correctly in profiles
 
     # TODO: FOR rename = FALSE:-------------------------------------
-    # TODO: - [switches] include dependency of element to et
     # TODO: - [profiles] add data, if missing, better Error Message!
     # TODO: - [lines] geodata missing
     # TODO: - [nodes] geodata handling for bus with multiple entries
@@ -134,8 +151,7 @@ def import_grid(net, rename = False, profiles = None): # Add profiles!
             if key != value:
                 rename_column[key] = value
 
-    for sheet in dfs_dict.keys():
-        
+    for sheet in dfs_dict.keys():       
         if sheet == 'cost':
             df_cost = getattr(net, rename_sheet[sheet])
             df_cost = df_cost.sort_values(by='et')
@@ -179,7 +195,7 @@ def import_grid(net, rename = False, profiles = None): # Add profiles!
             try:
                 columns = getattr(net, rename_sheet[sheet]).columns
                 for column in columns:
-                    if column in dfs_dict[sheet].keys() and not (sheet == 'lines' and column == 'type'): # and not ...?
+                    if column in dfs_dict[sheet].keys() and not (sheet == 'lines' and column == 'type'):
                         old_values = getattr(net, rename_sheet[sheet])[column]
                         values = rename_element(sheet, column, old_values, net, rename)
                         dfs_dict[sheet][column] = values.values # .values?
@@ -212,6 +228,9 @@ def import_grid(net, rename = False, profiles = None): # Add profiles!
     dfs_dict['network']['f_hz'] = pd.Series(net.f_hz)
     dfs_dict['network']['name'] = pd.Series(net.name)
 
+    if profiles:
+        subimport_profiles(profiles)
+
     wb = Workbook()
     wb.remove(wb['Sheet'])
 
@@ -228,6 +247,3 @@ def import_grid(net, rename = False, profiles = None): # Add profiles!
 
     wb.save('network.xlsx')
     print('\n- network.xlsx created successfully! - ')
-
-    # ---
-    # Tested with net = pn.case24_ieee_rts()
