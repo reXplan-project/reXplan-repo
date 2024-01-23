@@ -14,7 +14,7 @@ Please see below for the installation, documentation and more.
 1.1 **Python 3.10** [(Download, win x64)](https://www.python.org/ftp/python/3.10.10/python-3.10.10-amd64.exe)\
 1.2 **Julia 1.8.5** [(Download, win x64)](https://julialang-s3.julialang.org/bin/winnt/x64/1.8/julia-1.8.5-win64.exe)\
 1.3 **R 4.2.2** [(Download, win x64)](https://ftp.fau.de/cran/bin/windows/base/old/4.2.2)\
-1.4 **GitHub Repository** [(here)](https://github.com/FirasJrad/reXplan)
+1.4 **GitHub Repository** [(here)](https://github.com/Tractebel-Engineering/reXplan-repo)
 
 ### Step 2: Imports and Module Management Julia & R
 2.1 Import and Install Julia **through Python Shell**:
