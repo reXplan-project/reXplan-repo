@@ -61,7 +61,7 @@ pip install .
 In development. Contact tim.hoffmann@tractebel.engie.com for further information.
 
 ## Contribute
-[Become a Contributor on GitHub!](https://github.com/FirasJrad/reXplan)
+[Become a Contributor on GitHub!](https://github.com/Tractebel-Engineering/reXplan-repo)
 
 ## License
 tba
