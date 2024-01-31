@@ -211,8 +211,8 @@ class Sim:
 		out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
 		return network.outagesSchedule
 
-	def initialize_model_rp(self, network, iterationNumber, ref_return_period, cv=0.1, maxTotalIteration=1000, nStrataSamples=10000, x_min=None, x_max=None, maxStrata=10):
-		# TODO: @TIM add description
+	def initialize_model_rp_deprecated(self, network, iterationNumber, ref_return_period, cv=0.1, maxTotalIteration=1000, nStrataSamples=10000, x_min=None, x_max=None, maxStrata=10):
+		# This Function is Deprecated
 		"""
 		The function `initialize_model_rp` initializes a model for reliability analysis using fragility
 		curves and return periods.
@@ -359,11 +359,11 @@ class Sim:
 					else:	
 						elm_intensity = event_intensity
 
-					yield iteration_number, strata, elm_intensity, key, value.__class__.__name__, value.failureProb, float('nan')
+					yield iteration_number, strata, elm_intensity, value.__class__.__name__, key, value.failureProb, float('nan')
 			self.databases.append(strata_db)
 			self.iteration_number = iteration_number
 
-	def initialize_model_rp_up(self, network, iterationNumber, ref_return_period, cv=0.1, maxTotalIteration=1000, nStrataSamples=10000, x_min=None, x_max=None, maxStrata=10):
+	def initialize_model_rp(self, network, iterationNumber, ref_return_period, cv=0.1, maxTotalIteration=1000, nStrataSamples=10000, x_min=None, x_max=None, maxStrata=10):
 		# TODO: @TIM add description
 		"""
 		The function `initialize_model_rp` initializes a model for reliability analysis using fragility
@@ -392,8 +392,9 @@ class Sim:
 		# Generate warning if maxTotalIteration is too low to achieve desired error
 		if self.stratResults["Allocation"].sum()*iterationNumber >  maxTotalIteration:
 			warnings.warn(f'Warning: Estimated needed starta samples to reach cv = {cv} are greater than maxTotalIteration = {maxTotalIteration}')
-
+		# Generate failureProbs dataframe
 		self.failureProbs = pd.DataFrame(self.populate_failure_prob_df(network, iterationNumber, maxTotalIteration, ref_return_period), columns=self.failureProbs.columns)
+		# Generate and export the montecarlo database file
 		out = build_database(range(self.iteration_number+1), self.databases, self.externalTimeInterval)
 		out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
 
