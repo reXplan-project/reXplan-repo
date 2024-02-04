@@ -8,7 +8,8 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-build/
+bdist.win-amd64/
+lib/
 develop-eggs/
 dist/
 downloads/

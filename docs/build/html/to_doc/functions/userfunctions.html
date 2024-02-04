@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Functions for Users &mdash; reXplan 0.1 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/copybutton.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+        <script src="../../_static/clipboard.min.js"></script>
+        <script src="../../_static/copybutton.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Functions for Developers" href="devfunctions.html" />
+    <link rel="prev" title="Engine Database" href="../modeling/out_engine.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            reXplan
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../welcome.html">Welcome to reXplan! 👋</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🚀 Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../gettingstarted/basic_example_sphinx.html">Basic Example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gettingstarted/installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gettingstarted/installation.html#documentation">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gettingstarted/installation.html#contribute">Contribute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gettingstarted/installation.html#license">License</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🌐 Modeling</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modeling/basic_structure.html">Basic Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modeling/input_data.html">(I/0) - Input Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modeling/in_grid_modeling.html">- Grid Modeling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modeling/in_fragility_curve.html">- Fragility Curve</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modeling/in_hazard_modeling.html">- Hazard Modeling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modeling/mid_init_n_run.html">Initilize &amp; Run</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modeling/output_data.html">(I/0) - Output Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modeling/out_monte_carlo.html">- Monte Carlo Database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modeling/out_engine.html">- Engine Database</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🧮 Functions</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Functions for Users</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#network">Network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#simulation">Simulation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#initialize-functions">Initialize Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#methodology-return-periods">Methodology Return Periods</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#methodology-single-hazard">Methodology Single Hazard</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#run">Run</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#hazard">Hazard</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="devfunctions.html">Functions for Developers</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">💫 Misc:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../misc/examplesI.html">Code Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../genindex.html">Index</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">reXplan</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Functions for Users</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/to_doc/functions/userfunctions.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="functions-for-users">
+<h1>Functions for Users<a class="headerlink" href="#functions-for-users" title="Permalink to this heading"></a></h1>
+<section id="network">
+<h2>Network<a class="headerlink" href="#network" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">reXplan.network.</span></span><span class="sig-name descname"><span class="pre">Network</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">simulationName</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>The network class contains information of the pandapower <cite>net</cite> dataframe, the fragility curve and hazard event.</p>
+</dd></dl>
+
+</section>
+<section id="simulation">
+<h2>Simulation<a class="headerlink" href="#simulation" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">reXplan.simulation.</span></span><span class="sig-name descname"><span class="pre">Sim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">simulationName</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>The Sim class contains information of the updated power grid, including the outage schedule of power elements, based
+on the probability of failure and hazard intensity.</p>
+</dd></dl>
+
+<section id="initialize-functions">
+<h3>Initialize Functions<a class="headerlink" href="#initialize-functions" title="Permalink to this heading"></a></h3>
+<p>For explainatory text see <a class="reference internal" href="../modeling/mid_init_n_run.html#initialize-functions---asset-based-kpis"><span class="std std-ref">Initialize &amp; Run</span></a>.</p>
+<section id="methodology-return-periods">
+<h4>Methodology Return Periods<a class="headerlink" href="#methodology-return-periods" title="Permalink to this heading"></a></h4>
+<p>The random samples of the hazard intensity for the methodology of return periods are selected from the <code class="docutils literal notranslate"><span class="pre">ref_return_period</span></code>.</p>
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">reXplan.simulation.Sim.</span></span><span class="sig-name descname"><span class="pre">initialize_model_rp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">network</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mc_iteration_factor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref_return_period</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_mc_iterations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nStrataSamples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_intensity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_intensity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxStrata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>The <cite>initialize_model_rp()</cite> function utilizes <strong>return periods</strong>, which needs to be defined in <em>/file/input/project name/returnPeriods/</em>. 
+It uses the R module <cite>StratifiedSampling</cite> to divide the total event intensity range into strata to reduce uncertainty and computational load.
+A number of outage schedules is created for the Monte Carlo analysis per stratum,
+which are collected and stored in the <strong>outage schedule</strong> file (<em>montecarlo_database.csv</em>).
+The schedule holds the equipment status information (<cite>in-service</cite>, <cite>out-of-service</cite>, <cite>awating repair</cite>, etc.) for the simulation timeseries.
+The number of Monte Carlo iterations is optimized by the R module.</p>
+<p>The file is stored at <em>/file/output/project name/</em>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>network</strong> – Class variable with network topology, elements, and their properties.</p></li>
+<li><p><strong>mc_iteration_factor</strong> – Number of Monte Carlo iterations per stratum sample. Strata samples are calculated using the <cite>StratifiedSampling</cite> module of R.</p></li>
+<li><p><strong>ref_return_period</strong> – Reference return period for fragility curves. Used to generate samples for the Monte Carlo simulation.</p></li>
+<li><p><strong>cv</strong> – Coefficient of variation. Measure of variability of a dataset relative to its mean. Used to control the precision of the Monte Carlo simulation.
+A smaller value of cv will result in a more precise simulation, but will also increase computational time.</p></li>
+<li><p><strong>max_mc_iterations</strong> – Limit of Monte Carlo iterations performed during the simulation.</p></li>
+<li><p><strong>nStrataSamples</strong> – Number of intensity samples from return period used for the stratification.</p></li>
+<li><p><strong>min_intensity</strong> – Minimum intensity of return periods</p></li>
+<li><p><strong>max_intensity</strong> – Maximum intensity of return periods</p></li>
+<li><p><strong>maxStrata</strong> – Maximum number of strata samples</p></li>
+</ul>
+</dd>
+<dt class="field-even">Network type</dt>
+<dd class="field-even"><p>reXplan.network.Network</p>
+</dd>
+<dt class="field-odd">Mc_iteration_factor type</dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+<dt class="field-even">Ref_return_period type</dt>
+<dd class="field-even"><p>str</p>
+</dd>
+<dt class="field-odd">Cv type</dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+<dt class="field-even">Max_mc_iterations type</dt>
+<dd class="field-even"><p>int</p>
+</dd>
+<dt class="field-odd">NStrataSamples type</dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+<dt class="field-even">Min_intensity type</dt>
+<dd class="field-even"><p>float</p>
+</dd>
+<dt class="field-odd">Max_intensity type</dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="methodology-single-hazard">
+<h4>Methodology Single Hazard<a class="headerlink" href="#methodology-single-hazard" title="Permalink to this heading"></a></h4>
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">reXplan.simulation.Sim.</span></span><span class="sig-name descname"><span class="pre">initialize_model_sh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">network</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mc_iterations</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>The <cite>initialize_model_sh()</cite> function calculates the probability of failure for the electrical components in the network and applies
+the Monte Carlo Method to create/update the <strong>outage schedule</strong> for the Montecarlo Analysis <cite>(montecarlo_database.csv)</cite>.
+This schedule holds the equipment status information (<cite>in-service</cite>, <cite>out-of-service</cite>, <cite>awating repair</cite>, etc.) for the simulation timeseries.
+Increasing the number of Monte Carlo iterations reduces uncertainty, but increases computational load.</p>
+<p>The file is stored at <em>/file/output/project name/</em>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>network</strong> – Class variable with network topology, elements, and their properties.</p></li>
+<li><p><strong>mc_iterations</strong> – Number of Monte Carlo iterations.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Network type</dt>
+<dd class="field-even"><p>reXplan.network.Network</p>
+</dd>
+<dt class="field-odd">Mc_iterations type</dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>outages schedule of the network</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>pandas.core.frame.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+<section id="run">
+<h3>Run<a class="headerlink" href="#run" title="Permalink to this heading"></a></h3>
+<p>Running the optimal power flow -&gt; cost analysis, load flow result</p>
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">reXplan.simulation.Sim.</span></span><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">network</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterationSet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">saveOutput</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>The <cite>run()</cite> function uses the outage schedule <cite>(montecarlo_database.csv)</cite>, generated using one of the <cite>initialize functions</cite>.
+A timeseries OPF is executed for the provided network object and updates <cite>engine_database.csv</cite> with the OPF results.</p>
+<p>The file is stored <em>file/output/project name/</em>, if <strong>saveOutput</strong> = True.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>network</strong> – Contains information about the network topology, elements, and their properties. See <cite>Network</cite> class.</p></li>
+<li><p><strong>iterationSet</strong> – If provided, selected Monte Carlo iterations will be selected. If not provided, all iterations will be executed.</p></li>
+<li><p><strong>saveOutput</strong> – Determines whether the output database should be saved to a file <cite>(engine_database.csv)</cite> or not.</p></li>
+<li><p><strong>time</strong> – Specifies the duration of the simulation. If provided, it will override the default simulation time set in the <cite>self.time</cite> variable. See <cite>Time</cite> class.</p></li>
+<li><p><strong>run_type</strong> – <p>(of <cite>**kwargs</cite>) can utilize different OPF approaches:</p>
+<p>-&gt; <strong>dc_opf</strong>    - pypower (Python)</p>
+<p>-&gt; <strong>ac_opf</strong>    - pypower (Python)</p>
+<p>-&gt; <strong>pm_dc_opf</strong> - PandaModels (Julia)</p>
+<p>-&gt; <strong>pm_ac_opf</strong> - PandaModels (Julia)</p>
+<p>PandaModels is recommended, as PandaModels has better convergence properties.</p>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Network type</dt>
+<dd class="field-even"><p>reXplan.network.Network object</p>
+</dd>
+<dt class="field-odd">IterationSet type</dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+<dt class="field-even">SaveOutput type</dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+<dt class="field-odd">Time type</dt>
+<dd class="field-odd"><p>class</p>
+</dd>
+<dt class="field-even">Run_type type</dt>
+<dd class="field-even"><p>string</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+<section id="hazard">
+<h2>Hazard<a class="headerlink" href="#hazard" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">reXplan.hazard.Hazard.</span></span><span class="sig-name descname"><span class="pre">hazardFromNC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>filename</strong> – string, filename of the nc file. Must end with .nc and must be in the directory: file/input/<em>project name</em>/hazards/</p>
+</dd>
+</dl>
+<p>Initializes the Hazard object using a .nc file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">reXplan.hazard.Hazard.</span></span><span class="sig-name descname"><span class="pre">hazardFromTrajectory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_intensity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_radius</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sdate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geodata1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geodata2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_km</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frequency</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'1H'</span></span></em><span class="sig-paren">)</span></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> – string, filename of the csv file. Must end with .csv and must be in the directory: file/input/<em>project name</em>/hazards/</p></li>
+<li><p><strong>max_intensity</strong> – float, the rated intensity used for p.u. values in the trajectory data.</p></li>
+<li><p><strong>max_radius</strong> – float, the rated radius used for p.u. values in the trajectory data.</p></li>
+<li><p><strong>sdate</strong> – datetime, start time of the hazard event, can be generated using datetime.date(year,month,day)</p></li>
+<li><p><strong>edate</strong> – datetime, end time of the hazard event, can be generated using datetime.date(year,month,day)</p></li>
+<li><p><strong>geodata1</strong> – network.Geodata, first corner of the geospactial range covered by the hazard</p></li>
+<li><p><strong>geodata2</strong> – network.Geodata, second corner of the geospactial range covered by the hazard</p></li>
+<li><p><strong>delta_km</strong> – float, geospatial resolution of the intensity data in km</p></li>
+<li><p><strong>frequency</strong> – string, time intervals, default=’1H’</p></li>
+</ul>
+</dd>
+</dl>
+<p>Initializes the Hazard object using a .csv trajectory file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">reXplan.hazard.Hazard.</span></span><span class="sig-name descname"><span class="pre">hazardFromStaticInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_intensity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_radius</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sdate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geodata1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geodata2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_km</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epicenter_lat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epicenter_lon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frequency</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'1H'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epicenter_radius</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epicenter_intensity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> – string, filename of the csv file. Must end with .csv and must be in the directory: file/input/<em>project name</em>/hazards/</p></li>
+<li><p><strong>max_intensity</strong> – float, the rated intensity used for p.u. values in the trajectory data.</p></li>
+<li><p><strong>max_radius</strong> – float, the rated radius used for p.u. values in the trajectory data.</p></li>
+<li><p><strong>sdate</strong> – datetime, start time of the hazard event, can be generated using datetime.date(year,month,day)</p></li>
+<li><p><strong>edate</strong> – datetime, end time of the hazard event, can be generated using datetime.date(year,month,day)</p></li>
+<li><p><strong>geodata1</strong> – network.Geodata, first corner of the geospactial range covered by the hazard</p></li>
+<li><p><strong>geodata2</strong> – network.Geodata, second corner of the geospactial range covered by the hazard</p></li>
+<li><p><strong>delta_km</strong> – float, geospatial resolution of the intensity data in km</p></li>
+<li><p><strong>epicenter_lat</strong> – float, latitude of the epicenter of the hazard event</p></li>
+<li><p><strong>epicenter_lon</strong> – float, longitude of the epicenter of the hazard event</p></li>
+<li><p><strong>frequency</strong> – string, time intervals, default=’1H’</p></li>
+<li><p><strong>epicenter_radius</strong> – float, radius of the hazard event from the epicenter in p.u., default = 1 p.u.</p></li>
+<li><p><strong>epicenter_intensity</strong> – float, intensity of the hazard event at the epicenter in p.u., default = 1 p.u.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Initializes the Hazard object using the inputs provided.</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../modeling/out_engine.html" class="btn btn-neutral float-left" title="Engine Database" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="devfunctions.html" class="btn btn-neutral float-right" title="Functions for Developers" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Tim.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

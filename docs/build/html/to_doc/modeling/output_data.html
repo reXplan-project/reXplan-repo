@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>(I/0) - Output Data &mdash; reXplan 0.1 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/copybutton.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+        <script src="../../_static/clipboard.min.js"></script>
+        <script src="../../_static/copybutton.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Monte Carlo Database" href="out_monte_carlo.html" />
+    <link rel="prev" title="Initilize &amp; Run" href="mid_init_n_run.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            reXplan
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../welcome.html">Welcome to reXplan! 👋</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🚀 Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../gettingstarted/basic_example_sphinx.html">Basic Example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gettingstarted/installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gettingstarted/installation.html#documentation">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gettingstarted/installation.html#contribute">Contribute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gettingstarted/installation.html#license">License</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🌐 Modeling</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="basic_structure.html">Basic Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input_data.html">(I/0) - Input Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="in_grid_modeling.html">- Grid Modeling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="in_fragility_curve.html">- Fragility Curve</a></li>
+<li class="toctree-l1"><a class="reference internal" href="in_hazard_modeling.html">- Hazard Modeling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mid_init_n_run.html">Initilize &amp; Run</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">(I/0) - Output Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="out_monte_carlo.html">- Monte Carlo Database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="out_engine.html">- Engine Database</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🧮 Functions</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../functions/userfunctions.html">Functions for Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functions/devfunctions.html">Functions for Developers</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">💫 Misc:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../misc/examplesI.html">Code Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../genindex.html">Index</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">reXplan</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">(I/0) - Output Data</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/to_doc/modeling/output_data.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="i-0-output-data">
+<h1>(I/0) - Output Data<a class="headerlink" href="#i-0-output-data" title="Permalink to this heading"></a></h1>
+<p>It is convenient to think about the results of the analysis in two categories of results:</p>
+<ul class="simple">
+<li><p><strong>Asset-based results</strong></p></li>
+<li><p><strong>OPF-based results</strong></p></li>
+</ul>
+<p>The <strong>asset-based results are efficiently calculated before running OPF</strong>, so that <strong>computational effort is reduced</strong> at minimum. Asset based results can provide a <strong>first impression of the resiliency of the grid</strong> in terms of available asset.</p>
+<p>Output data is created whenever functions <a class="reference internal" href="../functions/devfunctions.html#reXplan.simulation.Sim.run" title="reXplan.simulation.Sim.run"><code class="xref py py-func docutils literal notranslate"><span class="pre">reXplan.simulation.Sim.run()</span></code></a>, <a class="reference internal" href="../functions/devfunctions.html#reXplan.simulation.Sim.initialize_model_rp" title="reXplan.simulation.Sim.initialize_model_rp"><code class="xref py py-func docutils literal notranslate"><span class="pre">reXplan.simulation.Sim.initialize_model_rp()</span></code></a> or <a class="reference internal" href="../functions/devfunctions.html#reXplan.simulation.Sim.initialize_model_sh" title="reXplan.simulation.Sim.initialize_model_sh"><code class="xref py py-func docutils literal notranslate"><span class="pre">reXplan.simulation.Sim.initialize_model_sh()</span></code></a> were executed successfully. Data is stored at path</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-/</span><span class="n">reXplan</span><span class="o">/</span><span class="n">jupyter_notebooks</span><span class="o">/</span><span class="n">file</span><span class="o">/</span><span class="n">output</span><span class="o">/</span><span class="p">[</span><span class="n">simulationName</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>as the following files:</p>
+<ul class="simple">
+<li><p>📗 <strong>montecarlo_database.csv</strong>, created by <a class="reference internal" href="../functions/userfunctions.html#initialize-functions"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">initialize</span> <span class="pre">function</span></code></span></a> -&gt; Asset-based</p></li>
+<li><p>📗 <strong>engine_database.csv</strong>, created by <a class="reference internal" href="../functions/userfunctions.html#run"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">run</span> <span class="pre">function</span></code></span></a>
+-&gt; OPF-based</p></li>
+</ul>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="mid_init_n_run.html" class="btn btn-neutral float-left" title="Initilize &amp; Run" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="out_monte_carlo.html" class="btn btn-neutral float-right" title="Monte Carlo Database" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Tim.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

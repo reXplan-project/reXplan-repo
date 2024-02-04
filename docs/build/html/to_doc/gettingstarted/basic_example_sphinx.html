@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>A basic example - Washington 14-bus grid system &mdash; reXplan 0.1 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/nbsphinx-code-cells.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+        <script src="../../_static/clipboard.min.js"></script>
+        <script src="../../_static/copybutton.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Installation Guide" href="installation.html" />
+    <link rel="prev" title="Welcome to reXplan! 👋" href="../../welcome.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            reXplan
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../welcome.html">Welcome to reXplan! 👋</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🚀 Getting Started</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Basic Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Placeholder,-write-full-example-End-of-February">Placeholder, write full example End of February</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Step-1:-Library-and-Data-Import">Step 1: Library and Data Import</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Assess-datasets-pre-simulation">Assess datasets pre-simulation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Power-Grid-(pre-run)">Power Grid (pre run)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Fragility-Curve">Fragility Curve</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Printing-hazards-as-a-return-period">Printing hazards as a return period</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#Step-2:-Running-the-Simulation">Step 2: Running the Simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Step-3:-Running-the-Optimum-Power-Flow">Step 3: Running the Optimum Power Flow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#MC-METRICS?">MC METRICS?</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html#documentation">Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html#contribute">Contribute</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html#license">License</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🌐 Modeling</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modeling/basic_structure.html">Basic Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modeling/input_data.html">(I/0) - Input Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modeling/in_grid_modeling.html">- Grid Modeling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modeling/in_fragility_curve.html">- Fragility Curve</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modeling/in_hazard_modeling.html">- Hazard Modeling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modeling/mid_init_n_run.html">Initilize &amp; Run</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modeling/output_data.html">(I/0) - Output Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modeling/out_monte_carlo.html">- Monte Carlo Database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modeling/out_engine.html">- Engine Database</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🧮 Functions</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../functions/userfunctions.html">Functions for Users</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functions/devfunctions.html">Functions for Developers</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">💫 Misc:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../misc/examplesI.html">Code Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../genindex.html">Index</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">reXplan</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">A basic example - Washington 14-bus grid system</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/to_doc/gettingstarted/basic_example_sphinx.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="A-basic-example---Washington-14-bus-grid-system">
+<h1>A basic example - Washington 14-bus grid system<a class="headerlink" href="#A-basic-example---Washington-14-bus-grid-system" title="Permalink to this heading"></a></h1>
+<section id="Placeholder,-write-full-example-End-of-February">
+<h2>Placeholder, write full example End of February<a class="headerlink" href="#Placeholder,-write-full-example-End-of-February" title="Permalink to this heading"></a></h2>
+<p>In the following introductory example, a power grid with 14 busses will be used to display the features and capabilities of reXplan. To fully model and calculate the resiliency of specified power grids, three datasets are needed:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="../modeling/in_grid_modeling.html"><span class="doc">Power Grid Data</span></a></p></li>
+<li><p><a class="reference internal" href="../modeling/in_fragility_curve.html"><span class="doc">Fragility Curves</span></a></p></li>
+<li><p><a class="reference internal" href="../modeling/in_hazard_modeling.html"><span class="doc">Hazard Definition</span></a></p></li>
+</ul>
+<p>To see a more detailed introduction for the input data, see <strong>(I/0) - Input tab</strong> under the 🌐<strong>MODELING</strong> sidebar. For this example grid, the datasets are already provided and for the hazard modeling the methodology of return periods is used.</p>
+</section>
+<section id="Step-1:-Library-and-Data-Import">
+<h2>Step 1: Library and Data Import<a class="headerlink" href="#Step-1:-Library-and-Data-Import" title="Permalink to this heading"></a></h2>
+<p>As reXplan utilizes Jupyter Notebook, code sequences can be subdivided into multiple windows. Common practise is to keep the imports and the initialization seperated, which allows the user to make adjustments to python libraries without re-running the full code.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># importing reXplan and dependencies</span>
+<span class="kn">import</span> <span class="nn">reXplan</span> <span class="k">as</span> <span class="nn">rx</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">pandapower.plotting.plotly</span> <span class="kn">import</span> <span class="n">pf_res_plotly</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span> <span class="c1"># warning are ignored for now</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># calling data from folder &#39;basic_example_tim&#39;</span>
+<span class="n">simulationName</span> <span class="o">=</span> <span class="s1">&#39;basic_example_tim&#39;</span><span class="p">;</span>
+<span class="n">network</span> <span class="o">=</span> <span class="n">rx</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">Network</span><span class="p">(</span><span class="n">simulationName</span><span class="p">);</span>
+<span class="n">simulation</span> <span class="o">=</span> <span class="n">rx</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">Sim</span><span class="p">(</span><span class="n">simulationName</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+<p>The classes of network and simulations are shortened to variables <a class="reference internal" href="../functions/userfunctions.html#network"><span class="std std-ref">network</span></a> &amp; <a class="reference internal" href="../functions/userfunctions.html#simulation"><span class="std std-ref">simulation</span></a> for better readability.</p>
+<section id="Assess-datasets-pre-simulation">
+<h3>Assess datasets pre-simulation<a class="headerlink" href="#Assess-datasets-pre-simulation" title="Permalink to this heading"></a></h3>
+<p>Since the network is now created, different datasets can be printed. As previously described, the user can now assess the power grid data, fragility curves and hazard and thus verify the input data.</p>
+<section id="Power-Grid-(pre-run)">
+<h4><a class="reference internal" href="../modeling/in_grid_modeling.html"><span class="doc">Power Grid (pre run)</span></a><a class="headerlink" href="#Power-Grid-(pre-run)" title="Permalink to this heading"></a></h4>
+<p>With the use of the <a class="reference external" href="https://pandapower.readthedocs.io/en/v2.13.1/plotting/plotly/built-in_plots.html#power-flow-results">plotly function of PandaPower</a>, the network can be printed.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># printing power grid with pandapower</span>
+<span class="n">pf_res_plotly</span><span class="p">(</span><span class="n">network</span><span class="o">.</span><span class="n">pp_network</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+<p>The spatial information is displayed as provided in the power grid dataset. Power Flow is calculated and results can be analyzed by hovering over the relating element with the cursor.</p>
+</section>
+<section id="Fragility-Curve">
+<h4><a class="reference internal" href="../modeling/in_fragility_curve.html"><span class="doc">Fragility Curve</span></a><a class="headerlink" href="#Fragility-Curve" title="Permalink to this heading"></a></h4>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># xnew creates user defined range for interpolation (0-&gt;85)</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">rc</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;figure.figsize&#39;</span><span class="p">:(</span><span class="mi">6</span><span class="p">,</span><span class="mi">5</span><span class="p">)})</span>
+<span class="n">xnew</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">90</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">rx</span><span class="o">.</span><span class="n">fragilitycurve</span><span class="o">.</span><span class="n">plotFragilityCurves</span><span class="p">(</span><span class="n">network</span><span class="o">.</span><span class="n">fragilityCurves</span><span class="p">,</span> <span class="n">xnew</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">90</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>As displayed above, the provided datasets include two different fragility curves for different types of towers. On the horizontal axis, the intensity is displayed as a numerical value in an interval from 0 to 90 with the use of <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.linspace.html">linspace</a>. The intensity translates to windspeed in m/s. On the vertical axis, the probability of failure is shown as a decimal fraction, which translates to the probability of failure in percentage
+(0.5 = 50%).</p>
+<div class="admonition note">
+<p class="admonition-title fa fa-exclamation-circle">Note</p>
+<p>The fragility curve has to refer to the same intensity type as the hazard model.</p>
+</div>
+<p>For this example, the intensity type is windspeed measured in m/s.</p>
+<p>There is also a possibility to print a fragility curve individually. More information provided under <a class="reference internal" href="../modeling/in_fragility_curve.html"><span class="doc">Fragility Curve</span></a>.</p>
+</section>
+<section id="Printing-hazards-as-a-return-period">
+<h4><a class="reference internal" href="../modeling/in_hazard_modeling.html"><span class="doc">Printing hazards as a return period</span></a><a class="headerlink" href="#Printing-hazards-as-a-return-period" title="Permalink to this heading"></a></h4>
+<p>The <a class="reference internal" href="../modeling/in_hazard_modeling.html"><span class="doc">hazard modeling</span></a> in this example case uses a <a class="reference internal" href="../modeling/in_hazard_modeling.html#method-4-simulate-multiple-events-according-a-given-return-period"><span class="std std-ref">return period</span></a>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># printing return periods</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">rc</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;figure.figsize&#39;</span><span class="p">:(</span><span class="mi">10</span><span class="p">,</span><span class="mi">8</span><span class="p">)})</span>
+<span class="k">for</span> <span class="n">rp</span> <span class="ow">in</span> <span class="n">network</span><span class="o">.</span><span class="n">returnPeriods</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">lineplot</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">network</span><span class="o">.</span><span class="n">returnPeriods</span><span class="p">[</span><span class="n">rp</span><span class="p">]</span><span class="o">.</span><span class="n">x_data</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">network</span><span class="o">.</span><span class="n">returnPeriods</span><span class="p">[</span><span class="n">rp</span><span class="p">]</span><span class="o">.</span><span class="n">y_data</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">rp</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Years&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Intensity&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<p>As displayed above, the provided datasets include six different return periods (rp1 - rp6). The highest value for given return periods is considered the <code class="docutils literal notranslate"><span class="pre">reference</span> <span class="pre">return</span> <span class="pre">period</span></code>. On the vertical axis, the intensity is displayed as a numerical value in an interval from 0 to 3.2 in m/s. On the horizontal axis, the return period is shown as a numerical value in years, which can be used to calculate the annual exceedance probability.</p>
+<p>For instance a 200 Years return period has an annual probability of 1/200 = 0.005% <a class="reference external" href="https://hydro-informatics.com/exercises/ex-floods.html?highlight=return#terminology">#TODO Terminology</a></p>
+<p>#TODO Mathematical Equation here? TEST RETURN PERIODS FOR INTENSITY</p>
+<div class="admonition note">
+<p class="admonition-title fa fa-exclamation-circle">Note</p>
+<p>The hazard model has to refer to the same intensity type as the fragility curve.</p>
+</div>
+</section>
+</section>
+</section>
+<section id="Step-2:-Running-the-Simulation">
+<h2>Step 2: Running the Simulation<a class="headerlink" href="#Step-2:-Running-the-Simulation" title="Permalink to this heading"></a></h2>
+<p>The following command executes the <a class="reference internal" href="../functions/userfunctions.html#simulation"><span class="std std-ref">simulation</span></a> of the return period “rp6” on the previously described fragility curves. This creates an outage schedule for grid elements. Data is stored in <code class="docutils literal notranslate"><span class="pre">montecarlo_database.csv</span></code>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Initilize for Return Periods</span>
+<span class="n">simulation</span><span class="o">.</span><span class="n">initialize_model_rp</span><span class="p">(</span><span class="n">network</span><span class="o">=</span><span class="n">network</span><span class="p">,</span> <span class="n">ref_return_period</span><span class="o">=</span><span class="s2">&quot;rp3&quot;</span><span class="p">,</span> <span class="n">mc_iteration_factor</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">maxStrata</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">simulation</span><span class="o">.</span><span class="n">samples</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">simulation</span><span class="o">.</span><span class="n">stratResults</span><span class="p">[</span><span class="s2">&quot;Upper_X1&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">simulation</span><span class="o">.</span><span class="n">stratResults</span><span class="p">[</span><span class="s2">&quot;Lower_X1&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">x</span> <span class="o">=</span> <span class="n">b</span><span class="p">,</span> <span class="n">color</span> <span class="o">=</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/to_doc_gettingstarted_basic_example_sphinx_26_0.png" src="../../_images/to_doc_gettingstarted_basic_example_sphinx_26_0.png" />
+</div>
+</div>
+</section>
+<section id="Step-3:-Running-the-Optimum-Power-Flow">
+<h2>Step 3: Running the Optimum Power Flow<a class="headerlink" href="#Step-3:-Running-the-Optimum-Power-Flow" title="Permalink to this heading"></a></h2>
+<p>Running multiple iterations, to achieve EENS, ELOL [#TODO Write Paragraph, Calculation of interations (based on init?)] Creating the engine_database.csv</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">simulation</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">network</span><span class="p">,</span> <span class="n">iterationSet</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">time</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">run_type</span> <span class="o">=</span> <span class="s1">&#39;pm_ac_opf&#39;</span><span class="p">,</span> <span class="n">delta</span> <span class="o">=</span> <span class="mf">1e-16</span><span class="p">,</span> <span class="n">saveOutput</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+<span class="c1"># How are the Steps calculated? 4 stratas in initialize, but why 40 steps? (10 Steps each?)</span>
+</pre></div>
+</div>
+</div>
+<p>The network gets updated, printing latest iteration:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pf_res_plotly</span><span class="p">(</span><span class="n">network</span><span class="o">.</span><span class="n">pp_network</span><span class="p">);</span>
+<span class="c1"># How can we select a specific iteration?</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sns</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">rc</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;figure.figsize&#39;</span><span class="p">:(</span><span class="mf">11.7</span><span class="p">,</span><span class="mf">8.27</span><span class="p">)})</span>
+
+<span class="n">df</span> <span class="o">=</span> <span class="n">simulation</span><span class="o">.</span><span class="n">failureProbs</span><span class="p">[</span><span class="n">simulation</span><span class="o">.</span><span class="n">failureProbs</span><span class="p">[</span><span class="s1">&#39;element type&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;Line&#39;</span><span class="p">]</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">lineplot</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">df</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s1">&#39;event intensity&#39;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s1">&#39;failure probability&#39;</span><span class="p">,</span> <span class="n">hue</span><span class="o">=</span><span class="s1">&#39;power element&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mf">1.02</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper left&#39;</span><span class="p">,</span> <span class="n">borderaxespad</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="o">*</span> <span class="c1"># pplotting functions</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">rx</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">engineDatabaseFile</span><span class="p">(</span><span class="n">simulationName</span><span class="p">),</span> <span class="n">index_col</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+<span class="c1"># -&gt; read database with results, BUT WHAT IS INDEX_COL FOR?</span>
+
+<span class="n">df</span> <span class="o">=</span> <span class="n">filter_non_converged_iterations</span><span class="p">(</span><span class="n">df</span><span class="p">)</span> <span class="c1"># filterining non-converged iterations</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">group_by</span><span class="p">,</span> <span class="n">invert</span><span class="p">,</span> <span class="n">get_quantiles_on_iterations</span>
+<span class="n">df_line</span> <span class="o">=</span> <span class="n">group_by</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="s1">&#39;sum&#39;</span><span class="p">,</span> <span class="s1">&#39;iteration&#39;</span><span class="p">,</span> <span class="s1">&#39;field&#39;</span><span class="p">,</span> <span class="s1">&#39;type&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,:,</span><span class="s1">&#39;line&#39;</span><span class="p">]</span>
+<span class="n">df_line_quantiles</span> <span class="o">=</span> <span class="n">invert</span><span class="p">(</span><span class="n">get_quantiles_on_iterations</span><span class="p">(</span><span class="n">df_line</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.05</span><span class="p">,</span><span class="mf">0.5</span><span class="p">,</span><span class="mf">0.95</span><span class="p">]))</span>
+<span class="n">df_line</span> <span class="o">=</span> <span class="n">invert</span><span class="p">(</span><span class="n">df_line</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df_montecarlo</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">rx</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">engineDatabaseFile</span><span class="p">(</span><span class="n">simulationName</span><span class="p">),</span> <span class="n">index_col</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">plotly.express</span> <span class="k">as</span> <span class="nn">px</span>
+<span class="n">px</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="n">df_line</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">df_line</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="s1">&#39;in_service&#39;</span><span class="p">,</span> <span class="n">color</span> <span class="o">=</span> <span class="s1">&#39;iteration&#39;</span><span class="p">)</span>
+<span class="c1"># Number of lines in Service!</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">px</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="n">df_line_quantiles</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">df_line_quantiles</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="s1">&#39;in_service&#39;</span><span class="p">,</span> <span class="n">color</span> <span class="o">=</span> <span class="s1">&#39;quantile&#39;</span><span class="p">)</span>
+<span class="c1"># Quantiles of lines in service</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df_load</span> <span class="o">=</span> <span class="n">group_by</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;load&#39;</span><span class="p">),</span> <span class="s1">&#39;sum&#39;</span><span class="p">,</span> <span class="s1">&#39;iteration&#39;</span><span class="p">,</span> <span class="s1">&#39;field&#39;</span><span class="p">,</span> <span class="s1">&#39;type&#39;</span><span class="p">)</span>
+<span class="n">df_load_quantiles</span> <span class="o">=</span> <span class="n">invert</span><span class="p">(</span><span class="n">get_quantiles_on_iterations</span><span class="p">(</span><span class="n">df_load</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">]))</span>
+<span class="c1"># df_load = invert(df_load)</span>
+<span class="c1"># df_load[&#39;loss_of_load_p_percentage&#39;] = (df_load[&#39;loss_of_load_p_mw&#39;])/df_load[&#39;max_p_mw&#39;] *100</span>
+<span class="n">df_load_quantiles</span><span class="p">[</span><span class="s1">&#39;loss_of_load_p_percentage&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">df_load_quantiles</span><span class="p">[</span><span class="s1">&#39;loss_of_load_p_mw&#39;</span><span class="p">])</span><span class="o">/</span><span class="n">df_load_quantiles</span><span class="p">[</span><span class="s1">&#39;max_p_mw&#39;</span><span class="p">]</span> <span class="o">*</span><span class="mi">100</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">px</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="n">df_load_quantiles</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">df_load_quantiles</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="s1">&#39;loss_of_load_p_percentage&#39;</span><span class="p">,</span> <span class="n">color</span> <span class="o">=</span> <span class="s1">&#39;quantile&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<section id="MC-METRICS?">
+<h3>MC METRICS?<a class="headerlink" href="#MC-METRICS?" title="Permalink to this heading"></a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df_network_condensed</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;network&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="c1"># sum over timesteps</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df_network_condensed_</span> <span class="o">=</span> <span class="n">invert</span><span class="p">(</span><span class="n">df_network_condensed</span><span class="p">)</span>
+<span class="n">px</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">df_network_condensed_</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="s1">&#39;energy_not_served_mwh&#39;</span><span class="p">,</span> <span class="n">histnorm</span><span class="o">=</span><span class="s1">&#39;probability&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">statistics</span><span class="o">=</span> <span class="n">df_network_condensed</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;field&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="c1"># average over iterations</span>
+<span class="n">EENS</span> <span class="o">=</span> <span class="n">statistics</span><span class="p">[</span><span class="s1">&#39;energy_not_served_mwh&#39;</span><span class="p">]</span>
+<span class="n">LOLE</span> <span class="o">=</span> <span class="n">statistics</span><span class="p">[</span><span class="s1">&#39;loss_of_load_p_duration_h&#39;</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;EENS : </span><span class="si">{</span><span class="n">EENS</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s1"> MWh, LOLE : </span><span class="si">{</span><span class="n">LOLE</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s1"> h&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">crt_loss_of_load</span> <span class="o">=</span> <span class="mi">30</span>
+<span class="n">df_loss_of_load</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,:,</span><span class="s2">&quot;loss_of_load_p_percentage&quot;</span><span class="p">,</span><span class="s2">&quot;network&quot;</span><span class="p">]</span>
+<span class="n">Survivability</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">df_loss_of_load</span> <span class="o">&gt;</span> <span class="n">crt_loss_of_load</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="n">df_loss_of_load</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">levels</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;base case&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df_aux</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">rx</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">engineDatabaseFile</span><span class="p">(</span><span class="s1">&#39;basic_example_v1&#39;</span><span class="p">),</span> <span class="n">index_col</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+<span class="n">df_loss_of_load_aux</span> <span class="o">=</span> <span class="n">df_aux</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="s2">&quot;loss_of_load_p_percentage&quot;</span><span class="p">,</span><span class="s2">&quot;network&quot;</span><span class="p">]</span>
+<span class="n">Survivability</span><span class="p">[</span><span class="s1">&#39;line 10 reinforced&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">df_loss_of_load_aux</span> <span class="o">&gt;</span> <span class="n">crt_loss_of_load</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="n">df_loss_of_load_aux</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">levels</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span>
+<span class="n">df_aux</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">rx</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">engineDatabaseFile</span><span class="p">(</span><span class="s1">&#39;basic_example_v2&#39;</span><span class="p">),</span> <span class="n">index_col</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+<span class="n">df_loss_of_load_aux</span> <span class="o">=</span> <span class="n">df_aux</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="s2">&quot;loss_of_load_p_percentage&quot;</span><span class="p">,</span><span class="s2">&quot;network&quot;</span><span class="p">]</span>
+<span class="n">Survivability</span><span class="p">[</span><span class="s1">&#39;line 2 reparing time improved&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">df_loss_of_load_aux</span> <span class="o">&gt;</span> <span class="n">crt_loss_of_load</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="n">df_loss_of_load_aux</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">levels</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">px</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="n">Survivability</span><span class="p">)</span><span class="o">.</span><span class="n">update_layout</span><span class="p">(</span><span class="n">xaxis_title</span><span class="o">=</span><span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="n">yaxis_title</span><span class="o">=</span><span class="s2">&quot;Survivability&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">px</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="n">df_load_quantiles</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">df_load_quantiles</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="s1">&#39;loss_of_load_p_percentage&#39;</span><span class="p">,</span> <span class="n">color</span> <span class="o">=</span> <span class="s1">&#39;quantile&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">plotly.graph_objects</span> <span class="k">as</span> <span class="nn">go</span>
+<span class="n">df_line</span> <span class="o">=</span> <span class="n">group_by</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;line&#39;</span><span class="p">),</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span><span class="s1">&#39;strata&#39;</span><span class="p">,</span> <span class="s1">&#39;iteration&#39;</span><span class="p">,</span> <span class="s1">&#39;field&#39;</span><span class="p">,</span><span class="s1">&#39;id&#39;</span><span class="p">)</span> <span class="c1"># mean in this case does not have any effect as the groupying levels are the initial ones</span>
+<span class="n">df_line</span> <span class="o">=</span> <span class="n">invert</span><span class="p">(</span><span class="n">df_line</span><span class="p">)</span>
+<span class="c1"># df_line = df_line.loc[df_line.index &gt; &#39;2022-01-01 12:00:00&#39;]</span>
+
+<span class="n">fig</span> <span class="o">=</span> <span class="n">go</span><span class="o">.</span><span class="n">Figure</span><span class="p">()</span> <span class="c1"># --&gt; put in a function (?)</span>
+
+<span class="n">ids</span> <span class="o">=</span> <span class="n">df_line</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">()</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span>
+
+<span class="k">for</span> <span class="nb">id</span> <span class="ow">in</span> <span class="n">ids</span><span class="p">:</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span><span class="n">go</span><span class="o">.</span><span class="n">Violin</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">df_line</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">][</span><span class="n">df_line</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="nb">id</span><span class="p">],</span>
+                            <span class="n">y</span><span class="o">=</span><span class="n">df_line</span><span class="p">[</span><span class="s1">&#39;loading_percent&#39;</span><span class="p">][</span><span class="n">df_line</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="nb">id</span><span class="p">],</span>
+                            <span class="n">name</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
+                            <span class="n">box_visible</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                            <span class="n">meanline_visible</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                            <span class="n">side</span><span class="o">=</span><span class="s1">&#39;positive&#39;</span><span class="p">,</span>
+                            <span class="n">orientation</span> <span class="o">=</span> <span class="s1">&#39;v&#39;</span>
+                           <span class="p">)</span>
+                 <span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">update_layout</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">500</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<br/></pre></div>
+</div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../../welcome.html" class="btn btn-neutral float-left" title="Welcome to reXplan! 👋" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="installation.html" class="btn btn-neutral float-right" title="Installation Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Tim.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
