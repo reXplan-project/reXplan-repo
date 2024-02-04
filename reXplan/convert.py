@@ -72,7 +72,7 @@ def rename_element(sheet, column, values, net, rename = False):
                 for number in values.index:
                     values[number] = rename_sheet[sheet] + str(number + 1)
     
-    elif column == 'std_type':  # TODO: Matching to Names!
+    elif column == 'std_type':
         if values.isna().any():
             values = getattr(net, rename_sheet[sheet])['std_type']
             values.reset_index(drop=True, inplace=True)
@@ -105,18 +105,14 @@ def rename_element(sheet, column, values, net, rename = False):
                 values.at[index] = getattr(net, rename_sheet['transformers_3w'])['name'].loc[values.iloc[index]]
             else:
                 raise ValueError("Given element type of switch is unknown.")
+    
     else:
         pass    
         # print(f"No need to rename for: [{sheet}] - [{column}]") # For debugging
+    
     return values
 
-def subimport_profiles(profiles):
-    if isinstance(profiles, dict):
-        print("Heck yeah!")
-    print("Heck no!")
-
-def import_grid(net, rename = False, profiles = None): # Add profiles!
-
+def from_pp(net, profiles=None, rename=False):
     """
 	Creates a reXplan compliant network as excel file from pandapower.
 
@@ -129,11 +125,10 @@ def import_grid(net, rename = False, profiles = None): # Add profiles!
 		>>> import_grid(pn.case14(), rename=False)
     """
     # TODO: FOR profiles = VALUE:-----------------------------------
-    # TODO: - Write data correctly in profiles
+    # TODO: - First column add timesteps -> discuss automation (tab: simulation?)
 
     # TODO: FOR rename = FALSE:-------------------------------------
-    # TODO: - [profiles] add data, if missing, better Error Message!
-    # TODO: - [lines] geodata missing
+    # TODO: - [lines] geodata missing -> first and last location
     # TODO: - [nodes] geodata handling for bus with multiple entries
     # TODO: - Better solution for necessary empty tabs in network.xlsx? -> use keys of rename_column? 
 
@@ -173,10 +168,35 @@ def import_grid(net, rename = False, profiles = None): # Add profiles!
             dfs_dict[sheet]['name'] = name_array         
 
         elif sheet == 'profiles':
-            load_names = getattr(net, 'load')['name'].tolist()
-            columns_profile = ['asset'] + load_names
-            dfs_dict['profiles'] = pd.DataFrame(columns=columns_profile)
-            dfs_dict['profiles'].loc[1] = ['field'] + ['max_p_mw'] * len(net.load)
+            if profiles:
+                if isinstance(profiles, dict):
+                    profiles_df = pd.DataFrame()
+                    columns_list = pd.DataFrame()
+                    field_row = pd.Series(dtype='object')
+                    for profile_keys in profiles.keys():
+                        if not profiles[profile_keys].empty:
+                            df = profiles[profile_keys]
+                            value = getattr(net, profile_keys[0])['name']
+                            columns_list = pd.concat([columns_list, value], ignore_index=True)
+                            profiles_df = pd.concat([profiles_df, df], ignore_index=True, axis=1)
+                            field_row_add = pd.Series(["max_" + profile_keys[1]] * len(value), index=range(len(value)))
+                            field_row = pd.concat([field_row, field_row_add])
+                    if columns_list.T.shape[1] == profiles_df.shape[1]:
+                        profiles_df.columns = columns_list.squeeze().tolist()
+                    else:
+                        raise ValueError ("Length of column name list do not match profile entries.")
+                    
+                    profiles_df.loc[-1] = pd.Series(dtype='object')
+                    profiles_df.index = profiles_df.index + 1
+                    profiles_df = profiles_df.sort_index()
+                    field_row = field_row.reset_index(drop=True)
+                    profiles_df.loc[0] = field_row.values
+                    profiles_df = pd.concat([pd.Series('', index=profiles_df.index, name='asset'), profiles_df], axis=1)
+                    profiles_df.iloc[0, 0] = "field"
+
+                    dfs_dict[sheet] = profiles_df
+                else:
+                    raise TypeError('Provided datatype of profiles is not compliant')
 
         elif sheet == 'ln_type' or sheet == 'tr_type':
             if sheet == 'ln_type':
@@ -228,16 +248,12 @@ def import_grid(net, rename = False, profiles = None): # Add profiles!
     dfs_dict['network']['f_hz'] = pd.Series(net.f_hz)
     dfs_dict['network']['name'] = pd.Series(net.name)
 
-    if profiles:
-        subimport_profiles(profiles)
-
     wb = Workbook()
     wb.remove(wb['Sheet'])
 
     nec_sheet_names = ['switches', 'cost', 'tr_type', 'static_generators', 'transformers', 'generators']
     for sheet_name, df in dfs_dict.items():
         if not df.empty or sheet_name in nec_sheet_names: 
-        # if not df.empty:
             ws = wb.create_sheet(sheet_name)
             for row in dataframe_to_rows(df, index=False, header=True):
                 ws.append(row)

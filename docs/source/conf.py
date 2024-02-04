@@ -1,7 +1,7 @@
 # -- Path setup --------------------------------------------------------------
 
 import os, sys
-sys.path.insert(0, os.path.abspath('../reXplan_fork'))
+sys.path.insert(0, os.path.abspath('../reXplan_repo'))
 
 # -- Project information -----------------------------------------------------
 

@@ -167,7 +167,8 @@ def enrich_database(df):
 
 class Sim:
 	'''
-	Add description of Sim class here
+	The Sim class contains information of the updated power grid, including the outage schedule of power elements, based
+	on the probability of failure and hazard intensity.
 	'''
 	def __init__(self,
 				 simulationName):
