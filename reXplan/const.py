@@ -87,6 +87,9 @@ COL_NAME_MAX_R0X0 = 'r0x0_max'
 COL_NAME_MAX_X0X = 'x0x_max'
 COL_NAME_SLACK_WEIGHT = 'slack_weight'
 
+SHEET_NAME_SGEN = 'static_generators'
+COL_NAME_CS = 'current_source'
+
 SHEET_NAME_GENERATORS = 'generators'
 COL_NAME_LACK = 'lack'
 COL_NAME_XDSS = 'xdss_pu'

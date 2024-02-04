@@ -85,8 +85,7 @@ def build_database(standard_dict_list, get_value_from_content=True):
 
 class Network:
 	'''
-	TODO: @TIM add description
-	Add description of Newtork class here
+	The network class contains information of the pandapower `net` dataframe, the fragility curve and hazard event.
 	'''
 
 	def __init__(self, simulationName):
@@ -101,6 +100,7 @@ class Network:
 
 		self.nodes = {}
 		self.generators = {}
+		self.staticGenerators = {}
 		self.externalGenerators = {}
 		self.loads = {}
 		self.transformers = {}
@@ -149,11 +149,12 @@ class Network:
 
 	def build_generators(self, networkFile):
 		df_gen = pd.read_excel(networkFile, sheet_name=SHEET_NAME_GENERATORS)
-		df_ex_gen = pd.read_excel(
-			networkFile, sheet_name=SHEET_NAME_EXTERNAL_GEN)
+		df_ex_gen = pd.read_excel(networkFile, sheet_name=SHEET_NAME_EXTERNAL_GEN)
+		df_sgen = pd.read_excel(networkFile, sheet_name=SHEET_NAME_SGEN)
 		self.generators = build_class_dict(df_gen, 'Generator')
 		self.externalGenerators = build_class_dict(df_ex_gen, 'Generator')
-		return df_gen, df_ex_gen
+		self.staticGenerators = build_class_dict(df_sgen, 'Generator')
+		return df_gen, df_ex_gen, df_sgen
 
 	def build_loads(self, networkFile):
 		df_load = pd.read_excel(networkFile, sheet_name=SHEET_NAME_LOADS)
@@ -200,12 +201,12 @@ class Network:
 		df_network = self.build_network_parameters(networkFile)
 		df_nodes = self.build_nodes(networkFile)
 		df_load = self.build_loads(networkFile)
-		df_gen, df_ex_gen = self.build_generators(networkFile)
+		df_gen, df_ex_gen, df_sgen = self.build_generators(networkFile) 	# TODO: Try-Catch for Gen if missing -> sgen
 		df_transformers, df_tr_types = self.build_transformers(networkFile)
 		df_lines, df_ln_types = self.build_lines(networkFile)
 		df_switches = self.build_switches(networkFile)
 		df_cost = pd.read_excel(
-			networkFile, sheet_name=SHEET_NAME_COST)
+			networkFile, sheet_name=SHEET_NAME_COST)  # TODO: build cost
 		self.build_crews(networkFile)
 		self.allocate_profiles(networkFile)
 		if build_pp_network:
@@ -219,6 +220,7 @@ class Network:
 				df_load=df_load,
 				df_ex_gen=df_ex_gen,
 				df_gen=df_gen,
+				df_sgen=df_sgen,
 				df_switch=df_switches,
 				df_cost=df_cost
 			)
@@ -233,8 +235,8 @@ class Network:
 			el.update_failure_probability(self, intensity=intensity, ref_return_period=ref_return_period)
 		return self.powerElements
 
-	def build_pp_network(self, df_network, df_bus, df_tr, df_tr_type, df_ln, df_ln_type, df_load, df_ex_gen, df_gen, df_switch, df_cost):
-		# TODO: it seems this funciton is missplaced. Can it be moved to engine.pandapower?
+	def build_pp_network(self, df_network, df_bus, df_tr, df_tr_type, df_ln, df_ln_type, df_load, df_ex_gen, df_gen, df_sgen, df_switch, df_cost):
+		# TODO: it seems this funciton is misplaced. Can it be moved to engine.pandapower?
 		# TODO: Condense creation of dictionaries by iteration
 		# TODO: update fields_map.csv accordingly
 		'''
@@ -386,6 +388,29 @@ class Network:
 								 slack_weight=row[COL_NAME_SLACK_WEIGHT])
 			ex_gen_ids[row[COL_NAME_NAME]] = pp.create_ext_grid(
 				**{key: value for key, value in kwargs_ex_gen.items() if value is not None})
+		
+		# Creating the static generator elements
+		df_sgen = df_sgen.replace({np.nan: None})
+		sgen_ids = {}
+		for index, row in df_sgen.iterrows():
+			kwargs_sgen = dict(net=network,
+					  			name=row[COL_NAME_NAME],
+								bus=bus_ids[row[COL_NAME_BUS]],
+								p_mw=row[COL_NAME_P],
+								q_mvar=row[COL_NAME_Q],
+								sn_mva=row[COL_NAME_REF_POWER],
+								scaling=row[COL_NAME_SCALING],
+								type=row[COL_NAME_TYPE],
+								current_source=row[COL_NAME_CS],	# Check if necessary
+								in_service=row[COL_NAME_SERVICE],
+								max_p_mw=row[COL_NAME_MAX_P],
+								min_p_mw=row[COL_NAME_MIN_P],
+								max_q_mvar=row[COL_NAME_MAX_Q],
+								min_q_mvar=row[COL_NAME_MIN_Q],
+								controllable=row[COL_NAME_CONTROLLABLE]
+								)
+			sgen_ids[row[COL_NAME_NAME]] = pp.create_sgen(
+				**{key: value for key, value in kwargs_sgen.items() if value is not None})
 
 		# Creating the generator elements
 		df_gen = df_gen.replace({np.nan: None})
@@ -453,6 +478,8 @@ class Network:
 				element = ex_gen_ids[row[COL_NAME_NAME]]
 			elif row[COL_NAME_TYPE] == 'gen':
 				element = gen_ids[row[COL_NAME_NAME]]
+			elif row[COL_NAME_TYPE] == 'sgen':
+				element = sgen_ids[row[COL_NAME_NAME]]	#TODO IMPLEMENT SGENS FOR OPF CALCULATIONS!
 			kwargs_cost = dict(net=network,
 							   element=element,
 							   et=row[COL_NAME_TYPE],
@@ -716,23 +743,60 @@ class Metric:
 		self.subfield = subfield
 		self.unit = unit
 
+
+class History:
+	'''
+	Add description of History class here
+	'''
+
+	def __init__(self, label):
+		self.label = label
+		self.ENS = []
+		self.lineLoading = []
+		self.minPower = 0
+		self.loadPower = 0
+		self.lineOutages = []
+		self.transformerOutages = []
+		self.busOutages = []
+		self.generatorOutages = []
+		self.LOEF = 0
+		self.totENS = 0
+
+	def plot(self):
+		'''
+		Add description of plot function
+		'''
+		pass
+
+	def export(self):
+		'''
+		Add description of export function
+		'''
+		pass
+
+	def print(self):
+		'''
+		Add description of int function
+		'''
+		pass
+
 class GeoData:
 	'''
-	TODO: @TIM add description
 	Add description of GeoData class
 	'''
+
 	def __init__(self, latitude, longitude):
 		self.latitude = latitude
 		self.longitude = longitude
 
-
+# TODO @Tim; document classes
 class PowerElement:
 	'''
-	TODO: @TIM add description
 	Add description of PowerElement class here
 
 	:attribute fragilityCurve: string, the type of the fragility curve
 	'''
+
 	def __init__(self, **kwargs):
 		self.id = None
 		self.node = None
@@ -751,7 +815,7 @@ class PowerElement:
 				warnings.warn(f'Input parameter "{key}" is not a valid attribute of the "{self.__class__.__name__}" class.')
 		if self.id is None:
 			self.id = utils.get_GLOBAL_ID()
-			warnings.warn(f'No "id" defined as input for {self}. The folloging identifier was assigned: {self.id}.')
+			warnings.warn(f'No "id" defined as input for {self}. The following identifier was assigned: {self.id}.')
 		if self.in_service == False:
 			if self.i_montecarlo == False:
 				warnings.warn(f'Forcing "ignore montecarlo" to "True" for {self.id}.')
@@ -797,7 +861,6 @@ class PowerElement:
 
 class Bus(PowerElement):
 	'''
-	TODO: @TIM add description
 	Class Bus: Parent Class PowerElement
 
 	:attribute longitude: float, longitude in degrees
