@@ -10,4 +10,9 @@
 pip install -e.[doc]
 ```
 
+### Step 3: Use Sphinx
+```
+sphinx-autobuild docs/source docs/build/html  
+```
+
 SEE GITBOOK FOR SETUP PROCESS
