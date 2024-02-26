@@ -17,7 +17,13 @@ Please see below for the installation, documentation and more.
 1.4 **GitHub Repository** [(here)](https://github.com/Tractebel-Engineering/reXplan-repo)
 
 ### Step 2: Imports and Module Management Julia & R
-2.1 Import and Install Julia **through Python Shell**:
+2.1 Import and Install Julia 
+**through Windows Command Prompt (CMD)**:
+```
+> pip install julia
+```
+
+**through Python Shell**:
 ```
 >>> import julia
 >>> julia.install()
