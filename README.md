@@ -30,20 +30,30 @@ Note during setup: set a PATH variable with Python, Julia and R!
 
 2.1 Add Julia Packages **through Julia Shell**, using the integrated Package Manager, which is accessable using " `]` " _(AltGr + 9)_:
 ```
-add PowerModels@0.19.8
-add PandaModels@0.7.1
+>>> import julia
+>>> julia.install()
 ```
 
-2.2 Add R Package **through R Shell**:
+2.2 Add Julia Packages **through Julia Shell**, using the integrated Package Manager:
 ```
-install.packages("SamplingStrata")
+julia> using Pkg
+julia> ENV["HTTP_PROXY"]=”http://10.42.32.29:8080” # this if the Julia Proxi needs to be specified
+julia> ENV["HTTPS_PROXY"]=”http://10.42.32.29:8080” # this if the Julia Proxi needs to be specified
+julia> Pkg.add("PowerModels@0.19.8")
+julia> Pkg.add("PandaModels@0.7.1")
+
+```
+
+2.3 Add R Package **through R Shell**:
+```
+> install.packages("SamplingStrata")
 ```
 
 ### Step 2: Creating a Virtual Environment
 
 3.1 Go to the repository. Either use Windows Command Prompt (CMD)...
 ```
-cd ..\reXplan
+> cd ..\reXplan
 ```
 
 ...or VSC terminal with command prompt profile (recommended).
@@ -51,27 +61,29 @@ cd ..\reXplan
 ---
 
 3.2 Create and activate Environment:
+
+- If using venv:
 ```
-py -3.10 -m venv venv
-venv\Scripts\activate.bat
+> py -3.10 -m venv venv
+> venv\Scripts\activate.bat
 ```
 
-3.3 Upgrade pip and install packages & dependencies:
+- If using virtualenvwrapper:
 ```
-py -m pip install --upgrade pip
-pip install -e . # For developers
-pip install . # For users
+> mkvirtualenv --python = python3.10 reXplan
+> workon reXplan
 ```
 
-3.4 Install Julia via cmd/VSC Terminal
+3.3 Upgrade Pip and install Packages & Dependencies:
+
 ```
-py
-import julia
-julia.install()
+> cd C:\path to reXplan-repo\ # this to change to the local directory of the reXplan repository
+> py -m pip install --upgrade pip
+> pip install .
 ```
 
 ## Documentation
-In development. Contact tim.hoffmann@tractebel.engie.com for further information.
+In development. Contact reXplan@tractebel.engie.com for further information.
 
 ## Contribute
 [Become a contributor on GitHub!](https://github.com/Tractebel-Engineering/reXplan-repo)
