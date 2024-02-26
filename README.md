@@ -18,6 +18,7 @@ Please see below for the installation, documentation and more.
 
 ### Step 2: Imports and Module Management Julia & R
 2.1 Import and Install Julia 
+
 **through Windows Command Prompt (CMD)**:
 ```
 > pip install julia
