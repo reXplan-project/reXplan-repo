@@ -175,9 +175,9 @@ class Sim:
 		self.externalTimeInterval = get_index_as_dataSeries(pd.read_excel(config.path.networkFile(simulationName),
 																		 sheet_name=SHEET_NAME_PROFILES, index_col=0, header=[0, 1]))
 		self.time = self.to_internal_time(self.startTime, self.duration)
-		print(f'Start = {self.time.start}; Stop = {self.time.stop}; Duration = {self.time.duration} timesteps. [Simulation]')
+		print(f'Simulation:	Start = {self.time.start}; Stop = {self.time.stop}; Duration = {self.time.duration} timesteps.')
 		self.hazardTime = self.to_internal_time(self.hazardStartTime, self.hazardDuration)
-		print(f'Start = {self.hazardTime.start}; Stop = {self.hazardTime.stop}; Duration = {self.hazardTime.duration} timesteps. [hazard]')
+		print(f'Hazard:		Start = {self.hazardTime.start}; Stop = {self.hazardTime.stop}; Duration = {self.hazardTime.duration} timesteps. ')
 
 	def to_internal_time(self, startTime, duration):
 		# TODO: very important to check!

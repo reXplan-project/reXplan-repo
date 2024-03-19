@@ -118,6 +118,7 @@ def from_pp(net, profiles=None, rename=False):
 
     INPUT:
 		net (dict) - pandapower format network
+        profiles (dict) - pandapower format profiles
         rename (bool) - False: Naming as provided in pandapower net; True: Elements renamed with respective naming of network (not implemented yet)
 
     EXAMPLE:
