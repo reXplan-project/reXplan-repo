@@ -1,4 +1,4 @@
-## Installation Guide
+# Installation Guide
 
 ```{note}
 Succesfully tested setup on Windows 11.
