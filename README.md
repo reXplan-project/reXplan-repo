@@ -20,15 +20,19 @@ Succesfully tested setup on Windows 11.
 Note during setup: set a PATH variable with Python, Julia and R!
 
 1.1 **Python 3.10** [(Download, win x64)](https://www.python.org/ftp/python/3.10.10/python-3.10.10-amd64.exe)\
-1.2 **Julia 1.8.5** [(Download, win x64)](https://julialang-s3.julialang.org/bin/winnt/x64/1.8/julia-1.8.5-win64.exe)\
-1.3 **R 4.2.2** [(Download, win x64)](https://ftp.fau.de/cran/bin/windows/base/old/4.2.2/R-4.2.2-win.exe)\
-1.4 **Git** [(Download, win x64)](https://github.com/git-for-windows/git/releases/download/v2.43.0.windows.1/Git-2.43.0-64-bit.exe)\
-1.5 **GitHub Repository** [(here)](https://github.com/Tractebel-Engineering/reXplan-repo)
+1.2 **Julia 1.8.5** [(Download, win x64)](https://julialang-s3.julialang.org/bin/winnt/x64/1.8/julia-1.8.5-win64.exe) # Julia > 1.8.5 should also work <br>
+1.3 **R 4.2.2** [(Download, win x64)](https://ftp.fau.de/cran/bin/windows/base/old/4.2.2) # R > 4.2.2 should also work <br>
+1.4 **GitHub Repository** [(here)](https://github.com/Tractebel-Engineering/reXplan-repo)
 
 ### Step 2: Imports and Module Management Julia & R
+2.1 Import and Install Julia 
 
+**through Windows Command Prompt (CMD)**:
+```
+> pip install julia
+```
 
-2.1 Add Julia Packages **through Julia Shell**, using the integrated Package Manager, which is accessable using " `]` " _(AltGr + 9)_:
+**through Python Shell**:
 ```
 >>> import julia
 >>> julia.install()
