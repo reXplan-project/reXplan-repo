@@ -21,6 +21,7 @@ REGEX = r"(?:res_)?(\w+)\."
 
 
 class pandapower():
+	# TODO: @TIM add description
 	def __init__(self, network):
 		self.network = network  # pandapower network type
 
@@ -69,6 +70,7 @@ class pandapower():
 		return ow
 
 	def run_time_series(self, df_timeseries, **kwargs):
+		# TODO: @TIM add description
 		run_timeseries(self.network, df_timeseries.index,
 					   continue_on_divergence=True, **kwargs)
 
@@ -87,6 +89,7 @@ class pandapower():
 		return pd.concat(out, axis=1)
 
 	def run(self, df_timeseries, debug=None, **kwargs):
+		# TODO: @TIM add description
 		self.create_controllers(df_timeseries)
 		output = self.configure_output_writer(
 			df_timeseries.index)

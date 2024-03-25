@@ -26,6 +26,7 @@ from pygam import LinearGAM, s
 
 class Hazard:
 	'''
+	# TODO: @TIM add description
 	Hazard Class:
 
 	:attribute lon: array, list of the longitudes covered by the hazard
@@ -63,6 +64,7 @@ class Hazard:
 
 	def hazardFromNC(self, filename):
 		'''
+		# TODO: @TIM add description
 		:param filename: string, filename of the nc file. Must end with .nc and must be in the directory: file/input/*project name*/hazards/
 		
 		Initializes the Hazard object using a .nc file
@@ -75,6 +77,7 @@ class Hazard:
 								sdate, edate, geodata1, geodata2, 
 								delta_km, frequency='1H'):
 		'''
+		# TODO: @TIM add description
 		:param filename: string, filename of the csv file. Must end with .csv and must be in the directory: file/input/*project name*/hazards/
 		:param max_intensity: float, the rated intensity used for p.u. values in the trajectory data.
 		:param max_radius: float, the rated radius used for p.u. values in the trajectory data.
@@ -104,6 +107,7 @@ class Hazard:
 								epicenter_lat, epicenter_lon, 
 								frequency='1H', epicenter_radius=1, epicenter_intensity=1):
 		'''
+		# TODO: @TIM add description
 		:param filename: string, filename of the csv file. Must end with .csv and must be in the directory: file/input/*project name*/hazards/
 		:param max_intensity: float, the rated intensity used for p.u. values in the trajectory data.
 		:param max_radius: float, the rated radius used for p.u. values in the trajectory data.
@@ -132,6 +136,7 @@ class Hazard:
 
 	def clear(self):
 		'''
+		# TODO: @TIM add description
 		Clears all class attributes
 		'''
 		self.intensity = None
@@ -145,6 +150,7 @@ class Hazard:
 
 	def read_nc(self, filename):
 		'''
+		# TODO: @TIM add description
 		:param filename: filename of the nc file. Must end with .nc and must be in the directory: file/input/*project name*/hazards/
 		:type filename: string
 		:return:
@@ -230,6 +236,7 @@ class Hazard:
 	def epicenterTrajectory_generator(self, epicenter_radius, epicenter_intensity,
 							  				epicenter_lat, epicenter_lon):
 		'''
+		# TODO: @TIM add description
 		:param epicenter_radius: float, radius of the hazard event from the epicenter in p.u.
 		:param epicenter_intensity: float, intensity of the hazard event at the epicenter in p.u.
 		:param epicenter_lat: float, latitude of the epicenter of the hazard event
@@ -301,6 +308,7 @@ class Hazard:
 
 	def to_nc(self, df, filename, intensity_unit='m/s', intensity_name='wind speed', title='Sythetic storm'):
 		'''
+		# TODO: @TIM add description
 		:param df: pandas.DataFrame, use the function hazard.grid_generator() to generate a dataframe with all the data needed to generate the ncdf file
 		:param filename: string, ncdf filename, must end with .nc
 		:param intensity_unit: string, the unit of the intensity used for the ncdf file, default='m/s'
@@ -323,6 +331,7 @@ class Hazard:
 
 	def get_intensity(self, lon, lat, startTime=None, endTime=None):
 		'''
+		# TODO: @TIM add description
 		:param lon: float, in degrees
 		:param lat: float, in degrees
 		:param startTime: DateTime, default= start of hazard
@@ -362,6 +371,7 @@ class Hazard:
 
 	def plot(self, time_idx, projection='cyl', edge_pad=0):
 		'''
+		# TODO: @TIM add description
 		:param time_idx: int, should be between 0 and the maximum number of timesteps defined in the Hazard
 		:param projection: string, projection used by Basemap, default='cyl' espg projections can be used as well
 		:param edge_pad: int, shows more of the map by adding additional lat and lon degrees
@@ -404,6 +414,7 @@ class Hazard:
 
 	def plot_gif(self, filename, speed=3, projection='cyl', edge_pad=0):
 		'''
+		# TODO: @TIM add description
 		:param filename: sting, filename of the generated gif file. must end with .gif
 		:param speed: int, default=3, the reply speed of the gif
 		:param projection: string, projection used by Basemap, default='cyl' espg projections can be used as well
@@ -441,6 +452,7 @@ class Hazard:
 
 def readReturnPeriods(simulationName):
 	'''
+	# TODO: @TIM add description
 	:param simulationName: string, name of the simulation case.
 	:return return_period_list: list, list of tuples containing the original data from the fragility curves
 	'''
@@ -468,6 +480,7 @@ def build_return_period_database(simulationName):
 
 class ReturnPeriod:
 	'''
+	# TODO: @TIM add description
 	ReturnPeriod Class:
 
 	:attribute df_return_period: dataFrame, intensity and return period to be used for the analysis
@@ -489,12 +502,15 @@ class ReturnPeriod:
 		self.inv_log_gam = LinearGAM(s(0, n_splines=len(logx))).gridsearch(logx, y, progress=False)
 
 	def interpolate_return_period(self, newX):
+		# TODO: @TIM add description
 		return np.exp(self.log_gam.predict(newX))
 
 	def interpolate_inv_return_period(self, newX):
+		# TODO: @TIM add description
 		return self.inv_log_gam.predict(np.log(newX))
 
 	def generate_samples(self, x_min, x_max, N):
+		# TODO: @TIM add description
 		X = np.linspace(x_min,x_max,N)
 		
 		CDF = [1-1/r for r in self.interpolate_return_period(X)]

@@ -21,12 +21,6 @@ def convert_index_to_internal_time(df, df_int_ext_time):
 def convert_index_to_external_time(df, df_int_ext_time):
 	return df.rename(index=df_int_ext_time.to_dict())
 
-'''
-def build_database(iterations, databases, df_int_ext_time):
-	# TODO: call const.py for names
-	# TODO: too many things at the same time
-	return convert_index_to_external_time(pd.concat(dict(zip(iterations, databases)), names=['iteration'], axis=1), df_int_ext_time).T
-'''
 def build_database(iterations, databases, df_int_ext_time):
 	# TODO: call const.py for names
 	# TODO: too many things at the same time
@@ -42,11 +36,6 @@ def build_database(iterations, databases, df_int_ext_time):
 
 	return convert_index_to_external_time(pd.concat(dict(zip(stratas, db)), names=['strata'], axis=1), df_int_ext_time).T
 
-'''
-def read_database(dababaseFile):
-	# TODO: call const.py for index_col
-	return pd.read_csv(dababaseFile,  index_col=[0, 1, 2, 3]).T
-'''
 def read_database(dababaseFile):
 	# TODO: call const.py for index_col
 	return pd.read_csv(dababaseFile,  index_col=[0, 1, 2, 3, 4]).T
@@ -65,8 +54,7 @@ def get_index_as_dataSeries(df):
 	return df.index.to_frame(index=False)[0]
 
 def enrich_database(df):
-	#TODO: put this in another library?
-
+	# TODO: @TIM add description
 	def get_number_of_hours_per_timesteps(df):
 		hours = (df.columns[1:] - df.columns[:-1])/np.timedelta64(1,'h')
 		if hours.size == 0:
@@ -79,21 +67,22 @@ def enrich_database(df):
 		return pd.concat({tuple(keys): df}, names=names).reorder_levels(['strata','iteration', 'field','type', 'id'])
 
 	def loss_of_load():
+		# TODO: @TIM add description
 		field = 'loss_of_load_p_mw'
 		type = 'load'
 		content = df.loc[:,:, 'max_p_mw','load',:] - df.loc[:,:, 'p_mw','load',:]
 		return format_to_multiindex(content, [field, type], ['field', 'type'])
-		# return pd.concat({(field, type): content}, names=['field', 'type']).reorder_levels(['iteration', 'field','type', 'id'])
 
 	def loss_of_load_percentage():
+		# TODO: @TIM add description
 		field = 'loss_of_load_p_percentage'
 		type = 'load'
-		# content = (df.loc[:, 'max_p_mw','load',:] - df.loc[:, 'p_mw','load',:]) / df.loc[:, 'max_p_mw','load',:]*100
 		content = loss_of_load().groupby(['strata','iteration', 'id']).sum()/df.loc[:,:, 'max_p_mw','load',:]*100
 		content.fillna(0, inplace = True) # load of zero considered as supplied
 		return format_to_multiindex(content, [field, type], ['field', 'type'])
 	
 	def loss_of_load_duration():
+		# TODO: @TIM add description
 		field = 'loss_of_load_p_duration_h'
 		type = 'load'
 		hours = get_number_of_hours_per_timesteps(df)
@@ -105,49 +94,47 @@ def enrich_database(df):
 		return format_to_multiindex(content, [field, type], ['field', 'type'])
 
 	def energy_not_served():
+		# TODO: @TIM add description
 		field = 'energy_not_served_mwh'
 		type = 'load'
-		# hours = get_number_of_hours_per_timesteps(df)  # todo: change to loss_of_load_duration
 		hours = loss_of_load_duration().groupby(['strata','iteration', 'id']).sum()
-		# content = loss_of_load().loc[:, 'loss_of_load_p_mw','load',:].multiply(hours, axis = 1)
 		content = loss_of_load().groupby(['strata','iteration', 'id']).sum().multiply(hours, axis = 1)
 		return format_to_multiindex(content, [field, type], ['field', 'type'])
 
 	def total_loss_of_load():
+		# TODO: @TIM add description
 		field = 'loss_of_load_p_mw'
 		type = 'network'
 		id = ''
-		# content = (df.loc[:, 'max_p_mw','load',:] - df.loc[:, 'p_mw','load',:]).groupby('iteration').sum()
 		content = loss_of_load().groupby(['strata','iteration']).sum()
 		return format_to_multiindex(content, [field, type, id], ['field', 'type', 'id'])
 
 	def total_loss_of_load_percentage():
+		# TODO: @TIM add description
 		field = 'loss_of_load_p_percentage'
 		type = 'network'
 		id = ''
-		# content = (df.loc[:, 'max_p_mw','load',:] - df.loc[:, 'p_mw','load',:]).groupby('iteration').sum() / df.loc[:, 'max_p_mw','load',:].groupby('iteration').sum() * 100 
 		content = total_loss_of_load().groupby(['strata','iteration']).sum() / df.loc[:,:, 'max_p_mw','load',:].groupby(['strata','iteration']).sum() * 100 
 		content.fillna(0, inplace = True) # load of zero considered as supplied
 		return format_to_multiindex(content, [field, type, id], ['field', 'type', 'id'])
 
 	def total_loss_of_load_duration():
+		# TODO: @TIM add description
 		field = 'loss_of_load_p_duration_h'
 		type = 'network'
 		id = ''
 		hours = get_number_of_hours_per_timesteps(df)
-		# filter = (df.loc[:, 'max_p_mw','load',:] - df.loc[:, 'p_mw','load',:]).groupby('iteration').sum() / df.loc[:, 'max_p_mw','load',:].groupby('iteration').sum() * 100
 		filter = total_loss_of_load_percentage().groupby(['strata','iteration']).sum() # get rid of unused fields
 		filter = filter.round(DECIMAL_PRECISION)!=0 # DECIMAL_PRECISION = 1 means that less than 0.1% is NOT cosnidered as a loss of load.
 		content = filter.multiply(hours, axis = 1)
 		return format_to_multiindex(content, [field, type, id], ['field', 'type', 'id'])
 
 	def total_energy_not_served():
+		# TODO: @TIM add description
 		field = 'energy_not_served_mwh'
 		type = 'network'
 		id = ''
-		# hours = get_number_of_hours_per_timesteps(df) # todo: change to total_loss_of_load_duration
 		hours = total_loss_of_load_duration().groupby(['strata','iteration']).sum()
-		# content = loss_of_load().loc[:, 'loss_of_load_p_mw','load',:].multiply(hours, axis = 1)
 		content = energy_not_served().groupby(['strata','iteration']).sum()
 		return format_to_multiindex(content, [field, type, id], ['field', 'type', 'id'])
 
@@ -182,6 +169,8 @@ class Sim:
 		self.stratResults = None
 		self.failureProbs = pd.DataFrame(columns=['iteration','strata','event intensity','element type','power element','failure probability','status'])
 		self.samples = None
+		self.iteration_number = 0
+		self.databases = []
 
 		df_simulation = pd.read_excel(config.path.networkFile(simulationName), sheet_name=SHEET_NAME_SIMULATION, index_col=0)
 		allocate_column_values(self, df_simulation[COL_NAME_VALUE])
@@ -229,7 +218,8 @@ class Sim:
 		out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
 		return network.outagesSchedule
 
-	def initialize_model_rp(self, network, mc_iteration_factor, ref_return_period, cv=0.1, max_mc_iterations=10000, nStrataSamples=10000, min_intensity=None, max_intensity=None, maxStrata=10):
+	def initialize_model_rp_deprecated(self, network, iterationNumber, ref_return_period, cv=0.1, maxTotalIteration=1000, nStrataSamples=10000, x_min=None, x_max=None, maxStrata=10):
+		# This Function is Deprecated
 		"""
 		The `initialize_model_rp()` function utilizes **return periods**, which needs to be defined in */file/input/project name/returnPeriods/*. 
 		It uses the R module `StratifiedSampling` to divide the total event intensity range into strata to reduce uncertainty and computational load.
@@ -288,6 +278,7 @@ class Sim:
 			warnings.warn(f'Warning: Estimated needed strata samples to reach cv = {cv} are greater than max_mc_iterations = {max_mc_iterations}')
 
 		iteration_number = 0
+		self.failureProbs = self.failureProbs[0:0]
 		df_temp = pd.DataFrame()
 		databases = []
 		for strata in range(len(self.stratResults.index)):
@@ -332,7 +323,105 @@ class Sim:
 		self.failureProbs.reset_index()
 		out = build_database(range(iteration_number+1), databases, self.externalTimeInterval)
 		out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
+	
+	def get_intensity_boundaries(self, network, x_min, x_max):
+		for j, (_, rp) in enumerate(network.returnPeriods.items()):
+			if j == 0:
+				xmin = min(rp.y_data)
+				xmax =max(rp.y_data)
+			else:
+				xmin = min(xmin, min(rp.y_data))
+				xmax = max(xmax, max(rp.y_data))
+
+		if x_min==None:
+			x_min = xmin
+			print(f'x_min = {x_min}')
+		elif x_min < xmin:
+			warnings.warn(f'Warning: selected x_min is lower than the data provided for the fragility curves: {x_min} < {xmin}')
+
+		if x_max==None:
+			x_max = xmax
+			print(f'x_max = {x_max}')
+		elif x_max > xmax:
+			warnings.warn(f'Warning: selected x_max is greater than the data provided for the fragility curves: {x_max} > {xmax}')
+		return x_min, x_max
+
+	def populate_failure_prob_df(self, network, iterationNumber, maxTotalIteration, ref_return_period):
+		iteration_number = 0
+		self.databases = []
+		# Iterate over strata
+		for strata in range(len(self.stratResults.index)):
+			strata_db = []
+			# get samples within the stratum boundaries
+			sample_pool = self.samples[(self.samples >= self.stratResults["Lower_X1"].values[strata]) & (self.samples <= self.stratResults["Upper_X1"].values[strata])]
+			# calculate number of samples allocated to the stratum
+			if self.stratResults["Allocation"].sum()*iterationNumber <=  maxTotalIteration:
+				nsamples = self.stratResults["Allocation"].values[strata]*iterationNumber
+			else:
+				nsamples = round(self.stratResults["Allocation"].values[strata]*maxTotalIteration/self.stratResults["Allocation"].sum())					
+			
+			print(f'\nStrata = {strata}')
+			print(f'Number of samples = {nsamples}')
+			print(f'Intensity samples between {self.stratResults["Lower_X1"].values[strata]} and {self.stratResults["Upper_X1"].values[strata]}')
+			# iterate over each montecarlo iteration
+			for _ in range(int(nsamples)):
+				iteration_number += 1
+				# pick a value for the event inntensity from the sample pool
+				event_intensity = sample_pool[random.randint(0, len(sample_pool)-1)]
+				# Update the network element for the given intensity
+				network.update_failure_probability(intensity=event_intensity, ref_return_period=ref_return_period)
+				network.calculate_outages_schedule(self.time, self.hazardTime)
+				network.calculate_switches_schedule(self.time)
+				network.propagate_schedules_to_network_elements()
+				strata_db.append(network.build_montecarlo_database(self.time))
+				# iterate of each power element
+				for key, value in network.powerElements.items():
+					if value.return_period != None:
+						elm_intensity = network.fragilityCurves[value.fragilityCurve].projected_intensity(rp=network.returnPeriods[value.return_period],
+																														ref_rp=network.returnPeriods[ref_return_period],
+																														x=event_intensity)
+					else:	
+						elm_intensity = event_intensity
+
+					yield iteration_number, strata, elm_intensity, value.__class__.__name__, key, value.failureProb, float('nan')
+			self.databases.append(strata_db)
+			self.iteration_number = iteration_number
+
+	def initialize_model_rp(self, network, iterationNumber, ref_return_period, cv=0.1, maxTotalIteration=1000, nStrataSamples=10000, x_min=None, x_max=None, maxStrata=10):
+		# TODO: @TIM add description
+		"""
+		The function `initialize_model_rp` initializes a model for reliability analysis using fragility
+		curves and return periods.
 		
+		:param network: The network parameter is an object that represents the network being modeled. It contains information about the network's elements, fragility curves, return periods, and other relevant data
+		:param iterationNumber: The number of iterations to perform in the Monte Carlo simulation. Each	iteration represents a sample from the fragility curves
+		:param ref_return_period: The reference return period is a parameter that specifies the return period for which the fragility curves are defined. It is used to generate samples for the Monte Carlo simulation and calculate the failure probabilities of network elements
+		:param cv: The parameter "cv" stands for coefficient of variation. It is a measure of the variability of a dataset relative to its mean. In this context, it is used to control the precision of the Monte Carlo simulation. A smaller value of cv will result in a more precise simulation, but it will also increase computational time.
+		:param maxTotalIteration: The maximum number of iterations for the Monte Carlo simulation. This parameter limits the total number of iterations performed during the simulation, defaults to 1000 (optional)
+		:param nStrataSamples: The parameter "nStrataSamples" represents the number of samples to be generated within each stratum. It determines the granularity of the sampling within each range of intensity values, defaults to 10000 (optional)
+		:param x_min: The minimum value of the x-axis for the fragility curves. If not provided, it will be set to the minimum value of the y-data in the fragility curves
+		:param x_max: The maximum value of the x-axis for the fragility curves. It is used to generate samples within the specified range for each strata. If not provided, the maximum value from the fragility curves will be used
+		"""
+		# If no boudaries are provided, x_min and x_max are calculated from the return periods
+		x_min, x_max = self.get_intensity_boundaries(network, x_min, x_max)
+		
+		# Generate intensity samples from the reference return period between the provided boudaries 
+		self.samples = network.returnPeriods[ref_return_period].generate_samples(x_min, x_max, nStrataSamples)
+		# Perform the stratification of the samples
+		self.stratResults = network.calc_stratas(
+								self.samples, 
+								network.returnPeriods[ref_return_period], 
+								xmin=x_min, xmax=x_max, 
+								cv=cv, maxStrata=maxStrata)
+		# Generate warning if maxTotalIteration is too low to achieve desired error
+		if self.stratResults["Allocation"].sum()*iterationNumber >  maxTotalIteration:
+			warnings.warn(f'Warning: Estimated needed starta samples to reach cv = {cv} are greater than maxTotalIteration = {maxTotalIteration}')
+		# Generate failureProbs dataframe
+		self.failureProbs = pd.DataFrame(self.populate_failure_prob_df(network, iterationNumber, maxTotalIteration, ref_return_period), columns=self.failureProbs.columns)
+		# Generate and export the montecarlo database file
+		out = build_database(range(self.iteration_number+1), self.databases, self.externalTimeInterval)
+		out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
+
 	def run(self, network, iterationSet = None, saveOutput = True, time = None, debug=None, **kwargs):
 		# TODO: call const.py instead of 'iteration'
 		"""
@@ -375,6 +464,7 @@ class Sim:
 				print(f'Strata = {s}; Iteration = {i}')
 				network.update_grid(df_montecarlo[s][i], debug=debug)
 				try:
+					strata_db.append(network.run(time_, debug=debug, **kwargs))
 					strata_db.append(network.run(time_, debug=debug, **kwargs))
 				except Exception as e:
 					print(f'Iteration {i} did not execute successfully. {str(e)}')

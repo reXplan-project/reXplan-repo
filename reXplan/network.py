@@ -39,7 +39,6 @@ TIMESERIES_CLASS = pd.Series
 # Network element status
 STATUS = {'on': 1, 'off': 0, 'reparing': -1, 'waiting': -2}
 
-
 def build_class_dict(df, class_name):
 	return {row.id: globals()[class_name](row.dropna(axis=0).to_dict()) for index, row in utils.df_to_internal_fields(df).iterrows()}
 
@@ -85,9 +84,9 @@ def build_database(standard_dict_list, get_value_from_content=True):
 
 
 class Network:
-	# TODO: @TIM needs documentation
 	'''
-	The network class contains information of the pandapower `net` dataframe, the fragility curve and hazard event.
+	TODO: @TIM add description
+	Add description of Newtork class here
 	'''
 
 	def __init__(self, simulationName):
@@ -208,7 +207,7 @@ class Network:
 		df_lines, df_ln_types = self.build_lines(networkFile)
 		df_switches = self.build_switches(networkFile)
 		df_cost = pd.read_excel(
-			networkFile, sheet_name=SHEET_NAME_COST)  # TODO: build cost
+			networkFile, sheet_name=SHEET_NAME_COST)
 		self.build_crews(networkFile)
 		self.allocate_profiles(networkFile)
 		if build_pp_network:
@@ -687,7 +686,7 @@ class Network:
 				cv_.append(cv)
 				CV_.append(str("CV" + str(n)))
 				n += 1
-			
+
 			Y.extend(["x", "domain"])
 			y.extend([data, domain])
 			cv_.append(1)
@@ -736,7 +735,6 @@ class MonteCarloVariable:
 		self.id = id
 		self.field = field
 
-
 class Metric:
 	# TODO: delete
 	def __init__(self, network_element, field, value, subfield=None, unit=None):
@@ -746,48 +744,11 @@ class Metric:
 		self.subfield = subfield
 		self.unit = unit
 
-
-class History:
-	'''
-	Add description of History class here
-	'''
-
-	def __init__(self, label):
-		self.label = label
-		self.ENS = []
-		self.lineLoading = []
-		self.minPower = 0
-		self.loadPower = 0
-		self.lineOutages = []
-		self.transformerOutages = []
-		self.busOutages = []
-		self.generatorOutages = []
-		self.LOEF = 0
-		self.totENS = 0
-
-	def plot(self):
-		'''
-		Add description of plot function
-		'''
-		pass
-
-	def export(self):
-		'''
-		Add description of export function
-		'''
-		pass
-
-	def print(self):
-		'''
-		Add description of int function
-		'''
-		pass
-
 class GeoData:
 	'''
+	TODO: @TIM add description
 	Add description of GeoData class
 	'''
-
 	def __init__(self, latitude, longitude):
 		self.latitude = latitude
 		self.longitude = longitude
@@ -795,11 +756,11 @@ class GeoData:
 # TODO @Tim; document classes
 class PowerElement:
 	'''
+	TODO: @TIM add description
 	Add description of PowerElement class here
 
 	:attribute fragilityCurve: string, the type of the fragility curve
 	'''
-
 	def __init__(self, **kwargs):
 		self.id = None
 		self.node = None
@@ -864,12 +825,12 @@ class PowerElement:
 
 class Bus(PowerElement):
 	'''
+	TODO: @TIM add description
 	Class Bus: Parent Class PowerElement
 
 	:attribute longitude: float, longitude in degrees
 	:attribute latitude: float, latitude in degrees
 	'''
-
 	def __init__(self, kwargs):
 		self.vn_kv = None
 		self.in_service = None
@@ -896,6 +857,7 @@ class Bus(PowerElement):
 				self.failureProb = network.fragilityCurves[self.fragilityCurve].interpolate(intensity)[0]
 
 class Switch(PowerElement):
+	# TODO: @TIM add description
 	def __init__(self, kwargs):
 		# element type: “l” = switch between bus and line, “t” = switch between bus and transformer, “t3” = switch between bus and transformer3w, “b” = switch between two buses'
 		self.et = None
@@ -912,9 +874,9 @@ class Switch(PowerElement):
 
 class Generator(PowerElement):
 	'''
+	TODO: @TIM add description
 	Add description of Generator class here
 	'''
-
 	def __init__(self, kwargs):
 		self.p_mw = None
 		self.q_mvar = None
@@ -931,11 +893,10 @@ class Generator(PowerElement):
 
 
 class Load(PowerElement):
-	
 	'''
+	TODO: @TIM add description
 	Add description of Generator class here
 	'''
-
 	def __init__(self, kwargs):
 		self.p_mw = None
 		self.q_mvar = None
@@ -950,9 +911,9 @@ class Load(PowerElement):
 
 class Transformer(PowerElement):
 	'''
+	TODO: @TIM add description
 	Add description of Transformer class here
 	'''
-
 	def __init__(self, kwargs):
 		self.node_p = None
 		self.node_s = None
@@ -977,7 +938,6 @@ class Transformer(PowerElement):
 		self.elapsedReparationTime = None  # TODO: Firas's code
 		super().__init__(**kwargs)
 
-
 	def update_failure_probability(self, network, intensity=None, ref_return_period=None):
 		if self.fragilityCurve == None:
 			self.failureProb = None
@@ -995,9 +955,9 @@ class Transformer(PowerElement):
 
 class Line(PowerElement):
 	'''
+	TODO: @TIM add description
 	Add description of Line class here
 	'''
-
 	def __init__(self, kwargs):
 		self.from_bus = None
 		self.to_bus = None
@@ -1042,9 +1002,9 @@ class Line(PowerElement):
 
 class Crew:
 	'''
+	TODO: @TIM add description
 	Add description of Crew class here
 	'''
-
 	def __init__(self, kwargs):
 		# self.available = number
 		self.id = None
