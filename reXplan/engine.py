@@ -71,8 +71,7 @@ class pandapower():
 
 	def run_time_series(self, df_timeseries, **kwargs):
 		# TODO: @TIM add description
-		run_timeseries(self.network, df_timeseries.index,
-					   continue_on_divergence=True, **kwargs)
+		run_timeseries(self.network, df_timeseries.index, continue_on_divergence=True, **kwargs)
 
 	def format(self, output):
 		out = []
@@ -81,18 +80,15 @@ class pandapower():
 			if type:
 				type = type.group(1)
 				field = key.split('.')[1]
-				df_ = df.rename(columns=getattr(
-					self.network, type)['name'].to_dict())
+				df_ = df.rename(columns=getattr(self.network, type)['name'].to_dict())
 				df_.columns.name = 'id'
-				out.append(pd.concat([df_], keys=[(field, type)], names=[
-					'field', 'type'], axis=1))
+				out.append(pd.concat([df_], keys=[(field, type)], names=['field', 'type'], axis=1))
 		return pd.concat(out, axis=1)
 
 	def run(self, df_timeseries, debug=None, **kwargs):
 		# TODO: @TIM add description
 		self.create_controllers(df_timeseries)
-		output = self.configure_output_writer(
-			df_timeseries.index)
+		output = self.configure_output_writer(df_timeseries.index)
 		run_type = pp.runopp
 		if 'run_type' in kwargs:
 			# print(f'Overriding default configuration (opf). Running {kwargs['run_type']} instead.')

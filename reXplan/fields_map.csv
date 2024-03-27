@@ -14,8 +14,8 @@ fragility_curve,fragilityCurve,,
 kf,kf,,
 resilienceFull,resilienceFull,,
 weatherTTR,weatherTTR,,
-node_p,node_p,,
-node_s,node_s,,
+node_p,node_p,hv_bus,
+node_s,node_s,lv_bus,
 parallel,parallel,,
 tap_pos,tap_pos,,
 vector_group,vector_group,,
@@ -52,7 +52,7 @@ c0_nf_per_km,c0_nf_per_km,,float
 max_i_ka,max_i_ka,,float
 g_us_per_km,g_us_per_km,,float
 g0_us_per_km,g0_us_per_km,,float
-node,node,,
+node,node,bus,
 p_mw,p_mw,,float
 q_mvar,q_mvar,,float
 const_z_percent,const_z_percent,,
