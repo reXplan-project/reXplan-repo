@@ -45,7 +45,7 @@ class Hazard:
 	:method to_nc(df, filename, intensity_unit='m/s', intensity_name='wind speed', title='Sythetic storm'):
 	:method get_intensity(lon, lat, startTime=None, endTime=None):
 	:method plot(time_idx):
-	:method plot_gif(speed=3):
+	:method plot_gif(speed=3)
 	'''
 
 	def __init__(self, simulationName):
@@ -495,11 +495,11 @@ class ReturnPeriod:
 
 		X = np.array([[i] for i in self.y_data])
 		logY = np.log(self.x_data)
-		self.log_gam = LinearGAM(s(0, n_splines=len(X))).gridsearch(X, logY, progress=False)
+		self.log_gam = LinearGAM(s(0, n_splines=len(X))).gridsearch(X, logY)
 
 		y = self.y_data
 		logx = np.log(np.array([[i] for i in self.x_data]))
-		self.inv_log_gam = LinearGAM(s(0, n_splines=len(logx))).gridsearch(logx, y, progress=False)
+		self.inv_log_gam = LinearGAM(s(0, n_splines=len(logx))).gridsearch(logx, y)
 
 	def interpolate_return_period(self, newX):
 		# TODO: @TIM add description

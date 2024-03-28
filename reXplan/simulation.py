@@ -189,7 +189,7 @@ class Sim:
 		start, duration = self.externalTimeInterval[filter].dropna().index[0], self.externalTimeInterval[filter].dropna().index.size
 		return Time(start, duration)
 
-	def initialize_model_sh(self, network, mc_iterations):
+	def initialize_model_sh(self, network, iterationNumber):
 		"""
 		The `initialize_model_sh()` function calculates the probability of failure for the electrical components in the network and applies
 		the Monte Carlo Method to create/update the **outage schedule** for the Montecarlo Analysis `(montecarlo_database.csv)`.
@@ -205,9 +205,8 @@ class Sim:
 		:return: outages schedule of the network
 		:rtype: pandas.core.frame.DataFrame
 		"""
-
 		databases = []
-		iterations = range(mc_iterations)
+		iterations = range(iterationNumber)
 		network.update_failure_probability()
 		for _ in iterations:
 			network.calculate_outages_schedule(self.time, self.hazardTime)
@@ -249,7 +248,7 @@ class Sim:
 		:min_intensity type: float
 		:max_intensity type: float
 		"""
-		for j, (key, rp) in enumerate(network.returnPeriods.items()): # TODO. Check this function
+		for j, (key, rp) in enumerate(network.returnPeriods.items()):
 			if j == 0:
 				xmin = min(rp.y_data)
 				xmax = max(rp.y_data)
@@ -257,25 +256,24 @@ class Sim:
 				xmin = min(xmin, min(rp.y_data))
 				xmax = max(xmax, max(rp.y_data))
 
-		# TODO: Find naming solution
-		if min_intensity==None:
-			min_intensity = xmin
-			print(f'Lowest return period intensity: {min_intensity}')
-		elif min_intensity < xmin:
-			warnings.warn(f'Warning: selected min_intensity is lower than the data provided for the fragility curves: {min_intensity} < {xmin}')
+		if x_min==None:
+			x_min = xmin
+			print(f'x_min = {x_min}')
+		elif x_min < xmin:
+			warnings.warn(f'Warning: selected x_min is lower than the data provided for the fragility curves: {x_min} < {xmin}')
 
-		if max_intensity==None:
-			max_intensity = xmax
-			print(f'Highest return period intensity: {max_intensity}')
-		elif max_intensity > xmax:
-			warnings.warn(f'Warning: selected max_intensity is greater than the data provided for the fragility curves: {max_intensity} > {xmax}')
+		if x_max==None:
+			x_max = xmax
+			print(f'x_max = {x_max}')
+		elif x_max > xmax:
+			warnings.warn(f'Warning: selected x_max is greater than the data provided for the fragility curves: {x_max} > {xmax}')
 		
-		self.samples = network.returnPeriods[ref_return_period].generate_samples(min_intensity, max_intensity, nStrataSamples)
+		self.samples = network.returnPeriods[ref_return_period].generate_samples(x_min, x_max, nStrataSamples)
 		self.stratResults = network.calc_stratas(
-			self.samples, network.returnPeriods[ref_return_period], xmin=min_intensity, xmax=max_intensity, cv=cv, maxStrata=maxStrata)
+			self.samples, network.returnPeriods[ref_return_period], xmin=x_min, xmax=x_max, cv=cv, maxStrata=maxStrata)
 
-		if self.stratResults["Allocation"].sum()*mc_iteration_factor >  max_mc_iterations:
-			warnings.warn(f'Warning: Estimated needed strata samples to reach cv = {cv} are greater than max_mc_iterations = {max_mc_iterations}')
+		if self.stratResults["Allocation"].sum()*iterationNumber >  maxTotalIteration:
+			warnings.warn(f'Warning: Estimated needed starta samples to reach cv = {cv} are greater than maxTotalIteration = {maxTotalIteration}')
 
 		iteration_number = 0
 		self.failureProbs = self.failureProbs[0:0]
@@ -285,10 +283,10 @@ class Sim:
 			strata_db = []
 			sample_pool = self.samples[(self.samples >= self.stratResults["Lower_X1"].values[strata]) & (self.samples <= self.stratResults["Upper_X1"].values[strata])]
 			
-			if self.stratResults["Allocation"].sum()*mc_iteration_factor <=  max_mc_iterations:
-				nsamples = self.stratResults["Allocation"].values[strata]*mc_iteration_factor
+			if self.stratResults["Allocation"].sum()*iterationNumber <=  maxTotalIteration:
+				nsamples = self.stratResults["Allocation"].values[strata]*iterationNumber
 			else:
-				nsamples = round(self.stratResults["Allocation"].values[strata]*max_mc_iterations/self.stratResults["Allocation"].sum())
+				nsamples = round(self.stratResults["Allocation"].values[strata]*maxTotalIteration/self.stratResults["Allocation"].sum())
 					
 			print(f'\nStrata = {strata}')
 			print(f'Number of samples = {nsamples}')
@@ -464,7 +462,6 @@ class Sim:
 				print(f'Strata = {s}; Iteration = {i}')
 				network.update_grid(df_montecarlo[s][i], debug=debug)
 				try:
-					strata_db.append(network.run(time_, debug=debug, **kwargs))
 					strata_db.append(network.run(time_, debug=debug, **kwargs))
 				except Exception as e:
 					print(f'Iteration {i} did not execute successfully. {str(e)}')
