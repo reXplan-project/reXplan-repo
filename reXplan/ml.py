@@ -10,6 +10,9 @@ from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
+import pandas as pd
+import datetime
+
 class NeuNet(object):                                                               # to the class we shall provide a model, a loss_fn and an optimizer.
     def __init__(self, model, loss_fn, optimizer):
         # Here we define the attributes of our class
