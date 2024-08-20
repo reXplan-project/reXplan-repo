@@ -1,14 +1,8 @@
 
-import pandas as pd
-import numpy as np
-
 from . import network
 from . import config
 from . import utils
 from.const import *
-
-import random
-import warnings
 
 DECIMAL_PRECISION = 1
 
@@ -440,6 +434,24 @@ class Sim:
 			self.results.to_csv(config.path.engineDatabaseFile(self.simulationName))
 			print ('done!')
 
+	def run_prediction():	# TODO WORK IN PROGESS HERE!
+		###
+		# Do MC sampling here
+		###
+		for i,s in iterations:
+			network.update_grid(df_montecarlo[s][i], debug=debug)
+			try:
+				strata_db.append(network.run(time_, debug=debug, **kwargs))
+			except Exception as e:
+				print(f'Iteration {i} did not execute successfully. {str(e)}')
+		databases.append(strata_db)
+		ml.print()
+		# self.results = enrich_database(build_database(total_iteration, databases, self.externalTimeInterval))
+		# if saveOutput:
+		# 	print ('Saving output database...')
+		# 	self.results.to_csv(config.path.engineDatabaseFile(self.simulationName))
+		# 	print ('done!')
+		
 class Time():
 	# TODO: error raising for uncompatible times
 	# TODO: @TIM add description
