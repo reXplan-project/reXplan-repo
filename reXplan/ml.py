@@ -11,14 +11,15 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 import pandas as pd
+import numpy as np
 import datetime
 
-class NeuNet(object):                                                               # to the class we shall provide a model, a loss_fn and an optimizer.
+class NeuNet(object):            
+    # to the class we shall provide a model, a loss_fn and an optimizer.
     def __init__(self, model, loss_fn, optimizer):
         # Here we define the attributes of our class
         
-        # We start by storing the arguments as attributes 
-        # to use them later
+        # We start by storing the arguments as attributes to use them later
         self.model = model
         self.loss_fn = loss_fn
         self.optimizer = optimizer
@@ -235,7 +236,6 @@ class NeuNet(object):                                                           
 # PYTORCH NEURAL NETWORK
 #########################
 
-#PATH = r"C:\Users\IFE497\OneDrive - ENGIE\DATA_GE1021\DATA\CODES\AI4PS\SimBench\output\engine_database.csv"
 
 PATH_O = r".\file\output\SimBench\engine_database.csv"
 PATH_I = r".\file\input\SimBench\network_with_gen.csv" 
@@ -311,7 +311,6 @@ y_val_tensor = torch.from_numpy(y_val).float()
 
 
 # Builds dataset containing ALL data points
-
 dataset_train = TensorDataset(X_train_tensor, y_train_tensor)
 dataset_val = TensorDataset(X_val_tensor, y_val_tensor)
 

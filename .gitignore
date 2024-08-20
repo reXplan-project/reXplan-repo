@@ -127,5 +127,9 @@ dmypy.json
 
 # Misc files
 jupyter_notebooks/Test.ipynb
-
 .vscode/launch.json
+jupyter_notebooks/engine_database.csv
+jupyter_notebooks/montecarlo_database.csv
+jupyter_notebooks/network_with_gen.csv
+jupyter_notebooks/network.xlsx
+jupyter_notebooks/machine_learning_tutorial

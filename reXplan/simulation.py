@@ -440,22 +440,26 @@ class Sim:
 			print ('done!')
 
 	def run_prediction():	# TODO WORK IN PROGESS HERE!
-		###
-		# Do MC sampling here
-		###
-		for i,s in iterations:
-			network.update_grid(df_montecarlo[s][i], debug=debug)
-			try:
-				strata_db.append(network.run(time_, debug=debug, **kwargs))
-			except Exception as e:
-				print(f'Iteration {i} did not execute successfully. {str(e)}')
-		databases.append(strata_db)
-		ml.print()
-		# self.results = enrich_database(build_database(total_iteration, databases, self.externalTimeInterval))
-		# if saveOutput:
-		# 	print ('Saving output database...')
-		# 	self.results.to_csv(config.path.engineDatabaseFile(self.simulationName))
-		# 	print ('done!')
+		pass
+		# ##########################
+		# # Do MC sampling here
+		# #
+		# # Here, 10% from MC strata needs to be sampled.
+		# # Afterwards, the according OPF calculations need to be run
+		# ##########################
+		# for i,s in iterations:
+		# 	network.update_grid(df_montecarlo[s][i], debug=debug)
+		# 	try:
+		# 		strata_db.append(network.run(time_, debug=debug, **kwargs))
+		# 	except Exception as e:
+		# 		print(f'Iteration {i} did not execute successfully. {str(e)}')
+		# databases.append(strata_db)
+		# ml.print()
+		# # self.results = enrich_database(build_database(total_iteration, databases, self.externalTimeInterval))
+		# # if saveOutput:
+		# # 	print ('Saving output database...')
+		# # 	self.results.to_csv(config.path.engineDatabaseFile(self.simulationName))
+		# # 	print ('done!')
 		
 class Time():
 	# TODO: error raising for uncompatible times
