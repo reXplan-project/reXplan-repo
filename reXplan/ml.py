@@ -1,4 +1,6 @@
+import numpy as np
 from sklearn.linear_model import LinearRegression
+import pandas as pd
 import torch
 import torch.optim as optim
 import torch.nn as nn
@@ -9,13 +11,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-
-import pandas as pd
-import numpy as np
 import datetime
 
-class NeuNet(object):            
-    # to the class we shall provide a model, a loss_fn and an optimizer.
+class NeuNet(object):       # to the class we shall provide a model, a loss_fn and an optimizer.
     def __init__(self, model, loss_fn, optimizer):
         # Here we define the attributes of our class
         
@@ -232,137 +230,57 @@ class NeuNet(object):
             x_sample, y_sample = next(iter(self.train_loader))
             self.writer.add_graph(self.model, x_sample.to(self.device))
 
-#########################
-# PYTORCH NEURAL NETWORK
-#########################
+PATH_MONTECARLO = r"..\jupyter_notebooks\montecarlo_database.csv" 
+df_montecarlo = pd.read_csv(PATH_MONTECARLO, sep=",", index_col=[0, 1, 2, 3, 4])# , decimal=",")
+column_mapping = {col: i+1 for i, col in enumerate(df_montecarlo.columns)}
+timestep_mapping_df = pd.DataFrame(list(column_mapping.items()), columns=['time', 'timestep'])
 
-
-PATH_O = r".\file\output\SimBench\engine_database.csv"
-PATH_I = r".\file\input\SimBench\network_with_gen.csv" 
-
-df = pd.read_csv(PATH_O, sep=",", index_col=[0, 1, 2, 3, 4])
-df_I = pd.read_csv(PATH_I, sep=";", decimal=",")
-temp_df = df_I.copy()
+PATH_NETWORK = r"..\jupyter_notebooks\network.xlsx" 
+df_network = pd.read_excel(PATH_NETWORK, sheet_name="profiles", decimal=",")
+df_network = df_network.drop(index=0).reset_index(drop=True)
+df_network = df_network.drop(df_network.columns[0], axis=1)
+temp_df = df_network.copy()
 arr = temp_df.to_numpy()
-df_I = pd.DataFrame(np.tile(arr, (240, 1)), columns = temp_df.columns)
-X_df = df.loc[:,:,"in_service","line",:,:].stack().unstack("id")
-number_of_lines = len(set(X_df.columns)) # number of lines
-df_I.index= X_df.index
-X_df = pd.concat([X_df, df_I], axis=1)
-y_df = df.loc[:,:,"loss_of_load_p_mw","load",:,:].stack().unstack("id")
-ysum_df = pd.DataFrame(y_df.sum(axis=1))
+arr = arr.astype(np.float64)
+df_network = pd.DataFrame(np.tile(arr, (240, 1)), columns = temp_df.columns)
 
+X_df_montecarlo = df_montecarlo.stack().unstack("id")
+df_network.index= X_df_montecarlo.index
+number_of_lines = len(set(X_df_montecarlo.columns))
+X_df_montecarlo = pd.concat([X_df_montecarlo, df_network], axis=1)
+X_df_montecarlo.insert(0, 'idx', range(1, len(X_df_montecarlo) + 1))
+X = X_df_montecarlo.to_numpy()
+
+z = pd.DataFrame(X).iloc[:,1:number_of_lines+1].astype(int).astype(str).agg(''.join, axis=1)
+l = []
 from collections import Counter
-X = X_df.to_numpy()
-y = ysum_df.to_numpy()
-z = pd.DataFrame(X).iloc[:,:number_of_lines].astype(int).astype(str).sum(axis=1)
-
-l = [] #  list
 c = Counter(z)
 for k in z:
-    #print(k)
     if c[k] == 1:
         l.append(str('G0'))
     else:
         l.append(str(k))
 
+X_train, X_val = train_test_split(X, train_size = 0.1, stratify = pd.DataFrame(l)[0], shuffle = True, random_state = 42)
 
-# 1104 G0 values        
-#Split data Model ANN 1
-X_train, X_val, y_train, y_val = train_test_split(X, y, train_size=0.1, stratify = pd.DataFrame(l)[0], shuffle=True, random_state=42)
-    
-##Split data Model ANN2
-# X_train, X_val, y_train, y_val = train_test_split(X[(np.array(l) != "G0")], y[(np.array(l) != "G0")], train_size=0.1, stratify = pd.DataFrame(l)[(np.array(l) != "G0")][0], shuffle=True,random_state=42)
-# X_train = np.append(X_train, X[(np.array(l) == "G0")],axis=0)
-# y_train = np.append(y_train, y[(np.array(l) == "G0")], axis=0)
+def get_opf_list():
+    idx_for_opf = pd.Series(X_train[:, 0])  # Assuming X_train is a NumPy array. If not, the original code works.
+    opfs_interval = (
+        X_df_montecarlo[X_df_montecarlo['idx'].isin(idx_for_opf)]
+        .reset_index()
+        .rename(columns={'level_4': 'time'})
+        [['iteration', 'time']]
+        .merge(timestep_mapping_df, on='time', how='left')
+    )
 
-#Split data Model ANN 3
-# X_train, X_val, y_train, y_val = train_test_split(X, y, train_size=0.1,  
-#                                                 shuffle=True, random_state=42)
+    grouped_list = (
+        opfs_interval.groupby('iteration')['timestep']
+        .apply(list)
+        .reset_index()
+    )
+    #grouped_list.loc[grouped_list['iteration'] == 0, 'timestep'] = pd.Series([[2, 4, 50]])
+    iteration_to_timestep = {row['iteration']: row['timestep'] for _, row in grouped_list.iterrows()}
+    return iteration_to_timestep # grouped_list
 
-# standardize data
-scaler_x = StandardScaler()
-scaler_y = StandardScaler()
-X_train = np.concatenate((X_train.T[:number_of_lines].T, scaler_x.fit_transform(X_train.T[number_of_lines:].T)), axis=1).astype(float)
-X_val = np.concatenate((X_val.T[:number_of_lines].T, scaler_x.transform(X_val.T[number_of_lines:].T)), axis=1).astype(float)# without fit!
-y_train = scaler_y.fit_transform(y_train).astype(float)
-y_val = scaler_y.transform(y_val).astype(float)
-
-z_train = pd.DataFrame(X_train).iloc[:,:number_of_lines].astype(int).astype(str).sum(axis=1) # labels in str form
-l_train = [] #  list
-c_train = Counter(z_train)
-for k in z_train:
-    #print(k)
-    l_train.append(k)
-len(set(l_train))
-
-
-#########################
-# Model Preparation
-#########################
-
-torch.manual_seed(555)
-
-# Builds tensors from numpy arrays BEFORE split
-X_train_tensor = torch.from_numpy(X_train).float()
-X_val_tensor = torch.from_numpy(X_val).float()
-y_train_tensor = torch.from_numpy(y_train).float()
-y_val_tensor = torch.from_numpy(y_val).float()
-
-
-# Builds dataset containing ALL data points
-dataset_train = TensorDataset(X_train_tensor, y_train_tensor)
-dataset_val = TensorDataset(X_val_tensor, y_val_tensor)
-
-train_loader = []
-val_loader = []
-
-train_loader.append(DataLoader(dataset=dataset_train, batch_size=256, shuffle=True)) #batch_size=256
-val_loader.append(DataLoader(dataset=dataset_val, batch_size=256))
-
-#########################
-# Model configuration
-#########################
-
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-# Sets learning rate - this is "eta" ~ the "n" like Greek letter
-lr = 0.001
-
-torch.manual_seed(42)
-# Now we can create a model and send it at once to the device
-model = nn.Sequential(nn.Linear(X_train.shape[1], 512), nn.ReLU(),
-                      #nn.Dropout(p=0.1),
-                      nn.Linear(512, 512), nn.ReLU(),
-                      nn.Linear(512, 512), nn.ReLU(),
-                      nn.Linear(512,512), nn.ReLU(),
-                      nn.Linear(512, 256), nn.ReLU(),
-                      nn.Linear(256, y_train.shape[1]) ).to(device)
-
-# Defines an  optimizer to update the parameters (now retrieved directly from the model)
-optimizer = optim.Adam(model.parameters(), lr=lr)
-
-# Defines a MSE loss function
-loss_fn = nn.MSELoss(reduction='mean')
-
-
-#########################
-# Model configuration
-#########################
-
-neunet = NeuNet(model, loss_fn, optimizer)
-neunet.set_loaders(train_loader[0], val_loader[0])
-neunet.set_tensorboard(name="runs", folder = 'machine_learning_tutorial/Test_Grid10')
-
-#########################
-# Model configuration
-#########################
-
-neunet.train(n_epochs = 500)
-
-
-#########################
-#########################
-# PART II
-#########################
-#########################
+# PATH_ENGINE = r"..\jupyter_notebooks\file\output\SimBench\engine_database.csv"
+# df_engine = pd.read_csv(PATH_ENGINE, sep=",", index_col=[0, 1, 2, 3, 4])

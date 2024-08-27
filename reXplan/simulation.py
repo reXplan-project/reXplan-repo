@@ -2,7 +2,9 @@
 from . import network
 from . import config
 from . import utils
+from . import ml
 from.const import *
+import os
 
 import random
 import warnings
@@ -397,7 +399,7 @@ class Sim:
 		out = build_database(range(self.iteration_number+1), self.databases, self.externalTimeInterval)
 		out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
 
-	def run(self, network, iterationSet = None, saveOutput = True, time = None, debug=None, **kwargs):
+	def run(self, network, iterationSet = None, saveOutput = True, appendOutput = False, time = None, debug=None, **kwargs):
 		# TODO: call const.py instead of 'iteration'
 		# TODO: @TIM add description
 		"""
@@ -434,43 +436,77 @@ class Sim:
 			databases.append(strata_db)
 		
 		self.results = enrich_database(build_database(total_iteration, databases, self.externalTimeInterval))
-		if saveOutput:
-			print ('Saving output database...')
+		
+		if appendOutput and os.path.exists(config.path.engineDatabaseFile(self.simulationName)):
+			print ('Appending to output database...')
+			#########################################
+
+			old_results = pd.read_csv(config.path.engineDatabaseFile(self.simulationName))
+
+			output = pd.merge(old_results, self.results, on=['strata', 'iteration', 'field', 'type', 'id'], how='outer')
+			
+			output = output[output['type'] != 'network']
+			output.columns = list(output.columns.astype(str))
+
+
+			# duplicate_columns = output.columns[output.columns.duplicated()].unique()
+			# for col in duplicate_columns:
+			# 	columns_to_merge = output.loc[:, col]
+			# 	merged_column = columns_to_merge.bfill(axis=1).iloc[:, 0]
+			# 	output = output.drop(columns=[col])
+			# 	output[col] = merged_column
+
+			output.columns = list(output.columns[:5]) + sorted(output.columns[5:], key=pd.to_datetime)
+			output.columns = list(output.columns.astype(str))
+			output.to_csv(config.path.engineDatabaseFile(self.simulationName), index=False)
+			print ('done!')
+			
+			##########################################
+		elif saveOutput or appendOutput:
+			if not os.path.exists(config.path.engineDatabaseFile(self.simulationName)):
+				print("No output database found.")
+			print('Saving output database...')
 			self.results.to_csv(config.path.engineDatabaseFile(self.simulationName))
 			print ('done!')
 
-	def run_prediction():	# TODO WORK IN PROGESS HERE!
-		pass
+
+	def run_prediction(self, network, debug=None, MLsaveOutput = True, **kwargs):
 		# ##########################
-		# # Do MC sampling here
-		# #
-		# # Here, 10% from MC strata needs to be sampled.
-		# # Afterwards, the according OPF calculations need to be run
+		# # MC sampling according OPF calculations
 		# ##########################
-		# for i,s in iterations:
-		# 	network.update_grid(df_montecarlo[s][i], debug=debug)
-		# 	try:
-		# 		strata_db.append(network.run(time_, debug=debug, **kwargs))
-		# 	except Exception as e:
-		# 		print(f'Iteration {i} did not execute successfully. {str(e)}')
-		# databases.append(strata_db)
-		# ml.print()
-		# # self.results = enrich_database(build_database(total_iteration, databases, self.externalTimeInterval))
-		# # if saveOutput:
-		# # 	print ('Saving output database...')
-		# # 	self.results.to_csv(config.path.engineDatabaseFile(self.simulationName))
-		# # 	print ('done!')
+		opf_run_list = ml.get_opf_list()
+		# for  _, row in opf_run_list.iterrows():
+		# 	iteration = row['iteration']
+		# 	timesteps = Time(timepoints = row['timestep'])
+		# 	print(f"Running iterationSet {iteration} with timesteps:{timesteps.timepoints}")
+		# 	Sim.run(self, network, iterationSet = iteration, saveOutput = False, time = timesteps, debug=None, **kwargs)
+		# 	print("Success")
+		for iteration, timestep in opf_run_list.items():
+			timesteps = Time(timepoints = timestep)
+			print(f"Running iterationSet {iteration} with timesteps:{timesteps.timepoints}")
+			Sim.run(self, network, iterationSet = iteration, saveOutput = True, time = timesteps, debug=None, **kwargs)
+			print("Next")
+
+		# SAME ISSUE...
+
+		if MLsaveOutput:
+			print('Saving output database...')
+			self.results.to_csv(config.path.engineDatabaseFile(self.simulationName))
+			print('done!')
+			print('Starting Model training.')
 		
 class Time():
 	# TODO: error raising for uncompatible times
 	# TODO: @TIM add description
-	def __init__(self, start, duration):
-		self.start = start
-		self.duration = duration
-		self.maxduration = duration
-		self.stop = duration + start
-		self.interval = list(range(start, duration + start))
-		print(f'start= {self.start}, stop= {self.stop}')
-
+	def __init__(self, start=None, duration=None, timepoints=None):
+		if timepoints:
+			self.timepoints = timepoints
+		else:
+			self.start = start
+			self.duration = duration
+			self.maxduration = duration
+			self.stop = duration + start
+			self.interval = list(range(start, duration + start))
+			print(f'Simulation: First timestep = {self.start}, last timestep= {self.stop}')
 # TODO SimpleControl inheriting ConstCrontol and overriding set_recycle()
 # class SimpleControl(ConstControl):
