@@ -439,29 +439,24 @@ class Sim:
 		
 		if appendOutput and os.path.exists(config.path.engineDatabaseFile(self.simulationName)):
 			print ('Appending to output database...')
-			#########################################
-
 			old_results = pd.read_csv(config.path.engineDatabaseFile(self.simulationName))
+			new_results = self.results.reset_index()
+			new_results.columns = new_results.columns.astype(str)
 
-			output = pd.merge(old_results, self.results, on=['strata', 'iteration', 'field', 'type', 'id'], how='outer')
-			
-			output = output[output['type'] != 'network']
-			output.columns = list(output.columns.astype(str))
-
-
-			# duplicate_columns = output.columns[output.columns.duplicated()].unique()
-			# for col in duplicate_columns:
-			# 	columns_to_merge = output.loc[:, col]
-			# 	merged_column = columns_to_merge.bfill(axis=1).iloc[:, 0]
-			# 	output = output.drop(columns=[col])
-			# 	output[col] = merged_column
-
-			output.columns = list(output.columns[:5]) + sorted(output.columns[5:], key=pd.to_datetime)
-			output.columns = list(output.columns.astype(str))
+			#new_results = new_results[new_results['type'] != 'network']
+			#output = output[output['type'] != 'network']
+			output = pd.merge(old_results, new_results, on=['strata', 'iteration', 'field', 'type', 'id'], how='outer')
+			for col in output.columns:
+				if '_x' in col:
+					col_base = col.replace('_x', '')
+					col_y = col_base + '_y'
+					if col_y in output.columns:
+						output[col_base] = output[[col, col_y]].bfill(axis=1).iloc[:, 0]
+			output = output.drop(columns=[col for col in output.columns if '_x' in col or '_y' in col])
+			index_columns = output.columns[:5]
+			datetime_columns = sorted(output.columns[5:], key=pd.to_datetime)
+			output = output[list(index_columns) + datetime_columns]
 			output.to_csv(config.path.engineDatabaseFile(self.simulationName), index=False)
-			print ('done!')
-			
-			##########################################
 		elif saveOutput or appendOutput:
 			if not os.path.exists(config.path.engineDatabaseFile(self.simulationName)):
 				print("No output database found.")
