@@ -591,7 +591,7 @@ class Network:
 		From the list [loads, generators, transformers, lines, switches] it creates a database with all the fields corresponding to timeseries
 		TODO: Replace list by a function that will recognise powerElement-type instances
 		"""
-		if time.timepoints:
+		if hasattr(time, 'timepoints'):
 			return build_database(get_datatype_elements([self.loads, self.generators, self.transformers, self.lines, self.switches, self.nodes], TIMESERIES_CLASS)).loc[time.timepoints]
 		else:
 			return build_database(get_datatype_elements([self.loads, self.generators, self.transformers, self.lines, self.switches, self.nodes], TIMESERIES_CLASS)).loc[time.start: time.stop-1]

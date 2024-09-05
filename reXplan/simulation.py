@@ -158,8 +158,7 @@ class Sim:
 	# TODO: @TIM add description
 	Add description of Sim class here
 	'''
-	def __init__(self,
-				 simulationName):
+	def __init__(self, simulationName):
 
 		self.simulationName = simulationName
 		self.startTime = None
@@ -442,7 +441,6 @@ class Sim:
 			old_results = pd.read_csv(config.path.engineDatabaseFile(self.simulationName))
 			new_results = self.results.reset_index()
 			new_results.columns = new_results.columns.astype(str)
-
 			#new_results = new_results[new_results['type'] != 'network']
 			#output = output[output['type'] != 'network']
 			output = pd.merge(old_results, new_results, on=['strata', 'iteration', 'field', 'type', 'id'], how='outer')
@@ -465,43 +463,47 @@ class Sim:
 			print ('done!')
 
 
-	def run_prediction(self, network, debug=None, MLsaveOutput = True, **kwargs):
+	def run_prediction(self, network, debug=None, **kwargs):
 		# ##########################
 		# # MC sampling according OPF calculations
 		# ##########################
+		# TODO Should I delete engine_database first ?
+
+		# Gets list of iterations and timestepts to compute OPF for
 		opf_run_list = ml.get_opf_list()
-		# for  _, row in opf_run_list.iterrows():
-		# 	iteration = row['iteration']
-		# 	timesteps = Time(timepoints = row['timestep'])
-		# 	print(f"Running iterationSet {iteration} with timesteps:{timesteps.timepoints}")
-		# 	Sim.run(self, network, iterationSet = iteration, saveOutput = False, time = timesteps, debug=None, **kwargs)
-		# 	print("Success")
-		for iteration, timestep in opf_run_list.items():
-			timesteps = Time(timepoints = timestep)
+		for iteration, timestep in opf_run_list.iterrows():
+			timesteps = Time(timepoints = timestep.timestep)
 			print(f"Running iterationSet {iteration} with timesteps:{timesteps.timepoints}")
-			Sim.run(self, network, iterationSet = iteration, saveOutput = True, time = timesteps, debug=None, **kwargs)
+			Sim.run(self, network, iterationSet = [iteration], appendOutput = True, time = timesteps, debug=None, **kwargs)
 			print("Next")
+		print('done!')
 
-		# SAME ISSUE...
-
-		if MLsaveOutput:
-			print('Saving output database...')
-			self.results.to_csv(config.path.engineDatabaseFile(self.simulationName))
-			print('done!')
-			print('Starting Model training.')
-		
-class Time():
+class Time(): # NEW
 	# TODO: error raising for uncompatible times
 	# TODO: @TIM add description
 	def __init__(self, start=None, duration=None, timepoints=None):
-		if timepoints:
+		if timepoints is not None:
 			self.timepoints = timepoints
-		else:
+		elif start is not None and duration is not None:
 			self.start = start
 			self.duration = duration
 			self.maxduration = duration
 			self.stop = duration + start
 			self.interval = list(range(start, duration + start))
 			print(f'Simulation: First timestep = {self.start}, last timestep= {self.stop}')
+		else:
+			pass
+
+# class Time(): # OLD
+# 	# TODO: error raising for uncompatible times
+# 	# TODO: @TIM add description
+# 	def __init__(self, start, duration):
+# 			self.start = start
+# 			self.duration = duration
+# 			self.maxduration = duration
+# 			self.stop = duration + start
+# 			self.interval = list(range(start, duration + start))
+# 			print(f'Simulation: First timestep = {self.start}, last timestep= {self.stop}')
+
 # TODO SimpleControl inheriting ConstCrontol and overriding set_recycle()
 # class SimpleControl(ConstControl):

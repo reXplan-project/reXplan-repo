@@ -230,59 +230,102 @@ class NeuNet(object):       # to the class we shall provide a model, a loss_fn a
             x_sample, y_sample = next(iter(self.train_loader))
             self.writer.add_graph(self.model, x_sample.to(self.device))
 
-PATH_MONTECARLO = r"..\jupyter_notebooks\montecarlo_database.csv" 
-df_montecarlo = pd.read_csv(PATH_MONTECARLO, sep=",", index_col=[0, 1, 2, 3, 4])# , decimal=",")
-column_mapping = {col: i+1 for i, col in enumerate(df_montecarlo.columns)}
-timestep_mapping_df = pd.DataFrame(list(column_mapping.items()), columns=['time', 'timestep'])
+# TODO: Set the paths dynamically !!
 
-PATH_NETWORK = r"..\jupyter_notebooks\network.xlsx" 
-df_network = pd.read_excel(PATH_NETWORK, sheet_name="profiles", decimal=",")
-df_network = df_network.drop(index=0).reset_index(drop=True)
-df_network = df_network.drop(df_network.columns[0], axis=1)
-temp_df = df_network.copy()
-arr = temp_df.to_numpy()
-arr = arr.astype(np.float64)
-df_network = pd.DataFrame(np.tile(arr, (240, 1)), columns = temp_df.columns)
+X_train = None
+X_val = None
+y_train = None
+y_val = None
+X_df_montecarlo = None
+timestep_mapping_df = None
+number_of_lines = None
 
-X_df_montecarlo = df_montecarlo.stack().unstack("id")
-df_network.index= X_df_montecarlo.index
-number_of_lines = len(set(X_df_montecarlo.columns))
-X_df_montecarlo = pd.concat([X_df_montecarlo, df_network], axis=1)
-X_df_montecarlo.insert(0, 'idx', range(1, len(X_df_montecarlo) + 1))
-X = X_df_montecarlo.to_numpy()
 
-z = pd.DataFrame(X).iloc[:,1:number_of_lines+1].astype(int).astype(str).agg(''.join, axis=1)
-l = []
-from collections import Counter
-c = Counter(z)
-for k in z:
-    if c[k] == 1:
-        l.append(str('G0'))
-    else:
-        l.append(str(k))
+def get_features():
+    global X_train
+    global X_val
+    global X_df_montecarlo
+    global timestep_mapping_df
+    global number_of_lines
 
-X_train, X_val = train_test_split(X, train_size = 0.1, stratify = pd.DataFrame(l)[0], shuffle = True, random_state = 42)
+    PATH_MONTECARLO = r"..\jupyter_notebooks\file\output\SimBench\montecarlo_database.csv" 
+    df_montecarlo = pd.read_csv(PATH_MONTECARLO, sep=",", index_col=[0, 1, 2, 3, 4])# , decimal=",")
+    column_mapping = {col: i+1 for i, col in enumerate(df_montecarlo.columns)}
+    timestep_mapping_df = pd.DataFrame(list(column_mapping.items()), columns=['time', 'timestep'])
+    number_of_iterations = df_montecarlo.index.get_level_values('iteration').max()+1
+    X_df_montecarlo = df_montecarlo.stack().unstack("id")
+
+    PATH_NETWORK = r"..\jupyter_notebooks\file\input\SimBench\network.xlsx" 
+    df_network = pd.read_excel(PATH_NETWORK, sheet_name="profiles", decimal=",")
+    df_network = df_network.drop(index=0).reset_index(drop=True)
+    df_network = df_network.drop(df_network.columns[0], axis=1)
+    #df_network = df_network.drop(df_network.index[-1]) # Testen ob notwendig.
+    df_network= df_network.head(df_montecarlo.shape[1])
+
+    temp_df = df_network.copy()
+    arr = temp_df.to_numpy()
+    arr = arr.astype(np.float64)
+    df_network = pd.DataFrame(np.tile(arr, (number_of_iterations, 1)), columns = temp_df.columns)
+
+    df_network.index= X_df_montecarlo.index
+    number_of_lines = len(set(X_df_montecarlo.columns))
+    X_df_montecarlo = pd.concat([X_df_montecarlo, df_network], axis=1)
+    X_df_montecarlo.insert(0, 'idx', range(1, len(X_df_montecarlo) + 1))
+    X = X_df_montecarlo.to_numpy()
+
+    z = pd.DataFrame(X).iloc[:,1:number_of_lines+1].astype(int).astype(str).agg(''.join, axis=1)
+    l = []
+    from collections import Counter
+    c = Counter(z)
+    for k in z:
+        if c[k] == 1:
+            l.append(str('G0'))
+        else:
+            l.append(str(k))
+
+    # TODO make train size a variable available as input
+    X_train, X_val = train_test_split(X, train_size = 0.1, test_size = 0.1, stratify = pd.DataFrame(l)[0], shuffle = True, random_state = 42)
+    return X_train, X_val, X_df_montecarlo, timestep_mapping_df
 
 def get_opf_list():
-    idx_for_opf = pd.Series(X_train[:, 0])  # Assuming X_train is a NumPy array. If not, the original code works.
-    opfs_interval = (
+    X_train, X_val, X_df_montecarlo, timestep_mapping_df = get_features()
+    idx_for_opf = pd.concat([pd.Series(X_train[:, 0]) , pd.Series(X_val[:, 0])])
+    opfs_timesteps = (
         X_df_montecarlo[X_df_montecarlo['idx'].isin(idx_for_opf)]
         .reset_index()
         .rename(columns={'level_4': 'time'})
         [['iteration', 'time']]
         .merge(timestep_mapping_df, on='time', how='left')
     )
-
-    grouped_list = (
-        opfs_interval.groupby('iteration')['timestep']
+    df_opf_list = (
+        opfs_timesteps.groupby('iteration')['timestep']
         .apply(list)
         .reset_index()
     )
-    #grouped_list.loc[grouped_list['iteration'] == 0, 'timestep'] = pd.Series([[2, 4, 50]])
-    iteration_to_timestep = {row['iteration']: row['timestep'] for _, row in grouped_list.iterrows()}
-    return iteration_to_timestep # grouped_list
+    df_opf_list['timestep'] = df_opf_list['timestep'].apply(lambda x: [i - 1 for i in x])
+    return df_opf_list
 
-# run_prediction...
 
-# PATH_ENGINE = r"..\jupyter_notebooks\file\output\SimBench\engine_database.csv"
-# df_engine = pd.read_csv(PATH_ENGINE, sep=",", index_col=[0, 1, 2, 3, 4])
+def get_labels():
+    global X_train
+    global X_val
+    global y_train
+    global y_val
+    PATH_ENGINE = r"..\jupyter_notebooks\file\output\SimBench\engine_database.csv"
+    df_engine = pd.read_csv(PATH_ENGINE, sep=",", index_col=[0, 1, 2, 3, 4])
+    y_df = df_engine.loc[:,:,"loss_of_load_p_mw","load",:,:].stack().unstack("id")
+    ysum_df = pd.DataFrame(y_df.sum(axis=1))
+    # TODO: CODE HERE TO GET CORRECT LABELS FOR Y_TRAIN AND Y_VAL!
+    y = ysum_df.to_numpy()
+    
+
+# TODO:  X_train and X_val are now available. I need the according y_train and y_val, how do i get this?
+# replace: X_train, X_val, y_train, y_val = train_test_split(X, y, train_size=0.1, stratify = pd.DataFrame(l)[0], shuffle=True, random_state=42)
+    
+def standardize():#X_train, X_val, y_train, y_val, number_of_lines):
+    scaler_x = StandardScaler()
+    scaler_y = StandardScaler()
+    X_train = np.concatenate((X_train.T[:number_of_lines].T, scaler_x.fit_transform(X_train.T[number_of_lines:].T)), axis=1).astype(float)
+    X_val = np.concatenate((X_val.T[:number_of_lines].T, scaler_x.transform(X_val.T[number_of_lines:].T)), axis=1).astype(float)# without fit!
+    y_train = scaler_y.fit_transform(y_train).astype(float)
+    y_val = scaler_y.transform(y_val).astype(float)
