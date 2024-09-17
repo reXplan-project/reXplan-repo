@@ -230,7 +230,7 @@ class NeuNet(object):       # to the class we shall provide a model, a loss_fn a
             x_sample, y_sample = next(iter(self.train_loader))
             self.writer.add_graph(self.model, x_sample.to(self.device))
 
-# TODO: Set the paths dynamically !!
+# TODO: - Set the paths dynamically
 
 X_train = None
 X_val = None
