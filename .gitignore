@@ -133,3 +133,13 @@ jupyter_notebooks/montecarlo_database.csv
 jupyter_notebooks/network_with_gen.csv
 jupyter_notebooks/network.xlsx
 jupyter_notebooks/machine_learning_tutorial
+jupyter_notebooks/file/output/SimBench/10%/engine_database.csv
+jupyter_notebooks/file/output/SimBench/100%/engine_database.csv
+jupyter_notebooks/file/output/SimBench/15%/engine_database.csv
+jupyter_notebooks/file/output/SimBench/engine_database.csv
+jupyter_notebooks/file/output/SimBench/MONTAG/engine_database_10.csv
+jupyter_notebooks/file/output/SimBench/MONTAG/engine_database_100.csv
+jupyter_notebooks/file/output/SimBench/MONTAG/engine_database_15.csv
+jupyter_notebooks/file/output/SimBench/MONTAG/engine_database_25.csv
+jupyter_notebooks/file/output/SimBench/MONTAG/engine_database_50.csv
+jupyter_notebooks/file/output/SimBench/montecarlo_database.csv
