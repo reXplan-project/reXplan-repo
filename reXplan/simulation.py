@@ -473,8 +473,8 @@ class Sim:
 		opf_run_list = ml.get_opf_list()
 		for iteration, timestep in opf_run_list.iterrows():
 			timesteps = Time(timepoints = timestep.timestep)
-			print(f"Running iterationSet {iteration} with timesteps:{timesteps.timepoints}")
-			Sim.run(self, network, iterationSet = [iteration], appendOutput = True, time = timesteps, debug=None, **kwargs)
+			print(f"Running iterationSet {timestep[0]} with timesteps:{timesteps.timepoints}")
+			Sim.run(self, network, iterationSet = [timestep[0]], appendOutput = True, time = timesteps, debug=None, **kwargs)
 			print("Next")
 		print('done!')
 
