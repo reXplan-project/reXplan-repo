@@ -2,7 +2,7 @@
 from . import network
 from . import config
 from . import utils
-from . import ml
+# from . import ml
 from.const import *
 import os
 
@@ -428,10 +428,11 @@ class Sim:
 			for i in iterations:
 				print(f'Strata = {s}; Iteration = {i}')
 				network.update_grid(df_montecarlo[s][i], debug=debug)
-				try:
-					strata_db.append(network.run(time_, debug=debug, **kwargs))
-				except Exception as e:
-					print(f'Iteration {i} did not execute successfully. {str(e)}')
+				strata_db.append(network.run(time_, debug=debug, **kwargs))
+				# try:
+				# 	strata_db.append(network.run(time_, debug=debug, **kwargs))
+				# except Exception as e:
+				# 	print(f'Iteration {i} did not execute successfully. {str(e)}')
 			databases.append(strata_db)
 		
 		self.results = enrich_database(build_database(total_iteration, databases, self.externalTimeInterval))
@@ -463,20 +464,20 @@ class Sim:
 			print ('done!')
 
 
-	def run_prediction(self, network, debug=None, **kwargs):
-		# ##########################
-		# # MC sampling according OPF calculations
-		# ##########################
-		# TODO Should I delete engine_database first ?
+	# def run_prediction(self, network, debug=None, **kwargs):
+	# 	# ##########################
+	# 	# # MC sampling according OPF calculations
+	# 	# ##########################
+	# 	# TODO Should I delete engine_database first ?
 
-		# Gets list of iterations and timestepts to compute OPF for
-		opf_run_list = ml.get_opf_list()
-		for iteration, timestep in opf_run_list.iterrows():
-			timesteps = Time(timepoints = timestep.timestep)
-			print(f"Running iterationSet {timestep[0]} with timesteps:{timesteps.timepoints}")
-			Sim.run(self, network, iterationSet = [timestep[0]], appendOutput = True, time = timesteps, debug=None, **kwargs)
-			print("Next")
-		print('done!')
+	# 	# Gets list of iterations and timestepts to compute OPF for
+	# 	opf_run_list = ml.get_opf_list()
+	# 	for iteration, timestep in opf_run_list.iterrows():
+	# 		timesteps = Time(timepoints = timestep.timestep)
+	# 		print(f"Running iterationSet {timestep[0]} with timesteps:{timesteps.timepoints}")
+	# 		Sim.run(self, network, iterationSet = [timestep[0]], appendOutput = True, time = timesteps, debug=None, **kwargs)
+	# 		print("Next")
+	# 	print('done!')
 
 class Time(): # NEW
 	# TODO: error raising for uncompatible times
