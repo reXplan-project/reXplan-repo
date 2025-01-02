@@ -71,7 +71,8 @@ class pandapower():
 
 	def run_time_series(self, df_timeseries, **kwargs):
 		# TODO: @TIM add description
-		run_timeseries(self.network, df_timeseries.index, continue_on_divergence=True, **kwargs)
+		run_timeseries(self.network, df_timeseries.index,
+					   continue_on_divergence=True, **kwargs)
 
 	def format(self, output):
 		out = []
@@ -90,7 +91,8 @@ class pandapower():
 	def run(self, df_timeseries, debug=None, **kwargs):
 		# TODO: @TIM add description
 		self.create_controllers(df_timeseries)
-		output = self.configure_output_writer(df_timeseries.index)
+		output = self.configure_output_writer(
+			df_timeseries.index)
 		run_type = pp.runopp
 		if 'run_type' in kwargs:
 			# print(f'Overriding default configuration (opf). Running {kwargs['run_type']} instead.')
