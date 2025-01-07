@@ -80,11 +80,9 @@ class pandapower():
 			if type:
 				type = type.group(1)
 				field = key.split('.')[1]
-				df_ = df.rename(columns=getattr(
-					self.network, type)['name'].to_dict())
+				df_ = df.rename(columns=getattr(self.network, type)['name'].to_dict())
 				df_.columns.name = 'id'
-				out.append(pd.concat([df_], keys=[(field, type)], names=[
-					'field', 'type'], axis=1))
+				out.append(pd.concat([df_], keys=[(field, type)], names=['field', 'type'], axis=1))
 		return pd.concat(out, axis=1)
 
 	def run(self, df_timeseries, **kwargs):

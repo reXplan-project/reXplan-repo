@@ -177,7 +177,9 @@ class Sim:
 		self.externalTimeInterval = get_index_as_dataSeries(pd.read_excel(config.path.networkFile(simulationName),
 																		 sheet_name=SHEET_NAME_PROFILES, index_col=0, header=[0, 1]))
 		self.time = self.to_internal_time(self.startTime, self.duration)
+		print(f'\nSimulation:	Start = {self.time.start:>3}; Stop = {self.time.stop:>3}; Duration = {self.time.duration:>3} timesteps.')
 		self.hazardTime = self.to_internal_time(self.hazardStartTime, self.hazardDuration)
+		print(f'Hazard:		Start = {self.hazardTime.start:>3}; Stop = {self.hazardTime.stop:>3}; Duration = {self.hazardTime.duration:>3} timesteps.\n')
 
 	def to_internal_time(self, startTime, duration):
 		# TODO: very important to check!
@@ -189,15 +191,20 @@ class Sim:
 
 	# To be updated to consider stratas!
 	def initialize_model_sh(self, network, iterationNumber):
-		# TODO: @TIM add description
 		"""
-		The function initializes a model, performs iterations, calculates schedules, builds a database,
-		saves it to a file, and returns the outages schedule.
-		Usually shortened to *simulation.initialize_model_sh*
+		The `initialize_model_sh()` function calculates the probability of failure for the electrical components in the network and applies
+		the Monte Carlo Method to create/update the **outage schedule** for the Montecarlo Analysis `(montecarlo_database.csv)`.
+		This schedule holds the equipment status information (`in-service`, `out-of-service`, `awating repair`, etc.) for the simulation timeseries.
+		Increasing the number of Monte Carlo iterations reduces uncertainty, but increases computational load.\n
+		The file is stored at */file/output/project name/*.
 		
-		:param network: The "network" parameter is an object that represents a network model. It likely	contains information about the network topology, elements, and their properties
-		:param iterationNumber: The parameter `iterationNumber` represents the number of iterations or simulations that will be performed. It determines how many times the model will be run to generate the Monte Carlo database
-		:return: the outages schedule of the network.
+		:param network: Class variable with network topology, elements, and their properties.
+		:param mc_iterations: Number of Monte Carlo iterations.
+
+		:network type: reXplan.network.Network
+		:mc_iterations type: int
+		:return: outages schedule of the network
+		:rtype: pandas.core.frame.DataFrame
 		"""
 		databases = []
 		iterations = range(iterationNumber)
@@ -212,8 +219,9 @@ class Sim:
 		return network.outagesSchedule
 
 	def initialize_model_rp_deprecated(self, network, iterationNumber, ref_return_period, cv=0.1, maxTotalIteration=1000, nStrataSamples=10000, x_min=None, x_max=None, maxStrata=10):
-		# This Function is Deprecated
+		# DEPRECATED
 		"""
+		DEPRECATED
 		The function `initialize_model_rp` initializes a model for reliability analysis using fragility
 		curves and return periods.
 		
@@ -364,19 +372,34 @@ class Sim:
 			self.iteration_number = iteration_number
 
 	def initialize_model_rp(self, network, iterationNumber, ref_return_period, cv=0.1, maxTotalIteration=1000, nStrataSamples=10000, x_min=None, x_max=None, maxStrata=10):
-		# TODO: @TIM add description
 		"""
-		The function `initialize_model_rp` initializes a model for reliability analysis using fragility
-		curves and return periods.
+		The `initialize_model_rp()` function utilizes **return periods**, which needs to be defined in */file/input/project name/returnPeriods/*. 
+		It uses the R module `StratifiedSampling` to divide the total event intensity range into strata to reduce uncertainty and computational load.
+		A number of outage schedules is created for the Monte Carlo analysis per stratum,
+		which are collected and stored in the **outage schedule** file (*montecarlo_database.csv*).
+		The schedule holds the equipment status information (`in-service`, `out-of-service`, `awating repair`, etc.) for the simulation timeseries.
+		The number of Monte Carlo iterations is optimized by the R module.\n
+		The file is stored at */file/output/project name/*.
 		
-		:param network: The network parameter is an object that represents the network being modeled. It contains information about the network's elements, fragility curves, return periods, and other relevant data
-		:param iterationNumber: The number of iterations to perform in the Monte Carlo simulation. Each	iteration represents a sample from the fragility curves
-		:param ref_return_period: The reference return period is a parameter that specifies the return period for which the fragility curves are defined. It is used to generate samples for the Monte Carlo simulation and calculate the failure probabilities of network elements
-		:param cv: The parameter "cv" stands for coefficient of variation. It is a measure of the variability of a dataset relative to its mean. In this context, it is used to control the precision of the Monte Carlo simulation. A smaller value of cv will result in a more precise simulation, but it will also increase computational time.
-		:param maxTotalIteration: The maximum number of iterations for the Monte Carlo simulation. This parameter limits the total number of iterations performed during the simulation, defaults to 1000 (optional)
-		:param nStrataSamples: The parameter "nStrataSamples" represents the number of samples to be generated within each stratum. It determines the granularity of the sampling within each range of intensity values, defaults to 10000 (optional)
-		:param x_min: The minimum value of the x-axis for the fragility curves. If not provided, it will be set to the minimum value of the y-data in the fragility curves
-		:param x_max: The maximum value of the x-axis for the fragility curves. It is used to generate samples within the specified range for each strata. If not provided, the maximum value from the fragility curves will be used
+		:param network: Class variable with network topology, elements, and their properties.
+		:param mc_iteration_factor: Number of Monte Carlo iterations per stratum sample. Strata samples are calculated using the `StratifiedSampling` module of R.
+		:param ref_return_period: Reference return period for fragility curves. Used to generate samples for the Monte Carlo simulation.
+		:param cv: Coefficient of variation. Measure of variability of a dataset relative to its mean. Used to control the precision of the Monte Carlo simulation.
+					A smaller value of cv will result in a more precise simulation, but will also increase computational time.
+		:param max_mc_iterations: Limit of Monte Carlo iterations performed during the simulation.
+		:param nStrataSamples: Number of intensity samples from return period used for the stratification.
+		:param min_intensity: Minimum intensity of return periods
+		:param max_intensity: Maximum intensity of return periods
+		:param maxStrata: Maximum number of strata samples
+
+		:network type: reXplan.network.Network
+		:mc_iteration_factor type: int
+		:ref_return_period type: str
+		:cv type: float
+		:max_mc_iterations type: int
+		:nStrataSamples type: int
+		:min_intensity type: float
+		:max_intensity type: float
 		"""
 		# If no boudaries are provided, x_min and x_max are calculated from the return periods
 		x_min, x_max = self.get_intensity_boundaries(network, x_min, x_max)
@@ -400,16 +423,26 @@ class Sim:
 
 	def run(self, network, iterationSet = None, saveOutput = True, time = None, debug=None, **kwargs):
 		# TODO: call const.py instead of 'iteration'
-		# TODO: @TIM add description
 		"""
-		The function `run` takes in a network and a set of iterations, updates the network grid based on
-		the Monte Carlo database, runs the network simulation for each iteration, and saves the results to
-		an output database.
+		The `run()` function uses the outage schedule `(montecarlo_database.csv)`, generated using one of the `initialize functions`.
+		A timeseries OPF is executed for the provided network object and updates `engine_database.csv` with the OPF results.\n
+		The file is stored *file/output/project name/*, if **saveOutput** = True.
 		
-		:param network: The `network` parameter is an instance of a network object that represents the network being simulated. It contains all the necessary information and methods to simulate the network
-		:param iterationSet: The `iterationSet` parameter is an optional set of specific iterations that you want to run. If provided, only those iterations will be executed. If not provided, all iterations will be executed
-		:param saveOutput: The `saveOutput` parameter is a boolean flag that determines whether the output database should be saved to a file or not. If `saveOutput` is set to `True`, the output database will be saved to a file. If it is set to `False`, the output database will not be, defaults to True (optional)
-		:param time: The `time` parameter is an optional argument that specifies the duration of the simulation run. If provided, it will override the default simulation time set in the `self.time` variable
+		:param network: Contains information about the network topology, elements, and their properties. See `Network` class.
+		:param iterationSet: If provided, selected Monte Carlo iterations will be selected. If not provided, all iterations will be executed.
+		:param saveOutput: Determines whether the output database should be saved to a file `(engine_database.csv)` or not.
+		:param time: Specifies the duration of the simulation. If provided, it will override the default simulation time set in the `self.time` variable. See `Time` class.
+		:param run_type: (of `**kwargs`) can utilize different OPF approaches:\n
+			-> **dc_opf**	 - pypower (Python)\n
+			-> **ac_opf**	 - pypower (Python)\n
+			-> **pm_dc_opf** - PandaModels (Julia)\n
+			-> **pm_ac_opf** - PandaModels (Julia)\n
+			PandaModels is recommended, as PandaModels has better convergence properties.
+		:network type: reXplan.network.Network object
+		:iterationSet type: list
+		:saveOutput type: bool	
+		:time type: class
+		:run_type type: string
 		"""
 		time_ = self.time
 		if time:
@@ -442,14 +475,23 @@ class Sim:
 
 class Time():
 	# TODO: error raising for uncompatible times
-	# TODO: @TIM add description
+	"""
+	Contains information about the simulation time.
+	:param start: Starting point of the simulation interval. It is an integer value that indicates the first value in the interval
+	:param duration: Represents the length of the interval in units of time
+	:start type: int
+	:duration type: int
+	"""
 	def __init__(self, start, duration):
+		"""
+		Initializes an object with start and duration attributes, calculates the stop time, creates an interval list.
+		"""
 		self.start = start
 		self.duration = duration
 		self.maxduration = duration
 		self.stop = duration + start
 		self.interval = list(range(start, duration + start))
-		print(f'start= {self.start}, stop= {self.stop}')
+		# print(f'start= {self.start}, stop= {self.stop}')
 
 # TODO SimpleControl inheriting ConstCrontol and overriding set_recycle()
 # class SimpleControl(ConstControl):
