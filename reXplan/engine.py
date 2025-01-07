@@ -71,8 +71,7 @@ class pandapower():
 
 	def run_time_series(self, df_timeseries, **kwargs):
 		# TODO: @TIM add description
-		run_timeseries(self.network, df_timeseries.index,
-					   continue_on_divergence=True, **kwargs)
+		run_timeseries(self.network, df_timeseries.index,continue_on_divergence=True, **kwargs)
 
 	def format(self, output):
 		out = []
@@ -88,18 +87,48 @@ class pandapower():
 					'field', 'type'], axis=1))
 		return pd.concat(out, axis=1)
 
-	def run(self, df_timeseries, debug=None, **kwargs):
-		# TODO: @TIM add description
+	def run(self, df_timeseries, **kwargs):
+		"""
+		Runs the time series simulation for the given timeseries data.
+
+		Parameters:
+		df_timeseries (DataFrame): The timeseries data for the simulation.
+		kwargs: Additional keyword arguments for the simulation configuration.
+
+		Returns:
+		DataFrame: The formatted output of the simulation.
+		"""
 		self.create_controllers(df_timeseries)
 		output = self.configure_output_writer(
 			df_timeseries.index)
 		run_type = pp.runopp
 		if 'run_type' in kwargs:
-			# print(f'Overriding default configuration (opf). Running {kwargs['run_type']} instead.')
-			if kwargs['run_type'] == 'pf':
+			if kwargs['run_type'] == 'pf' or kwargs['run_type'] == 'ac_pf':
+				# Exectues an AC power flow calculation from pandapower
 				run_type = pp.runpp
+
+			elif kwargs['run_type'] == 'dc_pf':
+				# Executes a DC power flow calculation from pandapower
+				run_type = pp.rundcpp
+
+			elif kwargs['run_type'] == 'ac_opf':
+				# Executes an AC optimal power flow calculation from pandapower
+				run_type = pp.rundcopp
+
+			elif kwargs['run_type'] == 'dc_opf':
+				# Executes a DC optimal power flow calculation from pandapower
+				run_type = pp.runopp
+
 			elif kwargs['run_type'] == 'pm_ac_opf':
+				# Executes an AC optimal power flow calculation from pandapower via PandaModels (Julia)
 				run_type = pp.runpm_ac_opf
+
+			elif kwargs['run_type'] == 'pm_dc_opf':
+				# Executes a DC optimal power flow calculation from pandapower via PandaModels (Julia)
+				run_type = pp.runpm_dc_opf
+
+			else:
+				print('No run_type specified. Defaulting to runopp (OPF)')
 
 		self.run_time_series(df_timeseries, run=run_type, **kwargs)
 		return self.format(output)
