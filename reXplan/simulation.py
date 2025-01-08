@@ -13,10 +13,9 @@ import warnings
 DECIMAL_PRECISION = 1
 
 def convert_index_to_internal_time(df, df_int_ext_time):
-	map = df_int_ext_time.dt.strftime(
-		'%Y-%m-%d %hh:%mm:%ss').to_dict()  # need to conver to string
+	map = df_int_ext_time.dt.strftime('%Y-%m-%d %hh:%mm:%ss').to_dict()  # need to convert to string
 	map = {y: x for x, y in map.items()}
-	return df.rename(index=map)  # otherwise renaiming won't work
+	return df.rename(index=map)  # otherwise renaming won't work
 
 def convert_index_to_external_time(df, df_int_ext_time):
 	return df.rename(index=df_int_ext_time.to_dict())
@@ -33,7 +32,6 @@ def build_database(iterations, databases, df_int_ext_time):
 			db.append(pd.concat(dict(zip(sub_iterations, df)), names=['iteration'], axis=1))
 			stratas.append(i)
 			iter_offset += len(df)
-
 	return convert_index_to_external_time(pd.concat(dict(zip(stratas, db)), names=['strata'], axis=1), df_int_ext_time).T
 
 def read_database(dababaseFile):
@@ -41,7 +39,7 @@ def read_database(dababaseFile):
 	return pd.read_csv(dababaseFile,  index_col=[0, 1, 2, 3, 4]).T
 
 def allocate_column_values(object, df_):
-	# .to_frame().T is needed because the function acts on the df's columns
+	# .to_frame().T is needed because the function acts on of the df's columns
 	df = utils.df_to_internal_fields(df_.to_frame().T)
 	# 'value' is needed since we are working on a dataFrame
 	for key, value in df.loc[COL_NAME_VALUE].to_dict().items():
@@ -154,8 +152,8 @@ def enrich_database(df):
 
 class Sim:
 	'''
-	# TODO: @TIM add description
-	Add description of Sim class here
+	The Sim class contains information of the updated power grid, including the outage schedule of power elements, based
+	on the probability of failure and hazard intensity.
 	'''
 	def __init__(self,
 				 simulationName):
@@ -190,7 +188,7 @@ class Sim:
 		return Time(start, duration)
 
 	# To be updated to consider stratas!
-	def initialize_model_sh(self, network, iterationNumber):
+	def initialize_model_sh(self, network, mc_iteration_factor):
 		"""
 		The `initialize_model_sh()` function calculates the probability of failure for the electrical components in the network and applies
 		the Monte Carlo Method to create/update the **outage schedule** for the Montecarlo Analysis `(montecarlo_database.csv)`.
@@ -207,7 +205,7 @@ class Sim:
 		:rtype: pandas.core.frame.DataFrame
 		"""
 		databases = []
-		iterations = range(iterationNumber)
+		iterations = range(mc_iteration_factor)
 		network.update_failure_probability()
 		for _ in iterations:
 			network.calculate_outages_schedule(self.time, self.hazardTime)
@@ -218,135 +216,138 @@ class Sim:
 		out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
 		return network.outagesSchedule
 
-	def initialize_model_rp_deprecated(self, network, iterationNumber, ref_return_period, cv=0.1, maxTotalIteration=1000, nStrataSamples=10000, x_min=None, x_max=None, maxStrata=10):
-		# DEPRECATED
-		"""
-		DEPRECATED
-		The function `initialize_model_rp` initializes a model for reliability analysis using fragility
-		curves and return periods.
+	# def initialize_model_rp_deprecated(self, network, iterationNumber, ref_return_period, cv=0.1, maxTotalIteration=1000, nStrataSamples=10000, x_min=None, x_max=None, maxStrata=10):
+	# 	# DEPRECATED
+	# 	"""
+	# 	DEPRECATED
+	# 	The function `initialize_model_rp` initializes a model for reliability analysis using fragility
+	# 	curves and return periods.
 		
-		:param network: The network parameter is an object that represents the network being modeled. It contains information about the network's elements, fragility curves, return periods, and other relevant data
-		:param iterationNumber: The number of iterations to perform in the Monte Carlo simulation. Each	iteration represents a sample from the fragility curves
-		:param ref_return_period: The reference return period is a parameter that specifies the return period for which the fragility curves are defined. It is used to generate samples for the Monte Carlo simulation and calculate the failure probabilities of network elements
-		:param cv: The parameter "cv" stands for coefficient of variation. It is a measure of the variability of a dataset relative to its mean. In this context, it is used to control the precision of the Monte Carlo simulation. A smaller value of cv will result in a more precise simulation, but it will also increase computational time.
-		:param maxTotalIteration: The maximum number of iterations for the Monte Carlo simulation. This parameter limits the total number of iterations performed during the simulation, defaults to 1000 (optional)
-		:param nStrataSamples: The parameter "nStrataSamples" represents the number of samples to be generated within each stratum. It determines the granularity of the sampling within each range of intensity values, defaults to 10000 (optional)
-		:param x_min: The minimum value of the x-axis for the fragility curves. If not provided, it will be set to the minimum value of the y-data in the fragility curves
-		:param x_max: The maximum value of the x-axis for the fragility curves. It is used to generate samples within the specified range for each strata. If not provided, the maximum value from the fragility curves will be used
-		"""
-		for j, (key, rp) in enumerate(network.returnPeriods.items()):
-			if j == 0:
-				xmin = min(rp.y_data)
-				xmax =max(rp.y_data)
-			else:
-				xmin = min(xmin, min(rp.y_data))
-				xmax = max(xmax, max(rp.y_data))
+	# 	:param network: The network parameter is an object that represents the network being modeled. It contains information about the network's elements, fragility curves, return periods, and other relevant data
+	# 	:param iterationNumber: The number of iterations to perform in the Monte Carlo simulation. Each	iteration represents a sample from the fragility curves
+	# 	:param ref_return_period: The reference return period is a parameter that specifies the return period for which the fragility curves are defined. It is used to generate samples for the Monte Carlo simulation and calculate the failure probabilities of network elements
+	# 	:param cv: The parameter "cv" stands for coefficient of variation. It is a measure of the variability of a dataset relative to its mean. In this context, it is used to control the precision of the Monte Carlo simulation. A smaller value of cv will result in a more precise simulation, but it will also increase computational time.
+	# 	:param maxTotalIteration: The maximum number of iterations for the Monte Carlo simulation. This parameter limits the total number of iterations performed during the simulation, defaults to 1000 (optional)
+	# 	:param nStrataSamples: The parameter "nStrataSamples" represents the number of samples to be generated within each stratum. It determines the granularity of the sampling within each range of intensity values, defaults to 10000 (optional)
+	# 	:param x_min: The minimum value of the x-axis for the fragility curves. If not provided, it will be set to the minimum value of the y-data in the fragility curves
+	# 	:param x_max: The maximum value of the x-axis for the fragility curves. It is used to generate samples within the specified range for each strata. If not provided, the maximum value from the fragility curves will be used
+	# 	"""
+	# 	for j, (key, rp) in enumerate(network.returnPeriods.items()):
+	# 		if j == 0:
+	# 			xmin = min(rp.y_data)
+	# 			xmax =max(rp.y_data)
+	# 		else:
+	# 			xmin = min(xmin, min(rp.y_data))
+	# 			xmax = max(xmax, max(rp.y_data))
 
-		if x_min==None:
-			x_min = xmin
-			print(f'x_min = {x_min}')
-		elif x_min < xmin:
-			warnings.warn(f'Warning: selected x_min is lower than the data provided for the fragility curves: {x_min} < {xmin}')
+	# 	if x_min==None:
+	# 		x_min = xmin
+	# 		print(f'x_min = {x_min}')
+	# 	elif x_min < xmin:
+	# 		warnings.warn(f'Warning: selected x_min is lower than the data provided for the fragility curves: {x_min} < {xmin}')
 
-		if x_max==None:
-			x_max = xmax
-			print(f'x_max = {x_max}')
-		elif x_max > xmax:
-			warnings.warn(f'Warning: selected x_max is greater than the data provided for the fragility curves: {x_max} > {xmax}')
+	# 	if x_max==None:
+	# 		x_max = xmax
+	# 		print(f'x_max = {x_max}')
+	# 	elif x_max > xmax:
+	# 		warnings.warn(f'Warning: selected x_max is greater than the data provided for the fragility curves: {x_max} > {xmax}')
 		
-		self.samples = network.returnPeriods[ref_return_period].generate_samples(x_min, x_max, nStrataSamples)
-		self.stratResults = network.calc_stratas(
-			self.samples, network.returnPeriods[ref_return_period], xmin=x_min, xmax=x_max, cv=cv, maxStrata=maxStrata)
+	# 	self.samples = network.returnPeriods[ref_return_period].generate_samples(x_min, x_max, nStrataSamples)
+	# 	self.stratResults = network.calc_stratas(
+	# 		self.samples, network.returnPeriods[ref_return_period], xmin=x_min, xmax=x_max, cv=cv, maxStrata=maxStrata)
 
-		if self.stratResults["Allocation"].sum()*iterationNumber >  maxTotalIteration:
-			warnings.warn(f'Warning: Estimated needed starta samples to reach cv = {cv} are greater than maxTotalIteration = {maxTotalIteration}')
+	# 	if self.stratResults["Allocation"].sum()*iterationNumber >  maxTotalIteration:
+	# 		warnings.warn(f'Warning: Estimated needed starta samples to reach cv = {cv} are greater than maxTotalIteration = {maxTotalIteration}')
 
-		iteration_number = 0
-		self.failureProbs = self.failureProbs[0:0]
-		df_temp = pd.DataFrame()
-		databases = []
-		for strata in range(len(self.stratResults.index)):
-			strata_db = []
-			sample_pool = self.samples[(self.samples >= self.stratResults["Lower_X1"].values[strata]) & (self.samples <= self.stratResults["Upper_X1"].values[strata])]
+	# 	iteration_number = 0
+	# 	self.failureProbs = self.failureProbs[0:0]
+	# 	df_temp = pd.DataFrame()
+	# 	databases = []
+	# 	for strata in range(len(self.stratResults.index)):
+	# 		strata_db = []
+	# 		sample_pool = self.samples[(self.samples >= self.stratResults["Lower_X1"].values[strata]) & (self.samples <= self.stratResults["Upper_X1"].values[strata])]
 			
-			if self.stratResults["Allocation"].sum()*iterationNumber <=  maxTotalIteration:
-				nsamples = self.stratResults["Allocation"].values[strata]*iterationNumber
-			else:
-				nsamples = round(self.stratResults["Allocation"].values[strata]*maxTotalIteration/self.stratResults["Allocation"].sum())
+	# 		if self.stratResults["Allocation"].sum()*iterationNumber <=  maxTotalIteration:
+	# 			nsamples = self.stratResults["Allocation"].values[strata]*iterationNumber
+	# 		else:
+	# 			nsamples = round(self.stratResults["Allocation"].values[strata]*maxTotalIteration/self.stratResults["Allocation"].sum())
 					
-			print(f'\nStrata = {strata}')
-			print(f'Number of samples = {nsamples}')
-			print(f'Intensity samples between {self.stratResults["Lower_X1"].values[strata]} and {self.stratResults["Upper_X1"].values[strata]}')
-			df_temp["strata"] = [strata]
+	# 		print(f'\nStrata = {strata}')
+	# 		print(f'Number of samples = {nsamples}')
+	# 		print(f'Intensity samples between {self.stratResults["Lower_X1"].values[strata]} and {self.stratResults["Upper_X1"].values[strata]}')
+	# 		df_temp["strata"] = [strata]
 
-			for i in range(int(nsamples)):			
-				event_intensity = sample_pool[random.randint(0, len(sample_pool)-1)]
-				network.update_failure_probability(intensity=event_intensity, ref_return_period=ref_return_period)
-				iteration_number += 1
+	# 		for i in range(int(nsamples)):			
+	# 			event_intensity = sample_pool[random.randint(0, len(sample_pool)-1)]
+	# 			network.update_failure_probability(intensity=event_intensity, ref_return_period=ref_return_period)
+	# 			iteration_number += 1
 
-				network.calculate_outages_schedule(self.time, self.hazardTime)
-				network.calculate_switches_schedule(self.time)
-				network.propagate_schedules_to_network_elements()
-				strata_db.append(network.build_montecarlo_database(self.time))
+	# 			network.calculate_outages_schedule(self.time, self.hazardTime)
+	# 			network.calculate_switches_schedule(self.time)
+	# 			network.propagate_schedules_to_network_elements()
+	# 			strata_db.append(network.build_montecarlo_database(self.time))
 
-				df_temp["iteration"] = [iteration_number]
+	# 			df_temp["iteration"] = [iteration_number]
 
-				for key, value in network.powerElements.items():
-					if value.return_period != None:
-						df_temp["event intensity"] = network.fragilityCurves[value.fragilityCurve].projected_intensity(rp=network.returnPeriods[value.return_period],
-																														ref_rp=network.returnPeriods[ref_return_period],
-																														x=event_intensity)
-					else:	
-						df_temp["event intensity"] = [event_intensity]
-					df_temp["power element"] = [key]
-					df_temp["element type"] = [value.__class__.__name__]
-					df_temp["failure probability"] = [value.failureProb]
-					self.failureProbs = pd.concat([self.failureProbs, df_temp], ignore_index=True)
-			databases.append(strata_db)
+	# 			for key, value in network.powerElements.items():
+	# 				if value.return_period != None:
+	# 					df_temp["event intensity"] = network.fragilityCurves[value.fragilityCurve].projected_intensity(rp=network.returnPeriods[value.return_period],
+	# 																													ref_rp=network.returnPeriods[ref_return_period],
+	# 																													x=event_intensity)
+	# 				else:	
+	# 					df_temp["event intensity"] = [event_intensity]
+	# 				df_temp["power element"] = [key]
+	# 				df_temp["element type"] = [value.__class__.__name__]
+	# 				df_temp["failure probability"] = [value.failureProb]
+	# 				self.failureProbs = pd.concat([self.failureProbs, df_temp], ignore_index=True)
+	# 		databases.append(strata_db)
 
-		self.failureProbs.reset_index()
-		out = build_database(range(iteration_number+1), databases, self.externalTimeInterval)
-		out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
+	# 	self.failureProbs.reset_index()
+	# 	out = build_database(range(iteration_number+1), databases, self.externalTimeInterval)
+	# 	out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
 	
 	def get_intensity_boundaries(self, network, x_min, x_max):
+
 		for j, (_, rp) in enumerate(network.returnPeriods.items()):
 			if j == 0:
 				xmin = min(rp.y_data)
-				xmax =max(rp.y_data)
+				xmax = max(rp.y_data)
 			else:
 				xmin = min(xmin, min(rp.y_data))
 				xmax = max(xmax, max(rp.y_data))
 
-		if x_min==None:
+		if x_min == None:
 			x_min = xmin
 			print(f'x_min = {x_min}')
 		elif x_min < xmin:
 			warnings.warn(f'Warning: selected x_min is lower than the data provided for the fragility curves: {x_min} < {xmin}')
 
-		if x_max==None:
+		if x_max == None:
 			x_max = xmax
 			print(f'x_max = {x_max}')
 		elif x_max > xmax:
 			warnings.warn(f'Warning: selected x_max is greater than the data provided for the fragility curves: {x_max} > {xmax}')
+
 		return x_min, x_max
 
-	def populate_failure_prob_df(self, network, iterationNumber, maxTotalIteration, ref_return_period):
+	def populate_failure_prob_df(self, network, mc_iteration_factor, max_mc_iterations, ref_return_period):
 		iteration_number = 0
 		self.databases = []
 		# Iterate over strata
+		print("-----------------------------------------------------------")
 		for strata in range(len(self.stratResults.index)):
 			strata_db = []
 			# get samples within the stratum boundaries
 			sample_pool = self.samples[(self.samples >= self.stratResults["Lower_X1"].values[strata]) & (self.samples <= self.stratResults["Upper_X1"].values[strata])]
 			# calculate number of samples allocated to the stratum
-			if self.stratResults["Allocation"].sum()*iterationNumber <=  maxTotalIteration:
-				nsamples = self.stratResults["Allocation"].values[strata]*iterationNumber
+			if self.stratResults["Allocation"].sum()*mc_iteration_factor <=  max_mc_iterations:
+				nsamples = self.stratResults["Allocation"].values[strata]*mc_iteration_factor
 			else:
-				nsamples = round(self.stratResults["Allocation"].values[strata]*maxTotalIteration/self.stratResults["Allocation"].sum())					
+				nsamples = round(self.stratResults["Allocation"].values[strata]*max_mc_iterations/self.stratResults["Allocation"].sum())					
 			
 			print(f'\nStrata = {strata}')
-			print(f'Number of samples = {nsamples}')
-			print(f'Intensity samples between {self.stratResults["Lower_X1"].values[strata]} and {self.stratResults["Upper_X1"].values[strata]}')
+			print(f'Number of samples = {int(nsamples)}')
+			print(f'Hazard intensity samples between {self.stratResults["Lower_X1"].values[strata]} and {self.stratResults["Upper_X1"].values[strata]}')
 			# iterate over each montecarlo iteration
 			for _ in range(int(nsamples)):
 				iteration_number += 1
@@ -371,7 +372,7 @@ class Sim:
 			self.databases.append(strata_db)
 			self.iteration_number = iteration_number
 
-	def initialize_model_rp(self, network, iterationNumber, ref_return_period, cv=0.1, maxTotalIteration=1000, nStrataSamples=10000, x_min=None, x_max=None, maxStrata=10):
+	def initialize_model_rp(self, network, mc_iteration_factor, ref_return_period, cv=0.1, max_mc_iterations=1000, nStrataSamples=10000, min_intensity=None, max_intensity=None, maxStrata=10):
 		"""
 		The `initialize_model_rp()` function utilizes **return periods**, which needs to be defined in */file/input/project name/returnPeriods/*. 
 		It uses the R module `StratifiedSampling` to divide the total event intensity range into strata to reduce uncertainty and computational load.
@@ -400,28 +401,30 @@ class Sim:
 		:nStrataSamples type: int
 		:min_intensity type: float
 		:max_intensity type: float
+		:maxStrata type: int
 		"""
-		# If no boudaries are provided, x_min and x_max are calculated from the return periods
-		x_min, x_max = self.get_intensity_boundaries(network, x_min, x_max)
-		
+		# If no boudaries are provided, min_intensity and max_intensity are calculated from the return periods
+		min_intensity, max_intensity = self.get_intensity_boundaries(network, min_intensity, max_intensity)
 		# Generate intensity samples from the reference return period between the provided boudaries 
-		self.samples = network.returnPeriods[ref_return_period].generate_samples(x_min, x_max, nStrataSamples)
+		self.samples = network.returnPeriods[ref_return_period].generate_samples(min_intensity, max_intensity, nStrataSamples)
 		# Perform the stratification of the samples
 		self.stratResults = network.calc_stratas(
 								self.samples, 
 								network.returnPeriods[ref_return_period], 
-								xmin=x_min, xmax=x_max, 
-								cv=cv, maxStrata=maxStrata)
-		# Generate warning if maxTotalIteration is too low to achieve desired error
-		if self.stratResults["Allocation"].sum()*iterationNumber >  maxTotalIteration:
-			warnings.warn(f'Warning: Estimated needed starta samples to reach cv = {cv} are greater than maxTotalIteration = {maxTotalIteration}')
+								xmin = min_intensity,
+								xmax = max_intensity, 
+								cv = cv,
+								maxStrata = maxStrata)
+		# Generate warning if max_mc_iterations is too low to achieve desired error
+		if self.stratResults["Allocation"].sum()*mc_iteration_factor >  max_mc_iterations:
+			warnings.warn(f'Warning: Estimated needed strata samples to reach cv = {cv} are greater than max_mc_iterations ({max_mc_iterations})!')
 		# Generate failureProbs dataframe
-		self.failureProbs = pd.DataFrame(self.populate_failure_prob_df(network, iterationNumber, maxTotalIteration, ref_return_period), columns=self.failureProbs.columns)
+		self.failureProbs = pd.DataFrame(self.populate_failure_prob_df(network, mc_iteration_factor, max_mc_iterations, ref_return_period), columns = self.failureProbs.columns)
 		# Generate and export the montecarlo database file
-		out = build_database(range(self.iteration_number+1), self.databases, self.externalTimeInterval)
+		out = build_database(range(self.iteration_number + 1), self.databases, self.externalTimeInterval)
 		out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
 
-	def run(self, network, iterationSet = None, saveOutput = True, time = None, debug=None, **kwargs):
+	def run(self, network, iterationSet = None, saveOutput = True, time = None, debug = None, **kwargs):
 		# TODO: call const.py instead of 'iteration'
 		"""
 		The `run()` function uses the outage schedule `(montecarlo_database.csv)`, generated using one of the `initialize functions`.
