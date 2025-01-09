@@ -111,11 +111,11 @@ class pandapower():
 
 			elif kwargs['run_type'] == 'ac_opf':
 				# Executes an AC optimal power flow calculation from pandapower
-				run_type = pp.rundcopp
+				run_type = pp.runopp
 
 			elif kwargs['run_type'] == 'dc_opf':
 				# Executes a DC optimal power flow calculation from pandapower
-				run_type = pp.runopp
+				run_type = pp.rundcopp
 
 			elif kwargs['run_type'] == 'pm_ac_opf':
 				# Executes an AC optimal power flow calculation from pandapower via PandaModels (Julia)
