@@ -177,7 +177,7 @@ class Sim:
 		self.time = self.to_internal_time(self.startTime, self.duration)
 		print(f'\nSimulation:	Start = {self.time.start:>3}; Stop = {self.time.stop:>3}; Duration = {self.time.duration:>3} timesteps.')
 		self.hazardTime = self.to_internal_time(self.hazardStartTime, self.hazardDuration)
-		print(f'Hazard:		Start = {self.hazardTime.start:>3}; Stop = {self.hazardTime.stop:>3}; Duration = {self.hazardTime.duration:>3} timesteps.\n')
+		print(f'Hazard:		Start = {self.hazardTime.start:>3}; Stop = {self.hazardTime.stop:>3}; Duration = {self.hazardTime.duration:>3} timesteps.')
 
 	def to_internal_time(self, startTime, duration):
 		# TODO: very important to check!
@@ -306,49 +306,44 @@ class Sim:
 	# 	out = build_database(range(iteration_number+1), databases, self.externalTimeInterval)
 	# 	out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
 	
-	def get_intensity_boundaries(self, network, x_min, x_max):
+	def get_intensity_boundaries(self, network, min_intensity, max_intensity, ref_return_period):
 
-		for j, (_, rp) in enumerate(network.returnPeriods.items()):
-			if j == 0:
-				xmin = min(rp.y_data)
-				xmax = max(rp.y_data)
-			else:
-				xmin = min(xmin, min(rp.y_data))
-				xmax = max(xmax, max(rp.y_data))
+		max_intensity_from_rp = max(max(rp.y_data) for _, rp in network.returnPeriods.items())
+		min_intensity_from_rp = min(network.returnPeriods[ref_return_period].y_data)
 
-		if x_min == None:
-			x_min = xmin
-			print(f'x_min = {x_min}')
-		elif x_min < xmin:
-			warnings.warn(f'Warning: selected x_min is lower than the data provided for the fragility curves: {x_min} < {xmin}')
+		if min_intensity == None:
+			min_intensity = min_intensity_from_rp
+		elif min_intensity < min_intensity_from_rp:
+			warnings.warn(
+				f'Selected minimum intensity is lower than reference return period: {min_intensity} < {min_intensity_from_rp}')
 
-		if x_max == None:
-			x_max = xmax
-			print(f'x_max = {x_max}')
-		elif x_max > xmax:
-			warnings.warn(f'Warning: selected x_max is greater than the data provided for the fragility curves: {x_max} > {xmax}')
+		if max_intensity == None:
+			max_intensity = max_intensity_from_rp
+		elif max_intensity > max_intensity_from_rp:
+			warnings.warn(
+				f'Selected maximum intensity is greater than reference the return periods: {max_intensity} > {max_intensity_from_rp}')
 
-		return x_min, x_max
+		return min_intensity, max_intensity
 
 	def populate_failure_prob_df(self, network, mc_iteration_factor, max_mc_iterations, ref_return_period):
 		iteration_number = 0
 		self.databases = []
 		# Iterate over strata
-		print("-----------------------------------------------------------")
+		print("------------------------------------------------------------------")
 		for strata in range(len(self.stratResults.index)):
 			strata_db = []
 			# get samples within the stratum boundaries
 			sample_pool = self.samples[(self.samples >= self.stratResults["Lower_X1"].values[strata]) & (self.samples <= self.stratResults["Upper_X1"].values[strata])]
 			# calculate number of samples allocated to the stratum
-			if self.stratResults["Allocation"].sum()*mc_iteration_factor <=  max_mc_iterations:
+			if self.stratResults["Allocation"].sum()*mc_iteration_factor <= max_mc_iterations:
 				nsamples = self.stratResults["Allocation"].values[strata]*mc_iteration_factor
 			else:
 				nsamples = round(self.stratResults["Allocation"].values[strata]*max_mc_iterations/self.stratResults["Allocation"].sum())					
 			
-			print(f'\nStrata = {strata}')
-			print(f'Number of samples = {int(nsamples)}')
-			print(f'Hazard intensity samples between {self.stratResults["Lower_X1"].values[strata]} and {self.stratResults["Upper_X1"].values[strata]}')
-			# iterate over each montecarlo iteration
+			print(f'Strata: {strata}')
+			print(f'Number of samples: {int(nsamples)}')
+			print(f'Hazard intensity range: {self.stratResults["Lower_X1"].values[strata]} - {self.stratResults["Upper_X1"].values[strata]}')
+			# Iterate over each montecarlo iteration
 			for _ in range(int(nsamples)):
 				iteration_number += 1
 				# pick a value for the event inntensity from the sample pool
@@ -404,7 +399,7 @@ class Sim:
 		:maxStrata type: int
 		"""
 		# If no boudaries are provided, min_intensity and max_intensity are calculated from the return periods
-		min_intensity, max_intensity = self.get_intensity_boundaries(network, min_intensity, max_intensity)
+		min_intensity, max_intensity = self.get_intensity_boundaries(network, min_intensity, max_intensity, ref_return_period)
 		# Generate intensity samples from the reference return period between the provided boudaries 
 		self.samples = network.returnPeriods[ref_return_period].generate_samples(min_intensity, max_intensity, nStrataSamples)
 		# Perform the stratification of the samples
