@@ -24,19 +24,18 @@ Please see below for the installation, documentation and more.
 > pip install julia
 ```
 
-**through Python Shell**:
+**through Python Shell of version 3.10.10**:
 ```
 >>> import julia
 >>> julia.install()
 ```
 
-2.2 Add Julia Packages **through Julia Shell**, using the integrated Package Manager:
+2.2 Add Julia Packages **through Julia Shell**, using the integrated Package Manager by pressing the keys "Alt Gr" + "]":
 ```
-julia> using Pkg
 julia> ENV["HTTP_PROXY"]=”http://10.42.32.29:8080” # this if the Julia Proxi needs to be specified
 julia> ENV["HTTPS_PROXY"]=”http://10.42.32.29:8080” # this if the Julia Proxi needs to be specified
-julia> Pkg.add("PowerModels@0.19.8")
-julia> Pkg.add("PandaModels@0.7.1")
+julia> add PowerModels@0.19.8
+julia> add PandaModels@0.7.1
 
 ```
 
@@ -75,7 +74,7 @@ julia> Pkg.add("PandaModels@0.7.1")
 ```
 > cd C:\path to reXplan-repo\ # this to change to the local directory of the reXplan repository
 > py -m pip install --upgrade pip
-> pip install .
+> pip install -e .
 ```
 
 ## Documentation

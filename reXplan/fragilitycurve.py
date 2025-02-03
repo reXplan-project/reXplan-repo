@@ -122,9 +122,12 @@ class FragilityCurve:
 
 	def projected_intensity(self, rp, ref_rp, x):
 		if rp == ref_rp:
-			return x
+			projected_intensity_var = x
 		else:
-			return rp.interpolate_inv_return_period(ref_rp.interpolate_return_period(x))
+			projected_intensity_var = rp.interpolate_inv_return_period(ref_rp.interpolate_return_period(x))
+			if len(projected_intensity_var) == 1:
+				projected_intensity_var = projected_intensity_var[0]
+		return projected_intensity_var
 
 	def projected_fc(self, rp, ref_rp, xnew):
 		return self.interpolate(self.projected_intensity(rp, ref_rp, xnew))

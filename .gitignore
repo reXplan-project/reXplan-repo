@@ -102,12 +102,25 @@ celerybeat.pid
 .env
 .venv
 env/
-venv/
-ENV/
-rex_venv/
-rex_env/
 env.bak/
+
+.venv
+venv/
 venv.bak/
+
+.ENV
+ENV/
+ENV.bak/
+
+.rex_venv
+rex_venv/
+rex_venv.bak/
+
+.rex_env
+rex_env/
+rex_env.bak/
+
+reXplan.egg-info/
 
 # Spyder project settings
 .spyderproject
@@ -128,6 +141,7 @@ dmypy.json
 # Misc files
 jupyter_notebooks/Test.ipynb
 .vscode/launch.json
+.vs\
 jupyter_notebooks/engine_database.csv
 jupyter_notebooks/montecarlo_database.csv
 jupyter_notebooks/network_with_gen.csv
