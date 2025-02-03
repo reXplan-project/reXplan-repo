@@ -93,7 +93,7 @@ class Network:
 		self.f_hz = None
 		self.sn_mva = None
 
-		self.totalInstalledPower = 0
+		self.totalInstalledPower = 0	# TODO is used?
 		self.totalConventionalPower = 0
 		self.totalRenewablePower = 0
 		self.totalStoragePower = 0
@@ -131,6 +131,7 @@ class Network:
 								**self.loads,
 								**self.transformers,
 								**self.nodes}
+		print(f"Network for study case <{simulationName}> initialized.")
 
 	def build_network_parameters(self, networkFile):
 		df_network = pd.read_excel(networkFile, sheet_name=SHEET_NAME_NETWORK)
