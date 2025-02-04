@@ -110,6 +110,30 @@ class FragilityCurve:
 		#self.gam = LinearGAM(s(0, n_splines=len(X))).gridsearch(X, self.y_data)
 		self.gam = LinearGAM(s(0, n_splines=len(X))).fit(X, self.y_data)
 		
+		
+	def interpolate_version_with_forced_step_not_used(self, xnew): # to be removed in future
+		'''
+		# TODO: @TIM add description
+		:param xnew: list, new intensity vector
+		:return ynew: interpolated failure probabilities
+
+		Uses gam to interpolate the fragility curve data to a new x array. values above 1 are cliped.
+		'''
+		if 0 == True:
+			ynew = self.gam.predict(xnew).clip(0,1)
+		else:
+			x = np.array(self.x_data)
+			y = np.array(self.y_data)
+			idx = []
+			try:
+				for xnew_i in xnew:
+					idx.append(list(x).index(max(x[x <= xnew_i])))
+				ynew = np.array(y[idx])
+			except TypeError as te:
+				idx.append(list(x).index(max(x[x <= xnew])))
+				ynew = np.array(y[idx])
+		return ynew
+	
 	def interpolate(self, xnew):
 		'''
 		# TODO: @TIM add description
@@ -118,7 +142,20 @@ class FragilityCurve:
 
 		Uses gam to interpolate the fragility curve data to a new x array. values above 1 are cliped.
 		'''
-		return self.gam.predict(xnew).clip(0,1)
+		if 0 == True:
+			ynew = self.gam.predict(xnew).clip(0,1)
+		else:
+			x = np.array(self.x_data)
+			y = np.array(self.y_data)
+			idx = []
+			try:
+				for xnew_i in xnew:
+					idx.append(list(x).index(max(x[x <= xnew_i])))
+				ynew = np.interp(xnew, x, y, left=None, right=None, period=None)
+			except TypeError as te:
+				idx.append(list(x).index(max(x[x <= xnew])))
+				ynew = np.array(np.interp(xnew, x, y, left=None, right=None, period=None))
+		return ynew
 
 	def projected_intensity(self, rp, ref_rp, x):
 		if rp == ref_rp:
