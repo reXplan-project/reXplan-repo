@@ -49,7 +49,11 @@ def build_fragility_curve_database(simulationName):
 	dict_fragility_curves = {}
 	
 	for fc in fcs:
-		dict_fragility_curves[fc[0]] = FragilityCurve(fc[0], list(fc[1]), list(fc[2]))
+		method = fc[0].split('_')[-1]
+		if method not in ['polynomial', 'linear', 'step']:
+			method = 'linear'
+			print(f"Warning: {fc[0]} - Interpolation method not recognized/not provided. Using linear interpolation instead.")
+		dict_fragility_curves[fc[0]] = FragilityCurve(fc[0], list(fc[1]), list(fc[2]), method)
 	return dict_fragility_curves
 
 
@@ -94,7 +98,7 @@ class FragilityCurve:
 	:method interpolate(xnew, k=3):
 	:method plot_fc(xnew, k=3):
 	'''
-	def __init__(self, name, x, y):
+	def __init__(self, name, x, y, interpolateMethod='linear'):
 		'''
 		FragilityCurve Class Constructor:
 
@@ -105,34 +109,11 @@ class FragilityCurve:
 		self.x_data = x
 		self.y_data = y
 		self.name = name
+		self.interpolateMethod = interpolateMethod
 
 		X = np.array([[i] for i in self.x_data])
 		#self.gam = LinearGAM(s(0, n_splines=len(X))).gridsearch(X, self.y_data)
 		self.gam = LinearGAM(s(0, n_splines=len(X))).fit(X, self.y_data)
-		
-		
-	def interpolate_version_with_forced_step_not_used(self, xnew): # to be removed in future
-		'''
-		# TODO: @TIM add description
-		:param xnew: list, new intensity vector
-		:return ynew: interpolated failure probabilities
-
-		Uses gam to interpolate the fragility curve data to a new x array. values above 1 are cliped.
-		'''
-		if 0 == True:
-			ynew = self.gam.predict(xnew).clip(0,1)
-		else:
-			x = np.array(self.x_data)
-			y = np.array(self.y_data)
-			idx = []
-			try:
-				for xnew_i in xnew:
-					idx.append(list(x).index(max(x[x <= xnew_i])))
-				ynew = np.array(y[idx])
-			except TypeError as te:
-				idx.append(list(x).index(max(x[x <= xnew])))
-				ynew = np.array(y[idx])
-		return ynew
 	
 	def interpolate(self, xnew):
 		'''
@@ -142,19 +123,31 @@ class FragilityCurve:
 
 		Uses gam to interpolate the fragility curve data to a new x array. values above 1 are cliped.
 		'''
-		if 0 == True:
+		def find_idx_nearest_datapoint(xnew_i, x):
+			return list(x).index(max(x[x <= xnew_i]))
+		
+		x = np.array(self.x_data)
+		y = np.array(self.y_data)
+		if self.interpolateMethod == 'polynomial':
 			ynew = self.gam.predict(xnew).clip(0,1)
-		else:
-			x = np.array(self.x_data)
-			y = np.array(self.y_data)
+		elif self.interpolateMethod == 'linear':
+			ynew = np.interp(xnew, x, y, left=None, right=None, period=None)
+			if isinstance(ynew, (int, float)): ynew = np.array([ynew])
+		elif self.interpolateMethod == 'step':
+			if min(x) > 0:
+				x = np.append(0, x)
+				y = np.append(0, y)
 			idx = []
-			try:
+			if isinstance(xnew, (int, float)):
+				idx.append(find_idx_nearest_datapoint(xnew, x))
+			elif isinstance(xnew, (list, np.ndarray)):
 				for xnew_i in xnew:
-					idx.append(list(x).index(max(x[x <= xnew_i])))
-				ynew = np.interp(xnew, x, y, left=None, right=None, period=None)
-			except TypeError as te:
-				idx.append(list(x).index(max(x[x <= xnew])))
-				ynew = np.array(np.interp(xnew, x, y, left=None, right=None, period=None))
+					idx.append(find_idx_nearest_datapoint(xnew_i, x))
+			else:
+				raise TypeError("xnew must be a list or a number")
+			ynew = y[idx]
+		else:
+			raise ValueError("Method must be 'polynomial', 'linear' or 'step'")
 		return ynew
 
 	def projected_intensity(self, rp, ref_rp, x):
