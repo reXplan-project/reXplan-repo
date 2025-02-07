@@ -73,6 +73,7 @@ class pandapower():
 		# TODO: @TIM add description
 		run_timeseries(self.network, df_timeseries.index,continue_on_divergence=True, **kwargs)
 
+
 	def format(self, output):
 		out = []
 		for key, df in output.output.items():
@@ -97,8 +98,7 @@ class pandapower():
 		DataFrame: The formatted output of the simulation.
 		"""
 		self.create_controllers(df_timeseries)
-		output = self.configure_output_writer(
-			df_timeseries.index)
+		output = self.configure_output_writer(df_timeseries.index)
 		run_type = pp.runopp
 		if 'run_type' in kwargs:
 			if kwargs['run_type'] == 'pf' or kwargs['run_type'] == 'ac_pf':

@@ -34,9 +34,14 @@ def build_database(iterations, databases, df_int_ext_time):
 			iter_offset += len(df)
 	return convert_index_to_external_time(pd.concat(dict(zip(stratas, db)), names=['strata'], axis=1), df_int_ext_time).T
 
-def read_database(dababaseFile):
+def read_database(databaseFile):
 	# TODO: call const.py for index_col
-	return pd.read_csv(dababaseFile,  index_col=[0, 1, 2, 3, 4]).T
+	for sep in [",", ";"]:
+		try:
+			return pd.read_csv(databaseFile, index_col=[0, 1, 2, 3, 4], sep=sep).T
+		except Exception:
+			continue
+	raise ValueError("Error: Unable to read montecarlo file.")
 
 def allocate_column_values(object, df_):
 	# .to_frame().T is needed because the function acts on of the df's columns
