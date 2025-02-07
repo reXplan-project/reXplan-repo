@@ -49,7 +49,11 @@ def build_fragility_curve_database(simulationName):
 	dict_fragility_curves = {}
 	
 	for fc in fcs:
-		dict_fragility_curves[fc[0]] = FragilityCurve(fc[0], list(fc[1]), list(fc[2]))
+		method = fc[0].split('_')[-1]
+		if method not in ['polynomial', 'linear', 'step']:
+			method = 'linear'
+			print(f"Warning: {fc[0]} - Interpolation method not recognized/not provided. Using linear interpolation instead.")
+		dict_fragility_curves[fc[0]] = FragilityCurve(fc[0], list(fc[1]), list(fc[2]), method)
 	return dict_fragility_curves
 
 
@@ -94,7 +98,7 @@ class FragilityCurve:
 	:method interpolate(xnew, k=3):
 	:method plot_fc(xnew, k=3):
 	'''
-	def __init__(self, name, x, y):
+	def __init__(self, name, x, y, interpolateMethod='linear'):
 		'''
 		FragilityCurve Class Constructor:
 
@@ -105,11 +109,12 @@ class FragilityCurve:
 		self.x_data = x
 		self.y_data = y
 		self.name = name
+		self.interpolateMethod = interpolateMethod
 
 		X = np.array([[i] for i in self.x_data])
 		#self.gam = LinearGAM(s(0, n_splines=len(X))).gridsearch(X, self.y_data)
 		self.gam = LinearGAM(s(0, n_splines=len(X))).fit(X, self.y_data)
-		
+	
 	def interpolate(self, xnew):
 		'''
 		# TODO: @TIM add description
@@ -118,7 +123,32 @@ class FragilityCurve:
 
 		Uses gam to interpolate the fragility curve data to a new x array. values above 1 are cliped.
 		'''
-		return self.gam.predict(xnew).clip(0,1)
+		def find_idx_nearest_datapoint(xnew_i, x):
+			return list(x).index(max(x[x <= xnew_i]))
+		
+		x = np.array(self.x_data)
+		y = np.array(self.y_data)
+		if self.interpolateMethod == 'polynomial':
+			ynew = self.gam.predict(xnew).clip(0,1)
+		elif self.interpolateMethod == 'linear':
+			ynew = np.interp(xnew, x, y, left=None, right=None, period=None)
+			if isinstance(ynew, (int, float)): ynew = np.array([ynew])
+		elif self.interpolateMethod == 'step':
+			if min(x) > 0:
+				x = np.append(0, x)
+				y = np.append(0, y)
+			idx = []
+			if isinstance(xnew, (int, float)):
+				idx.append(find_idx_nearest_datapoint(xnew, x))
+			elif isinstance(xnew, (list, np.ndarray)):
+				for xnew_i in xnew:
+					idx.append(find_idx_nearest_datapoint(xnew_i, x))
+			else:
+				raise TypeError("xnew must be a list or a number")
+			ynew = y[idx]
+		else:
+			raise ValueError("Method must be 'polynomial', 'linear' or 'step'")
+		return ynew
 
 	def projected_intensity(self, rp, ref_rp, x):
 		if rp == ref_rp:

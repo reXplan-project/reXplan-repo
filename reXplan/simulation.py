@@ -313,7 +313,7 @@ class Sim:
 	
 	def get_intensity_boundaries(self, network, min_intensity, max_intensity, ref_return_period):
 
-		max_intensity_from_rp = max(max(rp.y_data) for _, rp in network.returnPeriods.items())
+		max_intensity_from_rp = max(network.returnPeriods[ref_return_period].y_data)
 		min_intensity_from_rp = min(network.returnPeriods[ref_return_period].y_data)
 
 		if min_intensity == None:
