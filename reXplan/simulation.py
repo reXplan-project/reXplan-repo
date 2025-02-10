@@ -35,9 +35,14 @@ def build_database(iterations, databases, df_int_ext_time):
 			iter_offset += len(df)
 	return convert_index_to_external_time(pd.concat(dict(zip(stratas, db)), names=['strata'], axis=1), df_int_ext_time).T
 
-def read_database(dababaseFile):
+def read_database(databaseFile):
 	# TODO: call const.py for index_col
-	return pd.read_csv(dababaseFile,  index_col=[0, 1, 2, 3, 4]).T
+	for sep in [",", ";"]:
+		try:
+			return pd.read_csv(databaseFile, index_col=[0, 1, 2, 3, 4], sep=sep).T
+		except Exception:
+			continue
+	raise ValueError("Error: Unable to read montecarlo file.")
 
 def allocate_column_values(object, df_):
 	# .to_frame().T is needed because the function acts on of the df's columns
@@ -310,7 +315,7 @@ class Sim:
 	
 	def get_intensity_boundaries(self, network, min_intensity, max_intensity, ref_return_period):
 
-		max_intensity_from_rp = max(max(rp.y_data) for _, rp in network.returnPeriods.items())
+		max_intensity_from_rp = max(network.returnPeriods[ref_return_period].y_data)
 		min_intensity_from_rp = min(network.returnPeriods[ref_return_period].y_data)
 
 		if min_intensity == None:

@@ -54,5 +54,5 @@ def filter_non_converged_iterations(df):
             if (df.loc[strata, iteration] == 0).all(axis=0).any():
                 df.drop(index = iteration, level = 'iteration', inplace = True)
                 i_dropped.append(iteration)
-    print(f'iterations droped : {i_dropped}')
+    print(f'Iterations dropped: {i_dropped}')
     return df
