@@ -188,8 +188,7 @@ class Network:
 		self.crews = build_class_dict(df_crews, 'Crew')
 
 	def allocate_profiles(self, networkFile):
-		df_profiles = pd.read_excel(
-			networkFile, sheet_name=SHEET_NAME_PROFILES, header=[0, 1], index_col=0)
+		df_profiles = pd.read_excel(networkFile, sheet_name=SHEET_NAME_PROFILES, header=[0, 1], index_col=0)
 		df_profiles.reset_index(drop=True, inplace=True)
 		for assetId, field in df_profiles:
 			element = self.get_powerelement(assetId)
@@ -612,6 +611,8 @@ class Network:
 				print(f'after update_grid {debug} is {self.get_powerelement(id).in_service}')
 
 	def build_montecarlo_database(self, time):
+		if not self.mcVariables:
+			print("No montecarlo variables to build database.")
 		return build_database(self.mcVariables).loc[time.start: time.stop-1]
 
 	def build_timeseries_database(self, time):

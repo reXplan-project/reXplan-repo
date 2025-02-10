@@ -55,7 +55,10 @@ def allocate_column_values(object, df_):
 			warnings.warn(f'Input parameter "{key}" unknown in dataframe.')
 
 def get_index_as_dataSeries(df):
-	return df.index.to_frame(index=False)[0]
+	if df.index.empty:
+		print("Sheet Profiles is empty!")
+	#return df.index.to_frame(index=False)[0]
+	return df.index.to_frame(index=False).iloc[:, 0]
 
 def enrich_database(df):
 	# TODO: @TIM add description
@@ -178,8 +181,7 @@ class Sim:
 
 		df_simulation = pd.read_excel(config.path.networkFile(simulationName), sheet_name=SHEET_NAME_SIMULATION, index_col=0)
 		allocate_column_values(self, df_simulation[COL_NAME_VALUE])
-		self.externalTimeInterval = get_index_as_dataSeries(pd.read_excel(config.path.networkFile(simulationName),
-																		 sheet_name=SHEET_NAME_PROFILES, index_col=0, header=[0, 1]))
+		self.externalTimeInterval = get_index_as_dataSeries(pd.read_excel(config.path.networkFile(simulationName), sheet_name=SHEET_NAME_PROFILES, index_col=0, header=[0, 1]))
 		self.time = self.to_internal_time(self.startTime, self.duration)
 		print(f'\nSimulation:	Start = {self.time.start:>3}; Stop = {self.time.stop:>3}; Duration = {self.time.duration:>3} timesteps.')
 		self.hazardTime = self.to_internal_time(self.hazardStartTime, self.hazardDuration)

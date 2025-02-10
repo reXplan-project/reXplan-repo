@@ -115,15 +115,16 @@ def rename_element(sheet, column, values, net, rename = False):
 def from_pp(net, profiles=None, rename=False):
     """
 	Creates a reXplan compliant network as excel file from pandapower.
+    Resilience parameters are not considered in this function.
 
     INPUT:
-		net (dict) - pandapower format network
-        profiles (dict) - pandapower format profiles
+		net (dict) - pandapower formatted network
+        profiles (dict) - pandapower formatted profiles
         rename (bool) - False: Naming as provided in pandapower net; True: Elements renamed with respective naming of network (not implemented yet)
 
     EXAMPLE:
-		>>> import_grid(net)
-		>>> import_grid(pn.case14(), rename=False)
+		>>> from_pp(net)
+		>>> from_pp(pn.case14(), rename=False)
     """
     # TODO: FOR profiles = VALUE:-----------------------------------
     # TODO: - First column add timesteps -> discuss automation (tab: simulation?)
@@ -263,4 +264,5 @@ def from_pp(net, profiles=None, rename=False):
         style_formatting(ws)
 
     wb.save('network.xlsx')
-    print('\n- network.xlsx created successfully! - ')
+    network_path = path + r"\jupyter_notebooks\network.xlsx"
+    print(f'\nNetwork file created successfully created: {network_path}')
