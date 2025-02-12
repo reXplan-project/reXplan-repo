@@ -30,27 +30,21 @@ from mpl_toolkits.basemap import Basemap
 # TODO: revise following contants
 # OBS: Not all elements can be set to i_montecarlo = True. The montecarlo_database.csv file cannot be empty
 
-COL_NAME_FRAGILITY_CURVE = 'fragilityCurve'
-COL_NAME_KF = 'kf'
-COL_NAME_RESILIENCE_FULL = 'resilienceFull'
-COL_NAME_WEATHER_TTR = 'weatherTTR'
 TIMESERIES_CLASS = pd.Series
 
 # Network element status
 STATUS = {'on': 1, 'off': 0, 'reparing': -1, 'waiting': -2}
 
-def build_class_dict(df, class_name):
-	return {row.id: globals()[class_name](row.dropna(axis=0).to_dict()) for index, row in utils.df_to_internal_fields(df).iterrows()}
 
+def build_class_dict(df, class_name):
+	return {row.id: globals()[class_name](row.dropna(axis=0).to_dict()) for _, row in utils.df_to_internal_fields(df).iterrows()}
 
 def find_element_in_standard_dict_list(id, list):
 	# return first element or None otherwise
 	return next((x for x in list if 'id' in x and x['id'] == id), None)
 
-
 def standard_dict(content, type, id, field):
 	return {k: v for k, v in locals().items()}
-
 
 def get_datatype_elements(object, class_):
 	if isinstance(object, list):
@@ -61,7 +55,6 @@ def get_datatype_elements(object, class_):
 		out = []
 	elif hasattr(object, "__dict__"):
 		iterateOver = vars(object).values()
-		# out = [(object, type(object).__name__, key) for key, value in vars(object).items() if isinstance(value, class_)]
 		out = [standard_dict(content=object, type=type(object).__name__, id=object.id, field=key)
 			   for key, value in vars(object).items() if isinstance(value, class_)]
 	else:
@@ -82,13 +75,11 @@ def build_database(standard_dict_list, get_value_from_content=True):
 	out.columns.names = columnNames
 	return out
 
-
 class Network:
 	'''
 	TODO: @TIM add description
 	Add description of Newtork class here
 	'''
-
 	def __init__(self, simulationName):
 		self.id = None
 		self.f_hz = None
@@ -133,9 +124,80 @@ class Network:
 								**self.nodes}
 		print(f"Network for study case <{simulationName}> initialized.")
 
+	def repackage_geodata(self, df):
+		GEODATA = 'geodata'
+		cols_to_merge = sorted([col for col in df.columns if GEODATA in col])
+		merged_col = []
+		for _, row in df.iterrows():
+			if row[cols_to_merge].isnull().any(): 
+				merged_col.append(None)
+			else:
+				if len(cols_to_merge) == 2:
+					merged_col.append(tuple(row[cols_to_merge]))
+				elif len(cols_to_merge) == 4:
+					merged_col.append([list(row[cols_to_merge[0:2]]), list(row[cols_to_merge[2:]])])
+				else:
+					raise ValueError('Unexpected number of geodata columns')
+		df[GEODATA] = merged_col
+		df = df.drop(cols_to_merge, axis=1)
+		return df
+	
+	def create_pandapower_df(self, df):
+		df = df.replace({np.nan: None})
+		df_pp = utils.df_to_pandapower_object(df)
+		df_pp = df_pp.loc[:, df_pp.columns.notna()]
+		return df_pp
+	
+	def augment_element_with_typedata(self, df, df_type):
+		STD_TYPE = 'std_type'
+		df_type.rename(columns={COL_NAME_NAME: STD_TYPE}, inplace=True)
+		df = df.merge(df_type, on=STD_TYPE)
+		df = df.drop(STD_TYPE, axis=1)
+		return df
+	
+	def node_name_to_id(self, df, cols=[], bus_ids={}, line_ids={}, tr_ids={}, gen_ids={}, sgen_ids={}, ext_grid_ids={}, load_ids={}, dcline_ids={}, storage_ids={} ,element_col=[]):
+		for col in cols:
+			df[col] = [bus_ids[row] for row in df[col]]
+		if len(element_col)>0:
+			for index ,row in df.iterrows():
+				if row[element_col[1]] == 'b':
+					row[element_col[0]] = bus_ids[row[element_col[0]]]
+				elif row[element_col[1]] == 'l':
+					row[element_col[0]] = line_ids[row[element_col[0]]]
+				elif row[element_col[1]] in ['t', 't3']:
+					row[element_col[0]] = tr_ids[row[element_col[0]]]
+				elif row[element_col[1]] == 'gen':
+					row[element_col[0]] = gen_ids[row[element_col[0]]]
+				elif row[element_col[1]] == 'sgen':
+					row[element_col[0]] = sgen_ids[row[element_col[0]]]
+				elif row[element_col[1]] == 'ext_grid':
+					row[element_col[0]] = ext_grid_ids[row[element_col[0]]]
+				elif row[element_col[1]] == 'load':
+					row[element_col[0]] = load_ids[row[element_col[0]]]
+				elif row[element_col[1]] == 'dcline':
+					row[element_col[0]] = dcline_ids[row[element_col[0]]]
+				elif row[element_col[1]] == 'storage':
+					row[element_col[0]] = storage_ids[row[element_col[0]]]
+				else:
+					raise ValueError('Unexpected switch element type')
+				df.iloc[index] = row
+		return df
+	
+	def create_elements(self, df, create_function, network):
+		ids = {}
+		for _, row in df.iterrows():
+			kwargs = row.to_dict()
+			kwargs['net'] = network
+			if COL_NAME_NAME in df.columns:
+				ids[row[COL_NAME_NAME]] = create_function(
+								**{key: value for key, value in kwargs.items() if value is not None})
+			else:
+				create_function(**{key: value for key, value in kwargs.items() if value is not None})
+		return ids
+			
 	def build_network_parameters(self, networkFile):
 		df_network = pd.read_excel(networkFile, sheet_name=SHEET_NAME_NETWORK)
-		for index, row in utils.df_to_internal_fields(df_network).iterrows():
+		for _, row in utils.df_to_internal_fields(df_network).iterrows():
 			for key, value in row.dropna(axis=0).to_dict().items():
 				if hasattr(self, key):
 					setattr(self, key, value)
@@ -236,236 +298,176 @@ class Network:
 
 	def build_pp_network(self, df_network, df_bus, df_tr, df_tr_type, df_ln, df_ln_type, df_load, df_ex_gen, df_gen, df_switch, df_cost):
 		# TODO: it seems this funciton is missplaced. Can it be moved to engine.pandapower?
-		# TODO: Condense creation of dictionaries by iteration
-		# TODO: update fields_map.csv accordingly
 		'''
 		This Function takes as imput the input file name without the extention
 		and gives as output the pandapower network object.
 		'''
 
-		df_network = df_network.replace({np.nan: None})
-		name = df_network[COL_NAME_NAME].values[0]
-		f_hz = df_network[COL_NAME_FREQUENCY].values[0]
-		sn_mva = df_network[COL_NAME_REF_POWER].values[0]
-		kwargs_network = dict(f_hz=f_hz, name=name, sn_mva=sn_mva)
-		network = pp.create_empty_network(
-			**{key: value for key, value in kwargs_network.items() if value is not None})
+		# Creating the empty network
+		df_network_pp = self.create_pandapower_df(df_network)
+		kwargs_network = df_network_pp.iloc[0].to_dict()
+		pp_network = pp.create_empty_network(**{key: value for key, value in kwargs_network.items() if value is not None})
 
 		# Creating the bus elements
-		df_bus = df_bus.replace({np.nan: None})
-		bus_ids = {}
-		for index, row in df_bus.iterrows():
-			if (row[COL_NAME_LONGITUDE] is not None) and (row[COL_NAME_LATITUDE] is not None):
-				geodata = (row[COL_NAME_LATITUDE], row[COL_NAME_LONGITUDE])
-			else:
-				geodata = None
-			kwargs_bus = dict(net=network, vn_kv=row[COL_NAME_VOLTAGE],
-							  name=row[COL_NAME_NAME],
-							  index=row[COL_NAME_INDEX],
-							  geodata=geodata, zone=row[COL_NAME_ZONE],
-							  in_service=row[COL_NAME_SERVICE],
-							  max_vm_pu=row[COL_NAME_MAX_VOLTAGE],
-							  min_vm_pu=row[COL_NAME_MIN_VOLTAGE])
-
-			bus_ids[row[COL_NAME_NAME]] = pp.create_bus(
-				**{key: value for key, value in kwargs_bus.items() if value is not None})
+		df_bus_pp = self.create_pandapower_df(df_bus)
+		df_bus_pp = self.repackage_geodata(df_bus_pp)
+		bus_ids = self.create_elements(df_bus_pp, pp.create_bus, pp_network)
 
 		# Creating the transformer elements
-		df_tr = df_tr.replace({np.nan: None})
-		df_tr_type = df_tr_type.replace({np.nan: None})
-		tr_ids = {}
-		for index, row in df_tr.iterrows():
-			tr_type = df_tr_type.loc[df_tr_type[COL_NAME_NAME]
-									 == row[COL_NAME_TYPE]]
-			kwargs_tr = dict(net=network, hv_bus=bus_ids[row[COL_NAME_NODE_P]],
-							 lv_bus=bus_ids[row[COL_NAME_NODE_S]],
-							 sn_mva=tr_type[COL_NAME_REF_POWER].values[0],
-							 vn_hv_kv=tr_type[COL_NAME_VN_HV].values[0],
-							 vn_lv_kv=tr_type[COL_NAME_VN_LV].values[0],
-							 vkr_percent=tr_type[COL_NAME_VKR].values[0],
-							 vk_percent=tr_type[COL_NAME_VK].values[0],
-							 pfe_kw=tr_type[COL_NAME_PFE].values[0],
-							 i0_percent=tr_type[COL_NAME_I0].values[0],
-							 shift_degree=tr_type[COL_NAME_SHIFT].values[0],
-							 tap_side=tr_type[COL_NAME_TAP_SIDE].values[0],
-							 tap_neutral=tr_type[COL_NAME_TAP_NEUTRAL].values[0],
-							 tap_max=tr_type[COL_NAME_TAP_MAX].values[0],
-							 tap_min=tr_type[COL_NAME_TAP_MIN].values[0],
-							 tap_step_percent=tr_type[COL_NAME_TAP_STEP].values[0],
-							 tap_step_degree=tr_type[COL_NAME_TAP_STEP_ANGLE].values[0],
-							 tap_pos=row[COL_NAME_TAP_POS],
-							 tap_phase_shifter=tr_type[COL_NAME_TAP_PHASE_SHIFTER].values[0],
-							 in_service=row[COL_NAME_SERVICE],
-							 name=row[COL_NAME_NAME],
-							 vector_group=row[COL_NAME_VECTOR_GROUP],
-							 max_loading_percent=row[COL_NAME_MAX_LOADING],
-							 parallel=row[COL_NAME_PARALLEL],
-							 df=row[COL_NAME_DF])
-			tr_ids[row[COL_NAME_NAME]] = pp.create_transformer_from_parameters(
-				**{key: value for key, value in kwargs_tr.items() if value is not None})
+		df_tr_pp = self.create_pandapower_df(df_tr)
+		df_tr_type_pp = self.create_pandapower_df(df_tr_type)
+		df_tr_pp = self.augment_element_with_typedata(df_tr_pp, df_tr_type_pp)
+		df_tr_pp = self.node_name_to_id(df_tr_pp, ['lv_bus', 'hv_bus'], bus_ids)
+		tr_ids = self.create_elements(df_tr_pp, pp.create_transformer_from_parameters, pp_network)
+		# for _, row in df_tr_pp.iterrows():
+		# 	kwargs_tr = row.to_dict()
+		# 	kwargs_tr['net'] = pp_network
+		# 	tr_ids[row[COL_NAME_NAME]] = pp.create_transformer_from_parameters(
+		# 		**{key: value for key, value in kwargs_tr.items() if value is not None})
 
 		# Creating the line elements
-		df_ln = df_ln.replace({np.nan: None})
-		df_ln_type = df_ln_type.replace({np.nan: None})
-		line_ids = {}
-		for index, row in df_ln.iterrows():
-			if (row[COL_NAME_FROM_LONGITUDE] is not None) and (row[COL_NAME_FROM_LATITUDE] is not None) and (row[COL_NAME_TO_LONGITUDE] is not None) and (row[COL_NAME_TO_LATITUDE] is not None):
-				geodata = [[row[COL_NAME_FROM_LATITUDE], row[COL_NAME_FROM_LONGITUDE]],
-						   [row[COL_NAME_TO_LATITUDE], row[COL_NAME_TO_LONGITUDE]]]
-			else:
-				geodata = None
-			ln_type = df_ln_type.loc[df_ln_type[COL_NAME_NAME]
-									 == row[COL_NAME_TYPE]]
-			kwargs_ln = dict(net=network,
-							 from_bus=bus_ids[row[COL_NAME_FROM_BUS]],
-							 to_bus=bus_ids[row[COL_NAME_TO_BUS]],
-							 length_km=row[COL_NAME_LENGTH],
-							 r_ohm_per_km=ln_type[COL_NAME_R1].values[0],
-							 x_ohm_per_km=ln_type[COL_NAME_X1].values[0],
-							 c_nf_per_km=ln_type[COL_NAME_C1].values[0],
-							 max_i_ka=ln_type[COL_NAME_MAX_I].values[0],
-							 name=row[COL_NAME_NAME],
-							 index=row[COL_NAME_INDEX],
-							 type=ln_type[COL_NAME_TYPE].values[0],
-							 geodata=geodata,
-							 in_service=row[COL_NAME_SERVICE],
-							 df=row[COL_NAME_DF],
-							 parallel=row[COL_NAME_PARALLEL],
-							 g_us_per_km=ln_type[COL_NAME_G1].values[0],
-							 max_loading_percent=row[COL_NAME_MAX_LOADING],
-							 r0_ohm_per_km=ln_type[COL_NAME_R0].values[0],
-							 x0_ohm_per_km=ln_type[COL_NAME_X0].values[0],
-							 c0_nf_per_km=ln_type[COL_NAME_C0].values[0],
-							 g0_us_per_km=ln_type[COL_NAME_G0].values[0])
-			line_ids[row[COL_NAME_NAME]] = pp.create_line_from_parameters(
-								**{key: value for key, value in kwargs_ln.items() if value is not None})
+		df_ln_pp = self.create_pandapower_df(df_ln)
+		df_ln_type_pp = self.create_pandapower_df(df_ln_type)
+		df_ln_pp = self.augment_element_with_typedata(df_ln_pp, df_ln_type_pp)
+		df_ln_pp = self.node_name_to_id(df_ln_pp, ['from_bus', 'to_bus'], bus_ids)
+		df_ln_pp = self.repackage_geodata(df_ln_pp)
+		line_ids = self.create_elements(df_ln_pp, pp.create_line_from_parameters, pp_network)
 
 		# Creating the load elements
-		df_load = df_load.replace({np.nan: None})
-		load_ids = {}
-		for index, row in df_load.iterrows():
-			kwargs_load = dict(net=network,
-							   bus=bus_ids[row[COL_NAME_BUS]],
-							   p_mw=row[COL_NAME_P],
-							   q_mvar=row[COL_NAME_Q],
-							   const_z_percent=row[COL_NAME_CONST_Z],
-							   const_i_percent=row[COL_NAME_CONST_I],
-							   sn_mva=row[COL_NAME_REF_POWER],
-							   name=row[COL_NAME_NAME],
-							   scaling=row[COL_NAME_SCALING],
-							   in_service=row[COL_NAME_SERVICE],
-							   type=row[COL_NAME_TYPE],
-							   max_p_mw=row[COL_NAME_MAX_P],
-							   min_p_mw=row[COL_NAME_MIN_P],
-							   max_q_mvar=row[COL_NAME_MAX_Q],
-							   min_q_mvar=row[COL_NAME_MIN_Q],
-							   controllable=row[COL_NAME_CONTROLLABLE])
-			load_ids[row[COL_NAME_NAME]] = pp.create_load(
-				**{key: value for key, value in kwargs_load.items() if value is not None})
+		df_load_pp = self.create_pandapower_df(df_load)
+		df_load_pp = self.node_name_to_id(df_load_pp, ['bus'], bus_ids)
+		load_ids = self.create_elements(df_load_pp, pp.create_load, pp_network)
+		# for _, row in df_load.iterrows():
+		# 	kwargs_load = dict(net=network,
+		# 					   bus=bus_ids[row[COL_NAME_BUS]],
+		# 					   p_mw=row[COL_NAME_P],
+		# 					   q_mvar=row[COL_NAME_Q],
+		# 					   const_z_percent=row[COL_NAME_CONST_Z],
+		# 					   const_i_percent=row[COL_NAME_CONST_I],
+		# 					   sn_mva=row[COL_NAME_REF_POWER],
+		# 					   name=row[COL_NAME_NAME],
+		# 					   scaling=row[COL_NAME_SCALING],
+		# 					   in_service=row[COL_NAME_SERVICE],
+		# 					   type=row[COL_NAME_TYPE],
+		# 					   max_p_mw=row[COL_NAME_MAX_P],
+		# 					   min_p_mw=row[COL_NAME_MIN_P],
+		# 					   max_q_mvar=row[COL_NAME_MAX_Q],
+		# 					   min_q_mvar=row[COL_NAME_MIN_Q],
+		# 					   controllable=row[COL_NAME_CONTROLLABLE])
+		# 	load_ids[row[COL_NAME_NAME]] = pp.create_load(
+		# 		**{key: value for key, value in kwargs_load.items() if value is not None})
 
 		# Creating the external gen elements
-		df_ex_gen = df_ex_gen.replace({np.nan: None})
-		ex_gen_ids = {}
-		for index, row in df_ex_gen.iterrows():
-			kwargs_ex_gen = dict(net=network,
-								 bus=bus_ids[row[COL_NAME_BUS]],
-								 vm_pu=row[COL_NAME_VM],
-								 va_degree=row[COL_NAME_VA],
-								 name=row[COL_NAME_NAME],
-								 in_service=row[COL_NAME_SERVICE],
-								 s_sc_max_mva=row[COL_NAME_MAX_S_SC],
-								 s_sc_min_mva=row[COL_NAME_MIN_S_SC],
-								 rx_max=row[COL_NAME_MAX_RX],
-								 rx_min=row[COL_NAME_MIN_RX],
-								 max_p_mw=row[COL_NAME_MAX_P],
-								 min_p_mw=row[COL_NAME_MIN_P],
-								 max_q_mvar=row[COL_NAME_MAX_Q],
-								 min_q_mvar=row[COL_NAME_MIN_Q],
-								 r0x0_max=row[COL_NAME_MAX_R0X0],
-								 x0x_max=row[COL_NAME_MAX_X0X],
-								 controllable=row[COL_NAME_CONTROLLABLE],
-								 slack_weight=row[COL_NAME_SLACK_WEIGHT])
-			ex_gen_ids[row[COL_NAME_NAME]] = pp.create_ext_grid(
-				**{key: value for key, value in kwargs_ex_gen.items() if value is not None})
+		df_ex_gen_pp = self.create_pandapower_df(df_ex_gen)
+		df_ex_gen_pp = self.node_name_to_id(df_ex_gen_pp, ['bus'], bus_ids)
+		ex_gen_ids = self.create_elements(df_ex_gen_pp, pp.create_ext_grid, pp_network)
+		# ex_gen_ids = {}
+		# for _, row in df_ex_gen.iterrows():
+		# 	kwargs_ex_gen = dict(net=network,
+		# 						 bus=bus_ids[row[COL_NAME_BUS]],
+		# 						 vm_pu=row[COL_NAME_VM],
+		# 						 va_degree=row[COL_NAME_VA],
+		# 						 name=row[COL_NAME_NAME],
+		# 						 in_service=row[COL_NAME_SERVICE],
+		# 						 s_sc_max_mva=row[COL_NAME_MAX_S_SC],
+		# 						 s_sc_min_mva=row[COL_NAME_MIN_S_SC],
+		# 						 rx_max=row[COL_NAME_MAX_RX],
+		# 						 rx_min=row[COL_NAME_MIN_RX],
+		# 						 max_p_mw=row[COL_NAME_MAX_P],
+		# 						 min_p_mw=row[COL_NAME_MIN_P],
+		# 						 max_q_mvar=row[COL_NAME_MAX_Q],
+		# 						 min_q_mvar=row[COL_NAME_MIN_Q],
+		# 						 r0x0_max=row[COL_NAME_MAX_R0X0],
+		# 						 x0x_max=row[COL_NAME_MAX_X0X],
+		# 						 controllable=row[COL_NAME_CONTROLLABLE],
+		# 						 slack_weight=row[COL_NAME_SLACK_WEIGHT])
+		# 	ex_gen_ids[row[COL_NAME_NAME]] = pp.create_ext_grid(
+		# 		**{key: value for key, value in kwargs_ex_gen.items() if value is not None})
 
 		# Creating the generator elements
-		df_gen = df_gen.replace({np.nan: None})
-		gen_ids = {}
-		for index, row in df_gen.iterrows():
-			kwargs_gen = dict(net=network,
-							  bus=bus_ids[row[COL_NAME_BUS]],
-							  p_mw=row[COL_NAME_P],
-							  vm_pu=row[COL_NAME_VM],
-							  sn_mva=row[COL_NAME_REF_POWER],
-							  name=row[COL_NAME_NAME],
-							  max_q_mvar=row[COL_NAME_MAX_Q],
-							  min_q_mvar=row[COL_NAME_MIN_Q],
-							  min_p_mw=row[COL_NAME_MIN_P],
-							  max_p_mw=row[COL_NAME_MAX_P],
-							  min_vm_pu=row[COL_NAME_MIN_VOLTAGE],
-							  max_vm_pu=row[COL_NAME_MAX_VOLTAGE],
-							  scaling=row[COL_NAME_SCALING],
-							  type=row[COL_NAME_TYPE],
-							  lack=row[COL_NAME_LACK],
-							  controllable=row[COL_NAME_CONTROLLABLE],
-							  vn_kv=row[COL_NAME_VOLTAGE],
-							  xdss_pu=row[COL_NAME_XDSS],
-							  rdss_ohm=row[COL_NAME_RDSS],
-							  cos_phi=row[COL_NAME_COS_PHI],
-							  pg_percent=row[COL_NAME_PG],
-							  power_station_trafo=row[COL_NAME_PS_TRAFO],
-							  in_service=row[COL_NAME_SERVICE],
-							  slack_weight=row[COL_NAME_SLACK_WEIGHT],
-							  slack=row[COL_NAME_SLACK]
-							  )
-			gen_ids[row[COL_NAME_NAME]] = pp.create_gen(
-				**{key: value for key, value in kwargs_gen.items() if value is not None})
+		df_gen_pp = self.create_pandapower_df(df_gen)
+		df_gen_pp = self.node_name_to_id(df_gen_pp, ['bus'], bus_ids)
+		gen_ids = self.create_elements(df_gen_pp, pp.create_gen, pp_network)
+		# gen_ids = {}
+		# for _, row in df_gen.iterrows():
+		# 	kwargs_gen = dict(net=network,
+		# 					  bus=bus_ids[row[COL_NAME_BUS]],
+		# 					  p_mw=row[COL_NAME_P],
+		# 					  vm_pu=row[COL_NAME_VM],
+		# 					  sn_mva=row[COL_NAME_REF_POWER],
+		# 					  name=row[COL_NAME_NAME],
+		# 					  max_q_mvar=row[COL_NAME_MAX_Q],
+		# 					  min_q_mvar=row[COL_NAME_MIN_Q],
+		# 					  min_p_mw=row[COL_NAME_MIN_P],
+		# 					  max_p_mw=row[COL_NAME_MAX_P],
+		# 					  min_vm_pu=row[COL_NAME_MIN_VOLTAGE],
+		# 					  max_vm_pu=row[COL_NAME_MAX_VOLTAGE],
+		# 					  scaling=row[COL_NAME_SCALING],
+		# 					  type=row[COL_NAME_TYPE],
+		# 					  lack=row[COL_NAME_LACK],
+		# 					  controllable=row[COL_NAME_CONTROLLABLE],
+		# 					  vn_kv=row[COL_NAME_VOLTAGE],
+		# 					  xdss_pu=row[COL_NAME_XDSS],
+		# 					  rdss_ohm=row[COL_NAME_RDSS],
+		# 					  cos_phi=row[COL_NAME_COS_PHI],
+		# 					  pg_percent=row[COL_NAME_PG],
+		# 					  power_station_trafo=row[COL_NAME_PS_TRAFO],
+		# 					  in_service=row[COL_NAME_SERVICE],
+		# 					  slack_weight=row[COL_NAME_SLACK_WEIGHT],
+		# 					  slack=row[COL_NAME_SLACK]
+		# 					  )
+		# 	gen_ids[row[COL_NAME_NAME]] = pp.create_gen(
+		# 		**{key: value for key, value in kwargs_gen.items() if value is not None})
 
 		# Creating the switch elements
-		df_switch = df_switch.replace({np.nan: None})
-		switches_ids = {}
-		for index, row in df_switch.iterrows():
-			if row[COL_NAME_ET] == 'b':
-				element = bus_ids[row[COL_NAME_ELEMENT]]
-			elif row[COL_NAME_ET] == 'l':
-				element = line_ids[row[COL_NAME_ELEMENT]]
-			elif row[COL_NAME_ET] in ['t', 't3']:
-				element = tr_ids[row[COL_NAME_ELEMENT]]
-			kwargs_gen = dict(net=network,
-							  name=row[COL_NAME_NAME],
-							  bus=bus_ids[row[COL_NAME_BUS]],
-							  element=element,
-							  et=row[COL_NAME_ET],
-							  closed=row[COL_NAME_CLOSED],
-							  in_ka=row[COL_NAME_IN_KA],
-							  type=row[COL_NAME_TYPE]
-							  # in_service=row[COL_NAME_SERVICE]
-							  )
-			switches_ids[row[COL_NAME_NAME]] = pp.create_switch(
-				**{key: value for key, value in kwargs_gen.items() if value is not None})
+		df_switch_pp = self.create_pandapower_df(df_switch)
+		df_switch_pp = self.node_name_to_id(df_switch_pp, ['bus'], bus_ids, line_ids=line_ids, tr_ids=tr_ids, element_col=['element', 'et'])
+		switches_ids = self.create_elements(df_switch_pp, pp.create_switch, pp_network)
+
+		# for _, row in df_switch.iterrows():
+		# 	if row[COL_NAME_ET] == 'b':
+		# 		element = bus_ids[row[COL_NAME_ELEMENT]]
+		# 	elif row[COL_NAME_ET] == 'l':
+		# 		element = line_ids[row[COL_NAME_ELEMENT]]
+		# 	elif row[COL_NAME_ET] in ['t', 't3']:
+		# 		element = tr_ids[row[COL_NAME_ELEMENT]]
+		# 	kwargs_gen = dict(net=network,
+		# 					  name=row[COL_NAME_NAME],
+		# 					  bus=bus_ids[row[COL_NAME_BUS]],
+		# 					  element=element,
+		# 					  et=row[COL_NAME_ET],
+		# 					  closed=row[COL_NAME_CLOSED],
+		# 					  in_ka=row[COL_NAME_IN_KA],
+		# 					  type=row[COL_NAME_TYPE]
+		# 					  # in_service=row[COL_NAME_SERVICE]
+		# 					  )
+		# 	switches_ids[row[COL_NAME_NAME]] = pp.create_switch(
+		# 		**{key: value for key, value in kwargs_gen.items() if value is not None})
 
 		# Creating the cost function
-		df_cost = df_cost.replace({np.nan: None})
+		df_cost_pp = self.create_pandapower_df(df_cost)
+		df_cost_pp = self.node_name_to_id(df_cost_pp, gen_ids=gen_ids, sgen_ids={}, ext_grid_ids=ex_gen_ids, load_ids=load_ids, element_col=['element', 'et'])
+		self.create_elements(df_cost_pp, pp.create_poly_cost, pp_network)
 
-		for index, row in df_cost.iterrows():
-			if row[COL_NAME_TYPE] == 'load':
-				element = load_ids[row[COL_NAME_NAME]]
-			elif row[COL_NAME_TYPE] == 'ext_grid':
-				element = ex_gen_ids[row[COL_NAME_NAME]]
-			elif row[COL_NAME_TYPE] == 'gen':
-				element = gen_ids[row[COL_NAME_NAME]]
-			kwargs_cost = dict(net=network,
-							   element=element,
-							   et=row[COL_NAME_TYPE],
-							   cp1_eur_per_mw=row[COL_NAME_CP1],
-							   cp0_eur=row[COL_NAME_CP0],
-							   cq1_eur_per_mvar=row[COL_NAME_CQ1],
-							   cq0_eur=row[COL_NAME_CQ0],
-							   cp2_eur_per_mw2=row[COL_NAME_CP2],
-							   cq2_eur_per_mvar2=row[COL_NAME_CQ2])
-			pp.create_poly_cost(
-				**{key: value for key, value in kwargs_cost.items() if value is not None})
-		return network
+		# for _, row in df_cost.iterrows():
+		# 	if row[COL_NAME_TYPE] == 'load':
+		# 		element = load_ids[row[COL_NAME_NAME]]
+		# 	elif row[COL_NAME_TYPE] == 'ext_grid':
+		# 		element = ex_gen_ids[row[COL_NAME_NAME]]
+		# 	elif row[COL_NAME_TYPE] == 'gen':
+		# 		element = gen_ids[row[COL_NAME_NAME]]
+		# 	kwargs_cost = dict(net=network,
+		# 					   element=element,
+		# 					   et=row[COL_NAME_TYPE],
+		# 					   cp1_eur_per_mw=row[COL_NAME_CP1],
+		# 					   cp0_eur=row[COL_NAME_CP0],
+		# 					   cq1_eur_per_mvar=row[COL_NAME_CQ1],
+		# 					   cq0_eur=row[COL_NAME_CQ0],
+		# 					   cp2_eur_per_mw2=row[COL_NAME_CP2],
+		# 					   cq2_eur_per_mvar2=row[COL_NAME_CQ2])
+		# 	pp.create_poly_cost(
+		# 		**{key: value for key, value in kwargs_cost.items() if value is not None})
+		return pp_network
 
 	def get_failure_candidates(self):
 		candidates = {}
@@ -738,12 +740,12 @@ class PowerElement:
 		self.id = None
 		self.node = None
 		self.failureProb = None
-		self.fragilityCurve = None
-		self.normalTTR = None
 		self.in_service = None
-		self.i_montecarlo = None
-		self.priority = None
+		self.fragilityCurve = None
 		self.return_period = None
+		self.normalTTR = None
+		self.priority = None
+		self.i_montecarlo = None
 
 		for key, value in kwargs.items():
 			if hasattr(self, key):
@@ -757,25 +759,6 @@ class PowerElement:
 			if self.i_montecarlo == False:
 				warnings.warn(f'Forcing "ignore montecarlo" to "True" for {self.id}.')
 			self.i_montecarlo = True
-
-	def initiate_failure_parameters(self,
-									fragilityCurve=None,
-									kf=None,
-									resilienceFull=None,
-									failureProb=0,
-									inReparation=False,
-									normalTTR=None,
-									distTTR=0,
-									in_service=True):
-
-		self.fragilityCurve = fragilityCurve
-		self.kf = kf
-		self.resilienceFull = resilienceFull
-		self.failureProb = failureProb
-		self.inReparation = inReparation
-		self.normalTTR = normalTTR
-		self.distTTR = distTTR
-		self.in_service = in_service
 
 	def update_failure_probability(self, network, intensity=None, ref_return_period=None):
 		if self.fragilityCurve == None:
@@ -806,13 +789,13 @@ class Bus(PowerElement):
 	'''
 	def __init__(self, kwargs):
 		self.vn_kv = None
-		self.in_service = None
-		self.weatherTTR = None  # TODO: Firas's code
-		self.elapsedReparationTime = None  # TODO: Firas's code
+		self.min_vm_pu = None
+		self.max_vm_pu = None
+		self.zone = None
+		self.type = None
 		self.longitude = None
 		self.latitude = None
-		self.max_vm_pu = None
-		self.min_vm_pu = None
+		
 		super().__init__(**kwargs)
 
 	def update_failure_probability(self, network, intensity=None, ref_return_period=None):		
@@ -851,19 +834,26 @@ class Generator(PowerElement):
 	Add description of Generator class here
 	'''
 	def __init__(self, kwargs):
-		self.p_mw = None
-		self.q_mvar = None
-		self.vm_pu = None
-		self.controllable = None
-		self.max_p_mw = None
-		self.min_p_mw = None
-		self.max_q_mvar = None
-		self.min_q_mvar = None
-		self.slack = None
-		self.weatherTTR = None  # TODO: Firas's code
-		self.elapsedReparationTime = None  # TODO: Firas's code
+		self.p_mw=None
+		self.q_mvar=None
+		self.vm_pu=None
+		self.controllable=None
+		self.max_p_mw=None
+		self.min_p_mw=None
+		self.max_q_mvar=None
+		self.min_q_mvar=None
+		self.slack=None
+		self.slack_weight=None
+		self.sn_mva=None
+		self.scaling=None
+		self.type=None
+		self.vn_kv=None
+		self.xdss_pu=None
+		self.rdss_ohm=None
+		self.cos_phi=None
+		self.pg_percent=None
+		self.power_station_trafo=None
 		super().__init__(**kwargs)
-
 
 class Load(PowerElement):
 	'''
@@ -878,8 +868,12 @@ class Load(PowerElement):
 		self.min_p_mw = None
 		self.max_q_mvar = None
 		self.min_q_mvar = None
+		self.const_z_percent=None
+		self.const_i_percent=None
+		self.sn_mva=None
+		self.scaling=None
+		self.type=None
 		super().__init__(**kwargs)
-		# self.node_id = node_id
 
 
 class Transformer(PowerElement):
@@ -890,7 +884,7 @@ class Transformer(PowerElement):
 	def __init__(self, kwargs):
 		self.node_p = None
 		self.node_s = None
-		self.type = None
+		self.std_type = None
 		self.vn_hv_kv = None
 		self.vn_lv_kv = None
 		self.sn_mva = None
@@ -907,8 +901,20 @@ class Transformer(PowerElement):
 		self.tap_step_degree = None
 		self.tap_phase_shifter = None
 		self.max_loading_percent = None
-		self.weatherTTR = None  # TODO: Firas's code
-		self.elapsedReparationTime = None  # TODO: Firas's code
+		self.tap_pos = None
+		self.parallel = None
+		self.df = None
+		self.tap2_pos = None
+		self.xn_ohm = None
+		self.tap_dependent_impedance = None
+		self.vk_percent_characteristic = None
+		self.vkr_percent_characteristic = None
+		self.vector_group = None
+		self.vk0_percent = None
+		self.vkr0_percent = None
+		self.mag0_percent = None
+		self.mag0_rx = None
+		self.si0_hv_partial= None
 		super().__init__(**kwargs)
 
 	def update_failure_probability(self, network, intensity=None, ref_return_period=None):
@@ -944,11 +950,24 @@ class Line(PowerElement):
 		self.max_i_ka = None
 		self.g_us_per_km = None
 		self.g0_us_per_km = None
-		self.type = None
+		self.std_type = None
 		self.max_loading_percent = None
-		self.span = None  # TODO: Firas's code
-		self.lineSpan = None  # TODO: Firas's code
-		self.towers = None  # TODO: Firas's code
+		self.df=None
+		self.parallel=None
+		self.alpha=None
+		self.temperature_degree_celsius=None
+		self.tdpf=None
+		self.wind_speed_m_per_s=None
+		self.wind_angle_degree=None
+		self.conductor_outer_diameter_m=None
+		self.air_temperature_degree_celsius=None
+		self.reference_temperature_degree_celsius=None
+		self.solar_radiation_w_per_sq_m=None
+		self.solar_absorptivity=None
+		self.emissivity=None
+		self.r_theta_kelvin_per_mw=None
+		self.mc_joule_per_m_k=None
+		self.lineSpan = None
 		super().__init__(**kwargs)
 
 	def update_failure_probability(self, network, intensity=None, ref_return_period=None):
@@ -979,7 +998,6 @@ class Crew:
 	Add description of Crew class here
 	'''
 	def __init__(self, kwargs):
-		# self.available = number
 		self.id = None
 		self.geodata = None
 		for key, value in kwargs.items():
