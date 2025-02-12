@@ -276,8 +276,7 @@ class Network:
 		df_tr_type = df_tr_type.replace({np.nan: None})
 		tr_ids = {}
 		for index, row in df_tr.iterrows():
-			tr_type = df_tr_type.loc[df_tr_type[COL_NAME_NAME]
-									 == row[COL_NAME_TYPE]]
+			tr_type = df_tr_type.loc[df_tr_type[COL_NAME_NAME] == row[COL_NAME_TYPE]]
 			kwargs_tr = dict(net=network, hv_bus=bus_ids[row[COL_NAME_NODE_P]],
 							 lv_bus=bus_ids[row[COL_NAME_NODE_S]],
 							 sn_mva=tr_type[COL_NAME_REF_POWER].values[0],
@@ -541,6 +540,7 @@ class Network:
 			elementsToRepair, repairingCrews = self.get_closest_available_crews(availableCrews, failureElements)
 			crewsTravelingTime = self.get_crews_traveling_time(repairingCrews, elementsToRepair)
 			repairingTime = self.get_reparing_time(elementsToRepair, failureCandidates)
+			# TODO Add user info for missing data that is necessary to execute code
 			for t_0, t_1, e, c in zip(crewsTravelingTime, repairingTime, elementsToRepair, repairingCrews):
 				outagesSchedule.loc[index+1:index + t_0, e] = STATUS['waiting']
 				outagesSchedule.loc[index+t_0+1:index + t_0 + t_1, e] = STATUS['reparing']
@@ -675,10 +675,12 @@ class Network:
 
 			fc_rp_list = []
 			for _, value in self.powerElements.items():
-				if value.fragilityCurve != None and value.return_period != None:
+				if value.fragilityCurve and value.return_period:
 					temp = [value.fragilityCurve, value.return_period]
 					if temp not in fc_rp_list:
 						fc_rp_list.append(temp)
+			if not fc_rp_list:
+				return ValueError("No power element with fragility curve and return periods found. Check the power elements.")
 
 			n = 1
 			for fc_rp in fc_rp_list:
@@ -694,40 +696,50 @@ class Network:
 			CV_.append("domainvalue")
 
 			df = pd.DataFrame(np.transpose(np.array(y)), columns=Y)
-
-			frame = stratify.buildFrameDF(df=robjects.conversion.py2rpy(df),
-											id = "id", X = ["x"], Y = Y[1:-2],
-											domainvalue = "domain")
+			frame = stratify.buildFrameDF(
+										df=robjects.conversion.py2rpy(df),
+										id = "id",
+										X = ["x"],
+										Y = Y[1:-2],
+										domainvalue = "domain")
 
 			df_cv = base.as_data_frame(rlc.TaggedList(cv_, tags=tuple(CV_)))
-
-			kmean = stratify.KmeansSolution2(frame=frame,
-												errors=df_cv,
-												maxclusters = maxStrata,
-												showPlot = False)
+			kmean = stratify.KmeansSolution2(
+										frame = frame,
+										errors = df_cv,
+										maxclusters = maxStrata,
+										showPlot = False) # TODO: Adjust UI Feedback
 			try:
 				if maxStrata == 1:
 					nstrat = 1
 				else:
 					nstrat = np.unique(robjects.conversion.rpy2py(kmean)["suggestions"].values).size
-				sugg = stratify.prepareSuggestion(kmean=kmean, frame=frame, nstrat=nstrat)
-				solution = stratify.optimStrata(method= "continuous", errors = df_cv,
-                                    framesamp = frame, iter = 50,
-                                    pops = 20, nStrata = nstrat,
+				sugg = stratify.prepareSuggestion(kmean=kmean, frame=frame, nstrat=nstrat) # TODO: Adjust UI Feedback
+				solution = stratify.optimStrata(
+									method= "continuous",
+									errors = df_cv,
+                                    framesamp = frame,
+									iter = 50,
+                                    pops = 20,
+									nStrata = nstrat,
 									suggestions = sugg,
                                     showPlot = False,
-                                    parallel=True)
+                                    parallel = False) # TODO: Adjust UI Feedback (keep this!)
 			except:
-				warnings.warn(
-				    f'Cannot find optimal number of stratas... Please try with a different reference return period. Continuing with 5 stratas')
-				solution = stratify.optimStrata(method= "continuous", errors = df_cv,
-                                    framesamp = frame, iter = 50,
-											pops = 20, nStrata = 5,
+				warnings.warn(f'Cannot find optimal number of stratas. Try with a different reference return period. Continuing with 5 stratas.')
+				solution = stratify.optimStrata(
+									method= "continuous",
+									errors = df_cv,
+                                    framesamp = frame,
+									iter = 50,
+									pops = 20,
+									nStrata = 5,
                                     showPlot = False,
-                                    parallel=True)
-			strataStructure = stratify.summaryStrata(robjects.conversion.rpy2py(solution)[2],
-                                            robjects.conversion.rpy2py(solution)[1],
-                            progress=False)
+                                    parallel = False) # CHECK THIS OUTPUT TOO
+			strataStructure = stratify.summaryStrata(
+										robjects.conversion.rpy2py(solution)[2],
+                                        robjects.conversion.rpy2py(solution)[1],
+                            			progress=False) # Why calling function 2 times?
 			return (robjects.conversion.rpy2py(strataStructure))
 
 class MonteCarloVariable:
@@ -984,9 +996,10 @@ class Transformer(PowerElement):
 				_, event_intensity = network.event.get_intensity(node.longitude, node.latitude)
 				intensity = event_intensity.max()
 			if self.return_period != None and ref_return_period != None:
-				self.failureProb = network.fragilityCurves[self.fragilityCurve].projected_fc(rp=network.returnPeriods[self.return_period],
-																							ref_rp=network.returnPeriods[ref_return_period],
-																							xnew=intensity)[0]
+				self.failureProb = network.fragilityCurves[self.fragilityCurve].projected_fc(
+																						rp=network.returnPeriods[self.return_period],
+																						ref_rp=network.returnPeriods[ref_return_period],
+																						xnew=intensity)[0]
 			else:
 				self.failureProb = network.fragilityCurves[self.fragilityCurve].interpolate(intensity)[0]
 
@@ -1021,6 +1034,11 @@ class Line(PowerElement):
 		else:
 			node1 = network.nodes[self.from_bus]
 			node2 = network.nodes[self.to_bus]
+			if self.lineSpan == None:
+				warnings.warn(f'No lineSpan defined for element {self.id}. Defaulting to 0.2 km.')
+				self.lineSpan = 0.2
+			if self.length_km == None:
+				ValueError(f'No length_km defined for element {self.id}.')
 			nb_segments = math.ceil(self.length_km/self.lineSpan)
 			probFailure = []
 			for i_segment in range(nb_segments+1):

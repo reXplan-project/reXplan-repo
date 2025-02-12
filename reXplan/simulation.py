@@ -351,7 +351,7 @@ class Sim:
 			
 			print(f'Strata: {strata}')
 			print(f'Number of samples: {int(nsamples)}')
-			print(f'Hazard intensity range: {self.stratResults["Lower_X1"].values[strata]} - {self.stratResults["Upper_X1"].values[strata]}')
+			print(f'Hazard intensity range: {self.stratResults["Lower_X1"].values[strata]:.2f} - {self.stratResults["Upper_X1"].values[strata]:.2f}')
 			# Iterate over each montecarlo iteration
 			for _ in range(int(nsamples)):
 				iteration_number += 1
