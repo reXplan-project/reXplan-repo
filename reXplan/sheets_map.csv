@@ -1,0 +1,16 @@
+input file field,internal field,pandapower field,data type
+network,Network,,string
+nodes,Bus,bus,string
+transformers,Transformer,trafo,string
+tr_type,Transformer Type,,string
+lines,Line,line,string
+ln_type,Line Type,,string
+loads,Load,load,string
+external_gen,External Generator,ext_grid,string
+generators,Generator,gen,string
+static_generators,Static Generator,sgen,string
+cost,Cost,poly_cost,string
+profiles,Profile,,string
+crews,Crew,,string
+simulation,Simulation,,string
+switches,Switch,switch,string

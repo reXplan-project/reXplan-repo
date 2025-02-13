@@ -10,8 +10,6 @@ import netCDF4 as nc
 import pandapower as pp
 
 from . import config
-from . import utils
-from .const import *
 from . import engine
 
 from . import fragilitycurve
@@ -35,9 +33,8 @@ TIMESERIES_CLASS = pd.Series
 # Network element status
 STATUS = {'on': 1, 'off': 0, 'reparing': -1, 'waiting': -2}
 
-
 def build_class_dict(df, class_name):
-	return {row.id: globals()[class_name](row.dropna(axis=0).to_dict()) for _, row in utils.df_to_internal_fields(df).iterrows()}
+	return {row.id: globals()[class_name](row.dropna(axis=0).to_dict()) for _, row in config.df_to_internal_fields(df).iterrows()}
 
 def find_element_in_standard_dict_list(id, list):
 	# return first element or None otherwise
@@ -145,13 +142,13 @@ class Network:
 	
 	def create_pandapower_df(self, df):
 		df = df.replace({np.nan: None})
-		df_pp = utils.df_to_pandapower_object(df)
+		df_pp = config.df_to_pandapower_object(df)
 		df_pp = df_pp.loc[:, df_pp.columns.notna()]
 		return df_pp
 	
 	def augment_element_with_typedata(self, df, df_type):
 		STD_TYPE = 'std_type'
-		df_type.rename(columns={COL_NAME_NAME: STD_TYPE}, inplace=True)
+		df_type.rename(columns={config.COL_NAME_NAME: STD_TYPE}, inplace=True)
 		df = df.merge(df_type, on=STD_TYPE)
 		df = df.drop(STD_TYPE, axis=1)
 		return df
@@ -189,16 +186,16 @@ class Network:
 		for _, row in df.iterrows():
 			kwargs = row.to_dict()
 			kwargs['net'] = network
-			if COL_NAME_NAME in df.columns:
-				ids[row[COL_NAME_NAME]] = create_function(
+			if config.COL_NAME_NAME in df.columns:
+				ids[row[config.COL_NAME_NAME]] = create_function(
 								**{key: value for key, value in kwargs.items() if value is not None})
 			else:
 				create_function(**{key: value for key, value in kwargs.items() if value is not None})
 		return ids
 			
 	def build_network_parameters(self, networkFile):
-		df_network = pd.read_excel(networkFile, sheet_name=SHEET_NAME_NETWORK)
-		for _, row in utils.df_to_internal_fields(df_network).iterrows():
+		df_network = pd.read_excel(networkFile, sheet_name=config.get_input_sheetname('Network'))
+		for _, row in config.df_to_internal_fields(df_network).iterrows():
 			for key, value in row.dropna(axis=0).to_dict().items():
 				if hasattr(self, key):
 					setattr(self, key, value)
@@ -207,51 +204,52 @@ class Network:
 		return df_network
 
 	def build_nodes(self, networkFile):
-		df_nodes = pd.read_excel(networkFile, sheet_name=SHEET_NAME_NODES)
+		df_nodes = pd.read_excel(networkFile, sheet_name=config.get_input_sheetname('Bus'))
 		self.nodes = build_class_dict(df_nodes, 'Bus')
 		return df_nodes
 
 	def build_generators(self, networkFile):
-		df_gen = pd.read_excel(networkFile, sheet_name=SHEET_NAME_GENERATORS)
-		df_ex_gen = pd.read_excel(networkFile, sheet_name=SHEET_NAME_EXTERNAL_GEN)
-		df_sgen = pd.read_excel(networkFile, sheet_name=SHEET_NAME_SGEN)
+		df_gen = pd.read_excel(networkFile, sheet_name=config.get_input_sheetname('Generator'))
+		df_ex_gen = pd.read_excel(networkFile, sheet_name=config.get_input_sheetname('External Generator'))
+		df_sgen = pd.read_excel(networkFile, sheet_name=config.get_input_sheetname('Static Generator'))
 		self.generators = build_class_dict(df_gen, 'Generator')
 		self.externalGenerators = build_class_dict(df_ex_gen, 'Generator')
 		self.staticGenerators = build_class_dict(df_sgen, 'Generator')
 		return df_gen, df_ex_gen, df_sgen
 
 	def build_loads(self, networkFile):
-		df_load = pd.read_excel(networkFile, sheet_name=SHEET_NAME_LOADS)
+		df_load = pd.read_excel(networkFile, sheet_name=config.get_input_sheetname('Load'))
 		self.loads = build_class_dict(df_load, 'Load')
 		return df_load
 
 	def build_transformers(self, networkFile):
 		df_transformers = pd.read_excel(
-			networkFile, sheet_name=SHEET_NAME_TRANSFORMER)
-		df_tr_types = pd.read_excel(networkFile, sheet_name=SHEET_NAME_TR_TYPE)
+			networkFile, sheet_name=config.get_input_sheetname('Transformer'))
+		df_tr_types = pd.read_excel(networkFile, sheet_name=config.get_input_sheetname('Transformer Type'))
 		self.transformers = build_class_dict(df_transformers, 'Transformer')
 		self.transformerTypes = build_class_dict(df_tr_types, 'Transformer')
 		return df_transformers, df_tr_types
 
 	def build_lines(self, networkFile):
-		df_lines = pd.read_excel(networkFile, sheet_name=SHEET_NAME_LINES)
-		df_ln_types = pd.read_excel(networkFile, sheet_name=SHEET_NAME_LN_TYPE)
+		df_lines = pd.read_excel(networkFile, sheet_name=config.get_input_sheetname('Line'))
+		df_ln_types = pd.read_excel(networkFile, sheet_name=config.get_input_sheetname('Line Type'))
 		self.lines = build_class_dict(df_lines, 'Line')
 		self.lineTypes = build_class_dict(df_ln_types, 'Line')
 		return df_lines, df_ln_types
 
 	def build_switches(self, networkFile):
 		df_switches = pd.read_excel(
-			networkFile, sheet_name=SHEET_NAME_SWITCHES)
+			networkFile, sheet_name=config.get_input_sheetname('Switch'))
 		self.switches = build_class_dict(df_switches, 'Switch')
 		return df_switches
 
 	def build_crews(self, networkFile):
-		df_crews = pd.read_excel(networkFile, sheet_name=SHEET_NAME_CREWS)
+		df_crews = pd.read_excel(networkFile, sheet_name=config.get_input_sheetname('Crew'))
 		self.crews = build_class_dict(df_crews, 'Crew')
 
 	def allocate_profiles(self, networkFile):
-		df_profiles = pd.read_excel(networkFile, sheet_name=SHEET_NAME_PROFILES, header=[0, 1], index_col=0)
+		df_profiles = pd.read_excel(
+			networkFile, sheet_name=config.get_input_sheetname('Profile'), header=[0, 1], index_col=0)
 		df_profiles.reset_index(drop=True, inplace=True)
 		for assetId, field in df_profiles:
 			element = self.get_powerelement(assetId)
@@ -269,7 +267,7 @@ class Network:
 		df_lines, df_ln_types = self.build_lines(networkFile)
 		df_switches = self.build_switches(networkFile)
 		df_cost = pd.read_excel(
-			networkFile, sheet_name=SHEET_NAME_COST)  # TODO: build cost
+			networkFile, sheet_name=config.get_input_sheetname('Cost'))
 		self.build_crews(networkFile)
 		self.allocate_profiles(networkFile)
 		if build_pp_network:
@@ -378,7 +376,6 @@ class Network:
 										load_ids=load_ids,
 										element_col=['element', 'et'])
 		self.create_elements(df_cost_pp, pp.create_poly_cost, pp_network)
-
 		return pp_network
 
 	def get_failure_candidates(self):
@@ -714,10 +711,8 @@ class PowerElement:
 		for key, value in kwargs.items():
 			if hasattr(self, key):
 				setattr(self, key, value)
-			else:
-				warnings.warn(f'Input parameter "{key}" is not a valid attribute of the "{self.__class__.__name__}" class.')
 		if self.id is None:
-			self.id = utils.get_GLOBAL_ID()
+			self.id = config.get_GLOBAL_ID()
 			warnings.warn(f'No "id" defined as input for {self}. The following identifier was assigned: {self.id}.')
 		if self.in_service == False:
 			if self.i_montecarlo == False:

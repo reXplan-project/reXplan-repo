@@ -1,21 +1,26 @@
 import os
 import pandas as pd
 
-def checkPath(path):
-    if not os.path.exists(path):
-        os.mkdir(path)
+GLOBAL_ID = -1
+COL_NAME_DATA_TYPE = "data type"
+COL_NAME_INTERNAL_FIELD = "internal field"
+COL_NAME_INPUT_FILE_FIELD = "input file field"
+COL_NAME_PANDAPOWER_FIELD = "pandapower field"
+
+COL_NAME_NAME = 'name'
+COL_NAME_FIELD = 'field'
+COL_NAME_VALUE = 'value'
+COL_NAME_UNIT = 'unit'
+
+TOOL_FOLDER = os.path.abspath(os.path.dirname(__file__ )) # aboslute file path of config.py
+INPUT_FIELDS_MAP_FILE = os.path.join(TOOL_FOLDER, 'fields_map.csv')
+INPUT_SHEETS_MAP_FILE = os.path.join(TOOL_FOLDER, 'sheets_map.csv')
 
 class Path():
-    def __init__(self):
-        # parent_ = os.path.join(parent, 'file')
-        parent_ = 'file'
-        # testFolder = os.path.join(parent_,'test')
-        toolFolder = os.path.abspath(os.path.dirname(__file__ )) # aboslute file path of config.py
-        self.inputFolder = os.path.join(parent_,'input')
-        self.outputFolder = os.path.join(parent_,'output')
-        self.inputFieldsMapFile = os.path.join(toolFolder, 'fields_map.csv')
-
-        # checkPath(self.outputFolder)
+    def __init__(self, workspace = 'Examples'):
+        self.workspace = workspace
+        self.inputFolder = os.path.join(self.workspace,'input')
+        self.outputFolder = os.path.join(self.workspace,'output')
         
         self.network = 'network.xlsx'
         self.metricDatabase = 'metric_database.csv'
@@ -25,8 +30,13 @@ class Path():
         self.hazardFolder = 'hazards'
         self.hazardGifFolder = 'gif'
         self.rpDatabase = 'returnPeriods'
-        #self.hazard = 'trajectory.csv'
 
+    def SetWorkspaceFolder(self, workspace):
+        self.workspace = workspace
+        self.inputFolder = os.path.join(workspace,'input')
+        self.outputFolder = os.path.join(workspace,'output')
+        return True
+    
     def networkFile(self, simulationName):
         return os.path.join(self.inputFolder, simulationName, self.network)
     def fragilityCurveFolder(self, simulationName):
@@ -51,5 +61,28 @@ class Path():
         checkPath(os.path.join(self.outputFolder, simulationName))
         return os.path.join(self.outputFolder, simulationName, self.montecarloDatabase)
 
-path = Path()
+INPUT_FIELD_MAP =  pd.read_csv(INPUT_FIELDS_MAP_FILE, index_col = COL_NAME_INPUT_FILE_FIELD)
+INPUT_SHEET_MAP =  pd.read_csv(INPUT_SHEETS_MAP_FILE, index_col = COL_NAME_INPUT_FILE_FIELD)
 
+path = Path('Examples')
+
+def get_GLOBAL_ID():
+	global GLOBAL_ID
+	GLOBAL_ID += 1
+	return 'ID_{}'.format(GLOBAL_ID)
+
+def df_to_internal_fields(df):
+	return df.rename(columns=INPUT_FIELD_MAP[COL_NAME_INTERNAL_FIELD].to_dict())
+
+def df_to_pandapower_object(df):
+	return df.rename(columns=INPUT_FIELD_MAP[COL_NAME_PANDAPOWER_FIELD].to_dict())
+
+def get_input_sheetname(sheetname):
+	return INPUT_SHEET_MAP[(INPUT_SHEET_MAP[COL_NAME_INTERNAL_FIELD] == sheetname)].index[0]
+
+def get_pandapower_sheetname(sheetname):
+	return INPUT_SHEET_MAP[(INPUT_SHEET_MAP[COL_NAME_INTERNAL_FIELD] == sheetname)][COL_NAME_PANDAPOWER_FIELD].values[0]
+
+def checkPath(path):
+    if not os.path.exists(path):
+        os.mkdir(path)
