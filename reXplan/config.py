@@ -12,14 +12,15 @@ COL_NAME_FIELD = 'field'
 COL_NAME_VALUE = 'value'
 COL_NAME_UNIT = 'unit'
 
+TOOL_FOLDER = os.path.abspath(os.path.dirname(__file__ )) # aboslute file path of config.py
+INPUT_FIELDS_MAP_FILE = os.path.join(TOOL_FOLDER, 'fields_map.csv')
+INPUT_SHEETS_MAP_FILE = os.path.join(TOOL_FOLDER, 'sheets_map.csv')
+
 class Path():
-    def __init__(self):
-        parent_ = 'Examples'
-        toolFolder = os.path.abspath(os.path.dirname(__file__ )) # aboslute file path of config.py
-        self.inputFolder = os.path.join(parent_,'input')
-        self.outputFolder = os.path.join(parent_,'output')
-        self.inputFieldsMapFile = os.path.join(toolFolder, 'fields_map.csv')
-        self.inputSheetsMapFile = os.path.join(toolFolder, 'sheets_map.csv')
+    def __init__(self, workspace = 'Examples'):
+        self.workspace = workspace
+        self.inputFolder = os.path.join(self.workspace,'input')
+        self.outputFolder = os.path.join(self.workspace,'output')
         
         self.network = 'network.xlsx'
         self.metricDatabase = 'metric_database.csv'
@@ -30,6 +31,12 @@ class Path():
         self.hazardGifFolder = 'gif'
         self.rpDatabase = 'returnPeriods'
 
+    def SetWorkspaceFolder(self, workspace):
+        self.workspace = workspace
+        self.inputFolder = os.path.join(workspace,'input')
+        self.outputFolder = os.path.join(workspace,'output')
+        return True
+    
     def networkFile(self, simulationName):
         return os.path.join(self.inputFolder, simulationName, self.network)
     def fragilityCurveFolder(self, simulationName):
@@ -54,9 +61,10 @@ class Path():
         checkPath(os.path.join(self.outputFolder, simulationName))
         return os.path.join(self.outputFolder, simulationName, self.montecarloDatabase)
 
-path = Path()
-INPUT_FIELD_MAP =  pd.read_csv(path.inputFieldsMapFile, index_col = COL_NAME_INPUT_FILE_FIELD)
-INPUT_SHEET_MAP =  pd.read_csv(path.inputSheetsMapFile, index_col = COL_NAME_INPUT_FILE_FIELD)
+INPUT_FIELD_MAP =  pd.read_csv(INPUT_FIELDS_MAP_FILE, index_col = COL_NAME_INPUT_FILE_FIELD)
+INPUT_SHEET_MAP =  pd.read_csv(INPUT_SHEETS_MAP_FILE, index_col = COL_NAME_INPUT_FILE_FIELD)
+
+path = Path('Examples')
 
 def get_GLOBAL_ID():
 	global GLOBAL_ID
@@ -71,6 +79,9 @@ def df_to_pandapower_object(df):
 
 def get_input_sheetname(sheetname):
 	return INPUT_SHEET_MAP[(INPUT_SHEET_MAP[COL_NAME_INTERNAL_FIELD] == sheetname)].index[0]
+
+def get_pandapower_sheetname(sheetname):
+	return INPUT_SHEET_MAP[(INPUT_SHEET_MAP[COL_NAME_INTERNAL_FIELD] == sheetname)][COL_NAME_PANDAPOWER_FIELD].values[0]
 
 def checkPath(path):
     if not os.path.exists(path):

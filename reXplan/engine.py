@@ -13,10 +13,6 @@ from pandapower.control import ConstControl
 from . import simulation
 from . import config
 
-
-rt_pp_map = {'Generator': 'gen', 'Line': 'line',
-             'Load': 'load', 'Transformer': 'trafo', 'Switch': 'switch', 'Bus': 'bus'}
-
 REGEX = r"(?:res_)?(\w+)\."
 
 
@@ -29,7 +25,7 @@ class pandapower():
 		# TODO call cont.py
 		def get_network_df_intersection_dataframe(network, type, dataframe):
 			# Intersection between network.type and df based on names and ids.
-			out = getattr(network, rt_pp_map[type])
+			out = getattr(network, config.get_pandapower_sheetname(type))
 			return out.loc[out.name.isin(dataframe.columns)]
 
 		for (field, type), df in df_timeseries.groupby(level=['field', 'type'], axis=1):
@@ -37,7 +33,7 @@ class pandapower():
 			df.columns = df.columns.droplevel(['field', 'type'])
 			df_elements = get_network_df_intersection_dataframe(
 				self.network, type, df)
-			self.SimpleControl(self.network, element=rt_pp_map[type], variable=field, element_index=df_elements.index, data_source=self.DFData_boolean_adapted(
+			self.SimpleControl(self.network, element=config.get_pandapower_sheetname(type), variable=field, element_index=df_elements.index, data_source=self.DFData_boolean_adapted(
 				df), profile_name=df_elements.name, drop_same_existing_ctrl=True)
 
 	def configure_output_writer(self, time_steps):
