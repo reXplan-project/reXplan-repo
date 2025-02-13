@@ -4,8 +4,6 @@ import numpy as np
 
 from . import network
 from . import config
-from . import utils
-from.const import *
 
 import random
 import warnings
@@ -45,9 +43,9 @@ def read_database(databaseFile):
 
 def allocate_column_values(object, df_):
 	# .to_frame().T is needed because the function acts on of the df's columns
-	df = utils.df_to_internal_fields(df_.to_frame().T)
+	df = config.df_to_internal_fields(df_.to_frame().T)
 	# 'value' is needed since we are working on a dataFrame
-	for key, value in df.loc[COL_NAME_VALUE].to_dict().items():
+	for key, value in df.loc[config.COL_NAME_VALUE].to_dict().items():
 		if hasattr(object, key):
 			setattr(object, key, value)
 		else:
@@ -175,10 +173,10 @@ class Sim:
 		self.iteration_number = 0
 		self.databases = []
 
-		df_simulation = pd.read_excel(config.path.networkFile(simulationName), sheet_name=SHEET_NAME_SIMULATION, index_col=0)
-		allocate_column_values(self, df_simulation[COL_NAME_VALUE])
+		df_simulation = pd.read_excel(config.path.networkFile(simulationName), sheet_name=config.get_input_sheetname('Simulation'), index_col=0)
+		allocate_column_values(self, df_simulation[config.COL_NAME_VALUE])
 		self.externalTimeInterval = get_index_as_dataSeries(pd.read_excel(config.path.networkFile(simulationName),
-																		 sheet_name=SHEET_NAME_PROFILES, index_col=0, header=[0, 1]))
+																		 sheet_name=config.get_input_sheetname('Profile'), index_col=0, header=[0, 1]))
 		self.time = self.to_internal_time(self.startTime, self.duration)
 		print(f'\nSimulation:	Start = {self.time.start:>3}; Stop = {self.time.stop:>3}; Duration = {self.time.duration:>3} timesteps.')
 		self.hazardTime = self.to_internal_time(self.hazardStartTime, self.hazardDuration)

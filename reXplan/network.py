@@ -10,8 +10,6 @@ import netCDF4 as nc
 import pandapower as pp
 
 from . import config
-from . import utils
-from .const import *
 from . import engine
 
 from . import fragilitycurve
@@ -35,9 +33,8 @@ TIMESERIES_CLASS = pd.Series
 # Network element status
 STATUS = {'on': 1, 'off': 0, 'reparing': -1, 'waiting': -2}
 
-
 def build_class_dict(df, class_name):
-	return {row.id: globals()[class_name](row.dropna(axis=0).to_dict()) for _, row in utils.df_to_internal_fields(df).iterrows()}
+	return {row.id: globals()[class_name](row.dropna(axis=0).to_dict()) for _, row in config.df_to_internal_fields(df).iterrows()}
 
 def find_element_in_standard_dict_list(id, list):
 	# return first element or None otherwise
@@ -144,13 +141,13 @@ class Network:
 	
 	def create_pandapower_df(self, df):
 		df = df.replace({np.nan: None})
-		df_pp = utils.df_to_pandapower_object(df)
+		df_pp = config.df_to_pandapower_object(df)
 		df_pp = df_pp.loc[:, df_pp.columns.notna()]
 		return df_pp
 	
 	def augment_element_with_typedata(self, df, df_type):
 		STD_TYPE = 'std_type'
-		df_type.rename(columns={COL_NAME_NAME: STD_TYPE}, inplace=True)
+		df_type.rename(columns={config.COL_NAME_NAME: STD_TYPE}, inplace=True)
 		df = df.merge(df_type, on=STD_TYPE)
 		df = df.drop(STD_TYPE, axis=1)
 		return df
@@ -188,16 +185,16 @@ class Network:
 		for _, row in df.iterrows():
 			kwargs = row.to_dict()
 			kwargs['net'] = network
-			if COL_NAME_NAME in df.columns:
-				ids[row[COL_NAME_NAME]] = create_function(
+			if config.COL_NAME_NAME in df.columns:
+				ids[row[config.COL_NAME_NAME]] = create_function(
 								**{key: value for key, value in kwargs.items() if value is not None})
 			else:
 				create_function(**{key: value for key, value in kwargs.items() if value is not None})
 		return ids
 			
 	def build_network_parameters(self, networkFile):
-		df_network = pd.read_excel(networkFile, sheet_name=SHEET_NAME_NETWORK)
-		for _, row in utils.df_to_internal_fields(df_network).iterrows():
+		df_network = pd.read_excel(networkFile, sheet_name=config.get_input_sheetname('Network'))
+		for _, row in config.df_to_internal_fields(df_network).iterrows():
 			for key, value in row.dropna(axis=0).to_dict().items():
 				if hasattr(self, key):
 					setattr(self, key, value)
@@ -206,51 +203,51 @@ class Network:
 		return df_network
 
 	def build_nodes(self, networkFile):
-		df_nodes = pd.read_excel(networkFile, sheet_name=SHEET_NAME_NODES)
+		df_nodes = pd.read_excel(networkFile, sheet_name=config.get_input_sheetname('Bus'))
 		self.nodes = build_class_dict(df_nodes, 'Bus')
 		return df_nodes
 
 	def build_generators(self, networkFile):
-		df_gen = pd.read_excel(networkFile, sheet_name=SHEET_NAME_GENERATORS)
+		df_gen = pd.read_excel(networkFile, sheet_name=config.get_input_sheetname('Generator'))
 		df_ex_gen = pd.read_excel(
-			networkFile, sheet_name=SHEET_NAME_EXTERNAL_GEN)
+			networkFile, sheet_name=config.get_input_sheetname('External Generator'))
 		self.generators = build_class_dict(df_gen, 'Generator')
 		self.externalGenerators = build_class_dict(df_ex_gen, 'Generator')
 		return df_gen, df_ex_gen
 
 	def build_loads(self, networkFile):
-		df_load = pd.read_excel(networkFile, sheet_name=SHEET_NAME_LOADS)
+		df_load = pd.read_excel(networkFile, sheet_name=config.get_input_sheetname('Load'))
 		self.loads = build_class_dict(df_load, 'Load')
 		return df_load
 
 	def build_transformers(self, networkFile):
 		df_transformers = pd.read_excel(
-			networkFile, sheet_name=SHEET_NAME_TRANSFORMER)
-		df_tr_types = pd.read_excel(networkFile, sheet_name=SHEET_NAME_TR_TYPE)
+			networkFile, sheet_name=config.get_input_sheetname('Transformer'))
+		df_tr_types = pd.read_excel(networkFile, sheet_name=config.get_input_sheetname('Transformer Type'))
 		self.transformers = build_class_dict(df_transformers, 'Transformer')
 		self.transformerTypes = build_class_dict(df_tr_types, 'Transformer')
 		return df_transformers, df_tr_types
 
 	def build_lines(self, networkFile):
-		df_lines = pd.read_excel(networkFile, sheet_name=SHEET_NAME_LINES)
-		df_ln_types = pd.read_excel(networkFile, sheet_name=SHEET_NAME_LN_TYPE)
+		df_lines = pd.read_excel(networkFile, sheet_name=config.get_input_sheetname('Line'))
+		df_ln_types = pd.read_excel(networkFile, sheet_name=config.get_input_sheetname('Line Type'))
 		self.lines = build_class_dict(df_lines, 'Line')
 		self.lineTypes = build_class_dict(df_ln_types, 'Line')
 		return df_lines, df_ln_types
 
 	def build_switches(self, networkFile):
 		df_switches = pd.read_excel(
-			networkFile, sheet_name=SHEET_NAME_SWITCHES)
+			networkFile, sheet_name=config.get_input_sheetname('Switch'))
 		self.switches = build_class_dict(df_switches, 'Switch')
 		return df_switches
 
 	def build_crews(self, networkFile):
-		df_crews = pd.read_excel(networkFile, sheet_name=SHEET_NAME_CREWS)
+		df_crews = pd.read_excel(networkFile, sheet_name=config.get_input_sheetname('Crew'))
 		self.crews = build_class_dict(df_crews, 'Crew')
 
 	def allocate_profiles(self, networkFile):
 		df_profiles = pd.read_excel(
-			networkFile, sheet_name=SHEET_NAME_PROFILES, header=[0, 1], index_col=0)
+			networkFile, sheet_name=config.get_input_sheetname('Profile'), header=[0, 1], index_col=0)
 		df_profiles.reset_index(drop=True, inplace=True)
 		for assetId, field in df_profiles:
 			element = self.get_powerelement(assetId)
@@ -268,7 +265,7 @@ class Network:
 		df_lines, df_ln_types = self.build_lines(networkFile)
 		df_switches = self.build_switches(networkFile)
 		df_cost = pd.read_excel(
-			networkFile, sheet_name=SHEET_NAME_COST)
+			networkFile, sheet_name=config.get_input_sheetname('Cost'))
 		self.build_crews(networkFile)
 		self.allocate_profiles(networkFile)
 		if build_pp_network:
@@ -297,7 +294,6 @@ class Network:
 		return self.powerElements
 
 	def build_pp_network(self, df_network, df_bus, df_tr, df_tr_type, df_ln, df_ln_type, df_load, df_ex_gen, df_gen, df_switch, df_cost):
-		# TODO: it seems this funciton is missplaced. Can it be moved to engine.pandapower?
 		'''
 		This Function takes as imput the input file name without the extention
 		and gives as output the pandapower network object.
@@ -319,11 +315,6 @@ class Network:
 		df_tr_pp = self.augment_element_with_typedata(df_tr_pp, df_tr_type_pp)
 		df_tr_pp = self.node_name_to_id(df_tr_pp, ['lv_bus', 'hv_bus'], bus_ids)
 		tr_ids = self.create_elements(df_tr_pp, pp.create_transformer_from_parameters, pp_network)
-		# for _, row in df_tr_pp.iterrows():
-		# 	kwargs_tr = row.to_dict()
-		# 	kwargs_tr['net'] = pp_network
-		# 	tr_ids[row[COL_NAME_NAME]] = pp.create_transformer_from_parameters(
-		# 		**{key: value for key, value in kwargs_tr.items() if value is not None})
 
 		# Creating the line elements
 		df_ln_pp = self.create_pandapower_df(df_ln)
@@ -337,136 +328,27 @@ class Network:
 		df_load_pp = self.create_pandapower_df(df_load)
 		df_load_pp = self.node_name_to_id(df_load_pp, ['bus'], bus_ids)
 		load_ids = self.create_elements(df_load_pp, pp.create_load, pp_network)
-		# for _, row in df_load.iterrows():
-		# 	kwargs_load = dict(net=network,
-		# 					   bus=bus_ids[row[COL_NAME_BUS]],
-		# 					   p_mw=row[COL_NAME_P],
-		# 					   q_mvar=row[COL_NAME_Q],
-		# 					   const_z_percent=row[COL_NAME_CONST_Z],
-		# 					   const_i_percent=row[COL_NAME_CONST_I],
-		# 					   sn_mva=row[COL_NAME_REF_POWER],
-		# 					   name=row[COL_NAME_NAME],
-		# 					   scaling=row[COL_NAME_SCALING],
-		# 					   in_service=row[COL_NAME_SERVICE],
-		# 					   type=row[COL_NAME_TYPE],
-		# 					   max_p_mw=row[COL_NAME_MAX_P],
-		# 					   min_p_mw=row[COL_NAME_MIN_P],
-		# 					   max_q_mvar=row[COL_NAME_MAX_Q],
-		# 					   min_q_mvar=row[COL_NAME_MIN_Q],
-		# 					   controllable=row[COL_NAME_CONTROLLABLE])
-		# 	load_ids[row[COL_NAME_NAME]] = pp.create_load(
-		# 		**{key: value for key, value in kwargs_load.items() if value is not None})
 
 		# Creating the external gen elements
 		df_ex_gen_pp = self.create_pandapower_df(df_ex_gen)
 		df_ex_gen_pp = self.node_name_to_id(df_ex_gen_pp, ['bus'], bus_ids)
 		ex_gen_ids = self.create_elements(df_ex_gen_pp, pp.create_ext_grid, pp_network)
-		# ex_gen_ids = {}
-		# for _, row in df_ex_gen.iterrows():
-		# 	kwargs_ex_gen = dict(net=network,
-		# 						 bus=bus_ids[row[COL_NAME_BUS]],
-		# 						 vm_pu=row[COL_NAME_VM],
-		# 						 va_degree=row[COL_NAME_VA],
-		# 						 name=row[COL_NAME_NAME],
-		# 						 in_service=row[COL_NAME_SERVICE],
-		# 						 s_sc_max_mva=row[COL_NAME_MAX_S_SC],
-		# 						 s_sc_min_mva=row[COL_NAME_MIN_S_SC],
-		# 						 rx_max=row[COL_NAME_MAX_RX],
-		# 						 rx_min=row[COL_NAME_MIN_RX],
-		# 						 max_p_mw=row[COL_NAME_MAX_P],
-		# 						 min_p_mw=row[COL_NAME_MIN_P],
-		# 						 max_q_mvar=row[COL_NAME_MAX_Q],
-		# 						 min_q_mvar=row[COL_NAME_MIN_Q],
-		# 						 r0x0_max=row[COL_NAME_MAX_R0X0],
-		# 						 x0x_max=row[COL_NAME_MAX_X0X],
-		# 						 controllable=row[COL_NAME_CONTROLLABLE],
-		# 						 slack_weight=row[COL_NAME_SLACK_WEIGHT])
-		# 	ex_gen_ids[row[COL_NAME_NAME]] = pp.create_ext_grid(
-		# 		**{key: value for key, value in kwargs_ex_gen.items() if value is not None})
 
 		# Creating the generator elements
 		df_gen_pp = self.create_pandapower_df(df_gen)
 		df_gen_pp = self.node_name_to_id(df_gen_pp, ['bus'], bus_ids)
 		gen_ids = self.create_elements(df_gen_pp, pp.create_gen, pp_network)
-		# gen_ids = {}
-		# for _, row in df_gen.iterrows():
-		# 	kwargs_gen = dict(net=network,
-		# 					  bus=bus_ids[row[COL_NAME_BUS]],
-		# 					  p_mw=row[COL_NAME_P],
-		# 					  vm_pu=row[COL_NAME_VM],
-		# 					  sn_mva=row[COL_NAME_REF_POWER],
-		# 					  name=row[COL_NAME_NAME],
-		# 					  max_q_mvar=row[COL_NAME_MAX_Q],
-		# 					  min_q_mvar=row[COL_NAME_MIN_Q],
-		# 					  min_p_mw=row[COL_NAME_MIN_P],
-		# 					  max_p_mw=row[COL_NAME_MAX_P],
-		# 					  min_vm_pu=row[COL_NAME_MIN_VOLTAGE],
-		# 					  max_vm_pu=row[COL_NAME_MAX_VOLTAGE],
-		# 					  scaling=row[COL_NAME_SCALING],
-		# 					  type=row[COL_NAME_TYPE],
-		# 					  lack=row[COL_NAME_LACK],
-		# 					  controllable=row[COL_NAME_CONTROLLABLE],
-		# 					  vn_kv=row[COL_NAME_VOLTAGE],
-		# 					  xdss_pu=row[COL_NAME_XDSS],
-		# 					  rdss_ohm=row[COL_NAME_RDSS],
-		# 					  cos_phi=row[COL_NAME_COS_PHI],
-		# 					  pg_percent=row[COL_NAME_PG],
-		# 					  power_station_trafo=row[COL_NAME_PS_TRAFO],
-		# 					  in_service=row[COL_NAME_SERVICE],
-		# 					  slack_weight=row[COL_NAME_SLACK_WEIGHT],
-		# 					  slack=row[COL_NAME_SLACK]
-		# 					  )
-		# 	gen_ids[row[COL_NAME_NAME]] = pp.create_gen(
-		# 		**{key: value for key, value in kwargs_gen.items() if value is not None})
 
 		# Creating the switch elements
 		df_switch_pp = self.create_pandapower_df(df_switch)
 		df_switch_pp = self.node_name_to_id(df_switch_pp, ['bus'], bus_ids, line_ids=line_ids, tr_ids=tr_ids, element_col=['element', 'et'])
 		switches_ids = self.create_elements(df_switch_pp, pp.create_switch, pp_network)
 
-		# for _, row in df_switch.iterrows():
-		# 	if row[COL_NAME_ET] == 'b':
-		# 		element = bus_ids[row[COL_NAME_ELEMENT]]
-		# 	elif row[COL_NAME_ET] == 'l':
-		# 		element = line_ids[row[COL_NAME_ELEMENT]]
-		# 	elif row[COL_NAME_ET] in ['t', 't3']:
-		# 		element = tr_ids[row[COL_NAME_ELEMENT]]
-		# 	kwargs_gen = dict(net=network,
-		# 					  name=row[COL_NAME_NAME],
-		# 					  bus=bus_ids[row[COL_NAME_BUS]],
-		# 					  element=element,
-		# 					  et=row[COL_NAME_ET],
-		# 					  closed=row[COL_NAME_CLOSED],
-		# 					  in_ka=row[COL_NAME_IN_KA],
-		# 					  type=row[COL_NAME_TYPE]
-		# 					  # in_service=row[COL_NAME_SERVICE]
-		# 					  )
-		# 	switches_ids[row[COL_NAME_NAME]] = pp.create_switch(
-		# 		**{key: value for key, value in kwargs_gen.items() if value is not None})
-
 		# Creating the cost function
 		df_cost_pp = self.create_pandapower_df(df_cost)
 		df_cost_pp = self.node_name_to_id(df_cost_pp, gen_ids=gen_ids, sgen_ids={}, ext_grid_ids=ex_gen_ids, load_ids=load_ids, element_col=['element', 'et'])
 		self.create_elements(df_cost_pp, pp.create_poly_cost, pp_network)
-
-		# for _, row in df_cost.iterrows():
-		# 	if row[COL_NAME_TYPE] == 'load':
-		# 		element = load_ids[row[COL_NAME_NAME]]
-		# 	elif row[COL_NAME_TYPE] == 'ext_grid':
-		# 		element = ex_gen_ids[row[COL_NAME_NAME]]
-		# 	elif row[COL_NAME_TYPE] == 'gen':
-		# 		element = gen_ids[row[COL_NAME_NAME]]
-		# 	kwargs_cost = dict(net=network,
-		# 					   element=element,
-		# 					   et=row[COL_NAME_TYPE],
-		# 					   cp1_eur_per_mw=row[COL_NAME_CP1],
-		# 					   cp0_eur=row[COL_NAME_CP0],
-		# 					   cq1_eur_per_mvar=row[COL_NAME_CQ1],
-		# 					   cq0_eur=row[COL_NAME_CQ0],
-		# 					   cp2_eur_per_mw2=row[COL_NAME_CP2],
-		# 					   cq2_eur_per_mvar2=row[COL_NAME_CQ2])
-		# 	pp.create_poly_cost(
-		# 		**{key: value for key, value in kwargs_cost.items() if value is not None})
+		
 		return pp_network
 
 	def get_failure_candidates(self):
@@ -750,11 +632,9 @@ class PowerElement:
 		for key, value in kwargs.items():
 			if hasattr(self, key):
 				setattr(self, key, value)
-			else:
-				warnings.warn(f'Input parameter "{key}" is not a valid attribute of the "{self.__class__.__name__}" class.')
 		if self.id is None:
-			self.id = utils.get_GLOBAL_ID()
-			warnings.warn(f'No "id" defined as input for {self}. The folloging identifier was assigned: {self.id}.')
+			self.id = config.get_GLOBAL_ID()
+			warnings.warn(f'No "id" defined as input for {self}. The following identifier was assigned: {self.id}.')
 		if self.in_service == False:
 			if self.i_montecarlo == False:
 				warnings.warn(f'Forcing "ignore montecarlo" to "True" for {self.id}.')
@@ -853,6 +733,7 @@ class Generator(PowerElement):
 		self.cos_phi=None
 		self.pg_percent=None
 		self.power_station_trafo=None
+		self.va_degree=None
 		super().__init__(**kwargs)
 
 class Load(PowerElement):
