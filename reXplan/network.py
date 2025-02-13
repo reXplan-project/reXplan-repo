@@ -423,11 +423,15 @@ class Network:
 		for index, row in outagesSchedule.iterrows():
 			failureElements = row.index[row == 0].tolist()
 			availableCrews = crewSchedule.loc[index][crewSchedule.loc[index] == 1].index.tolist()
+			if not availableCrews:
+				raise ValueError("No available crews to repair the power elements.")
 			elementsToRepair, repairingCrews = self.get_closest_available_crews(availableCrews, failureElements)
 			crewsTravelingTime = self.get_crews_traveling_time(repairingCrews, elementsToRepair)
 			repairingTime = self.get_reparing_time(elementsToRepair, failureCandidates)
 			# TODO Add user info for missing data that is necessary to execute code
 			for t_0, t_1, e, c in zip(crewsTravelingTime, repairingTime, elementsToRepair, repairingCrews):
+				if t_1 is None:
+					raise ValueError("No time to repair (TTR) defined for power element.")
 				outagesSchedule.loc[index+1:index + t_0, e] = STATUS['waiting']
 				outagesSchedule.loc[index+t_0+1:index + t_0 + t_1, e] = STATUS['reparing']
 				# Following line can be removed if outagesSchedule is set to 1 on at failure time
@@ -506,7 +510,7 @@ class Network:
 		From the list [loads, generators, transformers, lines, switches] it creates a database with all the fields corresponding to timeseries
 		TODO: Replace list by a function that will recognise powerElement-type instances
 		"""
-		return build_database(get_datatype_elements([self.loads, self.generators, self.transformers, self.lines, self.switches, self.nodes], TIMESERIES_CLASS)).loc[time.start: time.stop-1]
+		return build_database(get_datatype_elements([self.loads, self.generators, self.transformers, self.lines, self.switches, self.nodes], TIMESERIES_CLASS)).loc[time.start: time.stop-1]# # TODO Check Time
 
 	def calculate_metrics(self):
 		# DEPRECATED
