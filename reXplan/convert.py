@@ -8,7 +8,7 @@ from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 from openpyxl.styles import Font, Border, Side
 
-rename_sheet = {
+RENAME_SHEET = {
 #   'reXplan            : 'pandapower
     'generators'        : 'gen',
     'external_gen'      : 'ext_grid',
@@ -70,11 +70,11 @@ def rename_element(sheet, column, values, net, rename = False):
             else:
                 values.reset_index(drop=True, inplace=True)
                 for number in values.index:
-                    values[number] = rename_sheet[sheet] + str(number + 1)
+                    values[number] = RENAME_SHEET[sheet] + str(number + 1)
     
     elif column == 'std_type':
         if values.isna().any():
-            values = getattr(net, rename_sheet[sheet])['std_type']
+            values = getattr(net, RENAME_SHEET[sheet])['std_type']
             values.reset_index(drop=True, inplace=True)
             for number in values.index:
                 if sheet == 'lines':
@@ -84,7 +84,7 @@ def rename_element(sheet, column, values, net, rename = False):
             
     elif column == 'node' or column == 'node_p' or column == 'node_s' or column == 'from_bus' or column == 'to_bus': 
         if isinstance(net, pp.auxiliary.pandapowerNet):              
-            bus_column = getattr(net, rename_sheet[sheet])[rename_column[column]]
+            bus_column = getattr(net, RENAME_SHEET[sheet])[rename_column[column]]
             bus_names = net.bus.loc[bus_column.tolist(), 'name']
             values = bus_names.reset_index(drop=True)
             values = values.rename(column)
@@ -93,16 +93,16 @@ def rename_element(sheet, column, values, net, rename = False):
     
     elif column == 'element':
         values = values.astype('object')
-        element_type = getattr(net, rename_sheet[sheet])['et']
+        element_type = getattr(net, RENAME_SHEET[sheet])['et']
         for index in range(len(element_type)):
             if element_type.iloc[index] == 'l':
-                values.at[index] = getattr(net, rename_sheet['lines'])['name'].loc[values.iloc[index]]
+                values.at[index] = getattr(net, RENAME_SHEET['lines'])['name'].loc[values.iloc[index]]
             elif element_type.iloc[index] == 'b':
-                values.at[index] = getattr(net, rename_sheet['nodes'])['name'].loc[values.iloc[index]]
+                values.at[index] = getattr(net, RENAME_SHEET['nodes'])['name'].loc[values.iloc[index]]
             elif element_type.iloc[index] == 't':
-                values.at[index] = getattr(net, rename_sheet['transformers'])['name'].loc[values.iloc[index]]
+                values.at[index] = getattr(net, RENAME_SHEET['transformers'])['name'].loc[values.iloc[index]]
             elif element_type.iloc[index] == 't3':
-                values.at[index] = getattr(net, rename_sheet['transformers_3w'])['name'].loc[values.iloc[index]]
+                values.at[index] = getattr(net, RENAME_SHEET['transformers_3w'])['name'].loc[values.iloc[index]]
             else:
                 raise ValueError("Given element type of switch is unknown.")
     
@@ -150,24 +150,22 @@ def from_pp(net, profiles=None, rename=False):
 
     for sheet in dfs_dict.keys():       
         if sheet == 'cost':
-            df_cost = getattr(net, rename_sheet[sheet])
+            df_cost = getattr(net, RENAME_SHEET[sheet])
             df_cost = df_cost.sort_values(by='et')
-            df_cost = df_cost.rename(columns={'et': 'type'})
 
             name_array = np.array([])
             for index in range(len(df_cost.index)):
-                if df_cost.iloc[index].type == 'ext_grid':
+                if df_cost.iloc[index].et == 'ext_grid':
                     from_sheet = 'external_gen'
-                elif df_cost.iloc[index].type == 'gen':
+                elif df_cost.iloc[index].et == 'gen':
                     from_sheet = 'generators'
-                elif df_cost.iloc[index].type == 'sgen':
+                elif df_cost.iloc[index].et == 'sgen':
                     from_sheet = 'static_generators'
                 name = dfs_dict[from_sheet].name[df_cost.iloc[index].element] # Extracted name!
                 name_array = np.append(name_array, name)
 
-            df_cost = df_cost.rename(columns={'element': 'name'})
             dfs_dict[sheet] = df_cost
-            dfs_dict[sheet]['name'] = name_array         
+            dfs_dict[sheet]['element'] = name_array         
 
         elif sheet == 'profiles':
             if profiles:
@@ -215,28 +213,28 @@ def from_pp(net, profiles=None, rename=False):
 
         else:
             try:
-                columns = getattr(net, rename_sheet[sheet]).columns
+                columns = getattr(net, RENAME_SHEET[sheet]).columns
                 for column in columns:
                     if column in dfs_dict[sheet].keys() and not (sheet == 'lines' and column == 'type'):
-                        old_values = getattr(net, rename_sheet[sheet])[column]
+                        old_values = getattr(net, RENAME_SHEET[sheet])[column]
                         values = rename_element(sheet, column, old_values, net, rename)
                         dfs_dict[sheet][column] = values.values # .values?
 
                     elif column in rename_column.values():
                         column_update = next((key for key, value in rename_column.items() if value == column), None)
                         if column_update is not None:
-                            old_values = getattr(net, rename_sheet[sheet])[column]
+                            old_values = getattr(net, RENAME_SHEET[sheet])[column]
                             values = rename_element(sheet, column_update, old_values, net, rename)
                             dfs_dict[sheet][column_update] = values.values
 
                     elif column == 'std_type':
-                        old_values = getattr(net, rename_sheet[sheet])[column]
+                        old_values = getattr(net, RENAME_SHEET[sheet])[column]
                         values = rename_element(sheet, column, old_values, net, rename)
                         dfs_dict[sheet]['type'] = values.values
 
                     else:
                         pass
-                        #print(f"\nSheet: {rename_sheet[sheet]}; Column: {column} is NOT used in template sheet") # For Debugging
+                        #print(f"\nSheet: {RENAME_SHEET[sheet]}; Column: {column} is NOT used in template sheet") # For Debugging
             except:
                 # print(f"[{sheet},{column}]") # For Debugging
                 pass
@@ -253,7 +251,7 @@ def from_pp(net, profiles=None, rename=False):
     wb = Workbook()
     wb.remove(wb['Sheet'])
 
-    nec_sheet_names = ['switches', 'cost', 'tr_type', 'static_generators', 'transformers', 'generators']
+    nec_sheet_names = ['switches', 'cost', 'tr_type', 'static_generators', 'transformers', 'generators', 'lines']
     for sheet_name, df in dfs_dict.items():
         if not df.empty or sheet_name in nec_sheet_names: 
             ws = wb.create_sheet(sheet_name)
@@ -265,4 +263,4 @@ def from_pp(net, profiles=None, rename=False):
 
     wb.save('network.xlsx')
     network_path = path + r"\jupyter_notebooks\network.xlsx"
-    print(f'\nNetwork file created successfully created: {network_path}')
+    print(f'Network file created successfully created: {network_path}')
