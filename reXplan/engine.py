@@ -31,10 +31,15 @@ class pandapower():
 		for (field, type), df in df_timeseries.groupby(level=['field', 'type'], axis=1):
 			# TODO: find better way to avoid level drop
 			df.columns = df.columns.droplevel(['field', 'type'])
-			df_elements = get_network_df_intersection_dataframe(
-				self.network, type, df)
-			self.SimpleControl(self.network, element=config.get_pandapower_sheetname(type), variable=field, element_index=df_elements.index, data_source=self.DFData_boolean_adapted(
-				df), profile_name=df_elements.name, drop_same_existing_ctrl=True)
+			df_elements = get_network_df_intersection_dataframe(self.network, type, df)
+			self.SimpleControl(
+				self.network,
+				element=config.get_pandapower_sheetname(type),
+				variable=field,
+				element_index=df_elements.index,
+				data_source=self.DFData_boolean_adapted(df),
+				profile_name=df_elements.name,
+				drop_same_existing_ctrl=True)
 
 	def configure_output_writer(self, time_steps):
 		ow = OutputWriter(self.network, time_steps)
@@ -44,6 +49,8 @@ class pandapower():
 		ow.log_variable('res_load', 'q_mvar')
 		ow.log_variable('res_gen', 'p_mw')
 		ow.log_variable('res_gen', 'q_mvar')
+		ow.log_variable('res_sgen', 'p_mw')
+		ow.log_variable('res_sgen', 'q_mvar')
 		ow.log_variable('res_bus', 'vm_pu')
 		ow.log_variable('res_bus', 'va_degree')
 		ow.log_variable('res_bus', 'p_mw')

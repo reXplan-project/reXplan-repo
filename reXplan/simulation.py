@@ -58,7 +58,18 @@ def get_index_as_dataSeries(df):
 	return df.index.to_frame(index=False).iloc[:, 0]
 
 def enrich_database(df):
-	# TODO: @TIM add description
+	"""
+	This function enriches the given DataFrame `df` with additional calculated fields related to loss of load and energy not served.
+	It calculates various metrics such as loss of load, loss of load percentage, loss of load duration, energy not served, and their total values for the network.
+	The enriched DataFrame is then returned with these additional metrics.
+
+	Args:
+		df (pd.DataFrame): The input DataFrame containing the simulation data.
+
+	Returns:
+		pd.DataFrame: The enriched DataFrame with additional calculated fields.
+	"""
+
 	def get_number_of_hours_per_timesteps(df):
 		hours = (df.columns[1:] - df.columns[:-1])/np.timedelta64(1,'h')
 		if hours.size == 0:
@@ -71,14 +82,35 @@ def enrich_database(df):
 		return pd.concat({tuple(keys): df}, names=names).reorder_levels(['strata','iteration', 'field','type', 'id'])
 
 	def loss_of_load():
-		# TODO: @TIM add description
+		"""
+		Calculate the loss of load in megawatts (MW).
+
+		This function computes the difference between the maximum load power (max_p_mw) 
+		and the actual load power (p_mw) from a DataFrame `df`. The result is then 
+		formatted into a multi-index DataFrame with specified field and type labels.
+
+		Returns:
+			pd.DataFrame: A multi-index DataFrame containing the loss of load values 
+			with the specified field and type labels.
+		"""
 		field = 'loss_of_load_p_mw'
 		type = 'load'
 		content = df.loc[:,:, 'max_p_mw','load',:] - df.loc[:,:, 'p_mw','load',:]
 		return format_to_multiindex(content, [field, type], ['field', 'type'])
 
 	def loss_of_load_percentage():
-		# TODO: @TIM add description
+		"""
+		Calculate the loss of load percentage.
+
+		This function calculates the loss of load percentage by grouping the 
+		loss of load data by 'strata', 'iteration', and 'id', summing the values, 
+		and then dividing by the maximum load in megawatts (MW) to get the percentage. 
+		It fills any NaN values with 0, considering a load of zero as supplied.
+
+		Returns:
+			pd.DataFrame: A multi-index DataFrame with the calculated loss of load 
+			percentage, formatted with the specified field and type.
+		"""
 		field = 'loss_of_load_p_percentage'
 		type = 'load'
 		content = loss_of_load().groupby(['strata','iteration', 'id']).sum()/df.loc[:,:, 'max_p_mw','load',:]*100
@@ -86,7 +118,19 @@ def enrich_database(df):
 		return format_to_multiindex(content, [field, type], ['field', 'type'])
 	
 	def loss_of_load_duration():
-		# TODO: @TIM add description
+		"""
+		Calculate the loss of load duration for each time step.
+
+		This function computes the duration of load loss by comparing the maximum 
+		power capacity with the actual power load. It filters out the periods where 
+		the load loss is less than a specified precision and then multiplies the 
+		filtered results by the number of hours per time step to get the duration 
+		of load loss.
+
+		Returns:
+			pd.DataFrame: A multi-index DataFrame with the calculated loss of load 
+			duration, formatted with specified field and type.
+		"""
 		field = 'loss_of_load_p_duration_h'
 		type = 'load'
 		hours = get_number_of_hours_per_timesteps(df)
@@ -98,7 +142,17 @@ def enrich_database(df):
 		return format_to_multiindex(content, [field, type], ['field', 'type'])
 
 	def energy_not_served():
-		# TODO: @TIM add description
+		"""
+		Calculate the energy not served in megawatt-hours (MWh).
+
+		This function computes the energy not served by multiplying the loss of load 
+		duration by the loss of load for each time step. The result is then formatted 
+		into a multi-index DataFrame with specified field and type labels.
+
+		Returns:
+			pd.DataFrame: A multi-index DataFrame containing the energy not served 
+			values with the specified field and type labels.
+		"""
 		field = 'energy_not_served_mwh'
 		type = 'load'
 		hours = loss_of_load_duration().groupby(['strata','iteration', 'id']).sum()
@@ -106,7 +160,17 @@ def enrich_database(df):
 		return format_to_multiindex(content, [field, type], ['field', 'type'])
 
 	def total_loss_of_load():
-		# TODO: @TIM add description
+		"""
+		Calculate the total loss of load in megawatts (MW) for the entire network.
+
+		This function computes the total loss of load by summing the loss of load values 
+		across all iterations and strata. The result is then formatted into a multi-index 
+		DataFrame with specified field, type, and id labels.
+
+		Returns:
+			pd.DataFrame: A multi-index DataFrame containing the total loss of load values 
+			with the specified field, type, and id labels.
+		"""
 		field = 'loss_of_load_p_mw'
 		type = 'network'
 		id = ''
@@ -114,7 +178,17 @@ def enrich_database(df):
 		return format_to_multiindex(content, [field, type, id], ['field', 'type', 'id'])
 
 	def total_loss_of_load_percentage():
-		# TODO: @TIM add description
+		"""
+		Calculate the total loss of load percentage for the entire network.
+
+		This function calculates the total loss of load percentage by summing the loss of load values 
+		across all iterations and strata, and then dividing by the maximum load in megawatts (MW) 
+		to get the percentage. It fills any NaN values with 0, considering a load of zero as supplied.
+
+		Returns:
+			pd.DataFrame: A multi-index DataFrame with the calculated total loss of load 
+			percentage, formatted with the specified field, type, and id.
+		"""
 		field = 'loss_of_load_p_percentage'
 		type = 'network'
 		id = ''
@@ -123,7 +197,17 @@ def enrich_database(df):
 		return format_to_multiindex(content, [field, type, id], ['field', 'type', 'id'])
 
 	def total_loss_of_load_duration():
-		# TODO: @TIM add description
+		"""
+		Calculate the total loss of load duration.
+
+		This function calculates the total duration of loss of load events by 
+		multiplying the filtered loss of load percentage by the number of hours 
+		per timestep. The result is formatted into a multi-index DataFrame.
+
+		Returns:
+			pd.DataFrame: A multi-index DataFrame with the total loss of load 
+			duration, including the fields 'field', 'type', and 'id'.
+		"""
 		field = 'loss_of_load_p_duration_h'
 		type = 'network'
 		id = ''
@@ -134,11 +218,21 @@ def enrich_database(df):
 		return format_to_multiindex(content, [field, type, id], ['field', 'type', 'id'])
 
 	def total_energy_not_served():
-		# TODO: @TIM add description
+		"""
+		Calculate the total energy not served.
+
+		This function calculates the total energy not served by summing up the 
+		energy not served (in MWh) grouped by strata and iteration. It formats 
+		the result into a multi-index DataFrame.
+
+		Returns:
+			pd.DataFrame: A DataFrame with the total energy not served, formatted 
+			with multi-index columns ['field', 'type', 'id'].
+		"""
 		field = 'energy_not_served_mwh'
 		type = 'network'
 		id = ''
-		hours = total_loss_of_load_duration().groupby(['strata','iteration']).sum()
+		hours = total_loss_of_load_duration().groupby(['strata','iteration']).sum() # TODO Not using variable?
 		content = energy_not_served().groupby(['strata','iteration']).sum()
 		return format_to_multiindex(content, [field, type, id], ['field', 'type', 'id'])
 
@@ -221,113 +315,21 @@ class Sim:
 		out = build_database(iterations, [databases], self.externalTimeInterval)
 		out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
 		return network.outagesSchedule
-
-	# def initialize_model_rp_deprecated(self, network, iterationNumber, ref_return_period, cv=0.1, maxTotalIteration=1000, nStrataSamples=10000, x_min=None, x_max=None, maxStrata=10):
-	# 	# DEPRECATED
-	# 	"""
-	# 	DEPRECATED
-	# 	The function `initialize_model_rp` initializes a model for reliability analysis using fragility
-	# 	curves and return periods.
-		
-	# 	:param network: The network parameter is an object that represents the network being modeled. It contains information about the network's elements, fragility curves, return periods, and other relevant data
-	# 	:param iterationNumber: The number of iterations to perform in the Monte Carlo simulation. Each	iteration represents a sample from the fragility curves
-	# 	:param ref_return_period: The reference return period is a parameter that specifies the return period for which the fragility curves are defined. It is used to generate samples for the Monte Carlo simulation and calculate the failure probabilities of network elements
-	# 	:param cv: The parameter "cv" stands for coefficient of variation. It is a measure of the variability of a dataset relative to its mean. In this context, it is used to control the precision of the Monte Carlo simulation. A smaller value of cv will result in a more precise simulation, but it will also increase computational time.
-	# 	:param maxTotalIteration: The maximum number of iterations for the Monte Carlo simulation. This parameter limits the total number of iterations performed during the simulation, defaults to 1000 (optional)
-	# 	:param nStrataSamples: The parameter "nStrataSamples" represents the number of samples to be generated within each stratum. It determines the granularity of the sampling within each range of intensity values, defaults to 10000 (optional)
-	# 	:param x_min: The minimum value of the x-axis for the fragility curves. If not provided, it will be set to the minimum value of the y-data in the fragility curves
-	# 	:param x_max: The maximum value of the x-axis for the fragility curves. It is used to generate samples within the specified range for each strata. If not provided, the maximum value from the fragility curves will be used
-	# 	"""
-	# 	for j, (key, rp) in enumerate(network.returnPeriods.items()):
-	# 		if j == 0:
-	# 			xmin = min(rp.y_data)
-	# 			xmax =max(rp.y_data)
-	# 		else:
-	# 			xmin = min(xmin, min(rp.y_data))
-	# 			xmax = max(xmax, max(rp.y_data))
-
-		if x_min==None:
-			x_min = xmin
-			print(f'x_min = {x_min}')
-		elif x_min < xmin:
-			warnings.warn(f'Warning: selected x_min is lower than the data provided for the fragility curves: {x_min} < {xmin}')
-
-		if x_max==None:
-			x_max = xmax
-			print(f'x_max = {x_max}')
-		elif x_max > xmax:
-			warnings.warn(f'Warning: selected x_max is greater than the data provided for the fragility curves: {x_max} > {xmax}')
-		
-	# 	self.samples = network.returnPeriods[ref_return_period].generate_samples(x_min, x_max, nStrataSamples)
-	# 	self.stratResults = network.calc_stratas(
-	# 		self.samples, network.returnPeriods[ref_return_period], xmin=x_min, xmax=x_max, cv=cv, maxStrata=maxStrata)
-
-	# 	if self.stratResults["Allocation"].sum()*iterationNumber >  maxTotalIteration:
-	# 		warnings.warn(f'Warning: Estimated needed starta samples to reach cv = {cv} are greater than maxTotalIteration = {maxTotalIteration}')
-
-	# 	iteration_number = 0
-	# 	self.failureProbs = self.failureProbs[0:0]
-	# 	df_temp = pd.DataFrame()
-	# 	databases = []
-	# 	for strata in range(len(self.stratResults.index)):
-	# 		strata_db = []
-	# 		sample_pool = self.samples[(self.samples >= self.stratResults["Lower_X1"].values[strata]) & (self.samples <= self.stratResults["Upper_X1"].values[strata])]
-			
-			if self.stratResults["Allocation"].sum()*mc_iteration_factor <=  max_mc_iterations:
-				nsamples = self.stratResults["Allocation"].values[strata]*mc_iteration_factor
-			else:
-				nsamples = round(self.stratResults["Allocation"].values[strata]*max_mc_iterations/self.stratResults["Allocation"].sum())
-					
-	# 		print(f'\nStrata = {strata}')
-	# 		print(f'Number of samples = {nsamples}')
-	# 		print(f'Intensity samples between {self.stratResults["Lower_X1"].values[strata]} and {self.stratResults["Upper_X1"].values[strata]}')
-	# 		df_temp["strata"] = [strata]
-
-	# 		for i in range(int(nsamples)):			
-	# 			event_intensity = sample_pool[random.randint(0, len(sample_pool)-1)]
-	# 			network.update_failure_probability(intensity=event_intensity, ref_return_period=ref_return_period)
-	# 			iteration_number += 1
-
-	# 			network.calculate_outages_schedule(self.time, self.hazardTime)
-	# 			network.calculate_switches_schedule(self.time)
-	# 			network.propagate_schedules_to_network_elements()
-	# 			strata_db.append(network.build_montecarlo_database(self.time))
-
-	# 			df_temp["iteration"] = [iteration_number]
-
-	# 			for key, value in network.powerElements.items():
-	# 				if value.return_period != None:
-	# 					df_temp["event intensity"] = network.fragilityCurves[value.fragilityCurve].projected_intensity(rp=network.returnPeriods[value.return_period],
-	# 																													ref_rp=network.returnPeriods[ref_return_period],
-	# 																													x=event_intensity)
-	# 				else:	
-	# 					df_temp["event intensity"] = [event_intensity]
-	# 				df_temp["power element"] = [key]
-	# 				df_temp["element type"] = [value.__class__.__name__]
-	# 				df_temp["failure probability"] = [value.failureProb]
-	# 				self.failureProbs = pd.concat([self.failureProbs, df_temp], ignore_index=True)
-	# 		databases.append(strata_db)
-
-	# 	self.failureProbs.reset_index()
-	# 	out = build_database(range(iteration_number+1), databases, self.externalTimeInterval)
-	# 	out.to_csv(config.path.montecarloDatabaseFile(self.simulationName))
 	
 	def get_intensity_boundaries(self, network, min_intensity, max_intensity, ref_return_period):
-
+		# TODO Add better Feedback if rp issues (file missing, column value not matching, etc)
 		max_intensity_from_rp = max(network.returnPeriods[ref_return_period].y_data)
 		min_intensity_from_rp = min(network.returnPeriods[ref_return_period].y_data)
 
 		if min_intensity == None:
 			min_intensity = min_intensity_from_rp
 		elif min_intensity < min_intensity_from_rp:
-			warnings.warn(
-				f'Selected minimum intensity is lower than reference return period: {min_intensity} < {min_intensity_from_rp}')
+			warnings.warn(f'Selected minimum intensity is lower than reference return period: {min_intensity} < {min_intensity_from_rp}')
 
 		if max_intensity == None:
 			max_intensity = max_intensity_from_rp
 		elif max_intensity > max_intensity_from_rp:
-			warnings.warn(
-				f'Selected maximum intensity is greater than reference the return periods: {max_intensity} > {max_intensity_from_rp}')
+			warnings.warn(f'Selected maximum intensity is greater than reference the return periods: {max_intensity} > {max_intensity_from_rp}')
 
 		return min_intensity, max_intensity
 
@@ -363,9 +365,10 @@ class Sim:
 				# iterate of each power element
 				for key, value in network.powerElements.items():
 					if value.return_period != None:
-						elm_intensity = network.fragilityCurves[value.fragilityCurve].projected_intensity(rp=network.returnPeriods[value.return_period],
-																														ref_rp=network.returnPeriods[ref_return_period],
-																														x=event_intensity)
+						elm_intensity = network.fragilityCurves[value.fragilityCurve].projected_intensity(
+																rp=network.returnPeriods[value.return_period],
+																ref_rp=network.returnPeriods[ref_return_period],
+																x=event_intensity)
 					else:	
 						elm_intensity = event_intensity
 
@@ -491,9 +494,6 @@ class Time():
 	:duration type: int
 	"""
 	def __init__(self, start, duration):
-		"""
-		Initializes an object with start and duration attributes, calculates the stop time, creates an interval list.
-		"""
 		"""
 		Initializes an object with start and duration attributes, calculates the stop time, creates an interval list.
 		"""
