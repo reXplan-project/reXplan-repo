@@ -870,7 +870,7 @@ class Line(PowerElement):
 																								ref_rp=network.returnPeriods[ref_return_period],
 																								xnew=intensity))
 				else:
-					probFailure.append(network.fragilityCurves[self.fragilityCurve].interpolate(intensity))		
+					probFailure.append(network.fragilityCurves[self.fragilityCurve].interpolate(intensity))
 			self.failureProb = 1-np.prod(1-np.array(probFailure))
 
 class Crew:
