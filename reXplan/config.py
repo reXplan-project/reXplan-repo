@@ -12,7 +12,7 @@ COL_NAME_FIELD = 'field'
 COL_NAME_VALUE = 'value'
 COL_NAME_UNIT = 'unit'
 
-TOOL_FOLDER = os.path.abspath(os.path.dirname(__file__ )) # aboslute file path of config.py
+TOOL_FOLDER = os.path.abspath(os.path.dirname(__file__ )) # absolute file path of config.py
 INPUT_FIELDS_MAP_FILE = os.path.join(TOOL_FOLDER, 'fields_map.csv')
 INPUT_SHEETS_MAP_FILE = os.path.join(TOOL_FOLDER, 'sheets_map.csv')
 
@@ -77,8 +77,14 @@ def df_to_internal_fields(df):
 def df_to_pandapower_object(df):
 	return df.rename(columns=INPUT_FIELD_MAP[COL_NAME_PANDAPOWER_FIELD].to_dict())
 
+def get_pandapower_object(field_name):
+	return INPUT_FIELD_MAP[(INPUT_FIELD_MAP[COL_NAME_INTERNAL_FIELD] == field_name)][COL_NAME_PANDAPOWER_FIELD].values[0]
+
 def get_input_sheetname(sheetname):
 	return INPUT_SHEET_MAP[(INPUT_SHEET_MAP[COL_NAME_INTERNAL_FIELD] == sheetname)].index[0]
+
+def get_sheetname_from_input_to_pandapower(sheetname):
+	return INPUT_SHEET_MAP[(INPUT_SHEET_MAP.index == sheetname)][COL_NAME_PANDAPOWER_FIELD].values[0]
 
 def get_pandapower_sheetname(sheetname):
 	return INPUT_SHEET_MAP[(INPUT_SHEET_MAP[COL_NAME_INTERNAL_FIELD] == sheetname)][COL_NAME_PANDAPOWER_FIELD].values[0]

@@ -23,6 +23,12 @@ import rpy2.rlike.container as rlc
 
 from mpl_toolkits.basemap import Basemap
 
+# For creating reXplan compliant network-files via pandapower
+import os
+from openpyxl import Workbook
+from openpyxl.utils.dataframe import dataframe_to_rows
+from openpyxl.styles import Font, Border, Side
+
 # TODO: improve warning messages in Network and PowerElement
 # TODO: displace fragility curve elements
 # TODO: revise following contants
@@ -53,7 +59,7 @@ def get_datatype_elements(object, class_):
 	elif hasattr(object, "__dict__"):
 		iterateOver = vars(object).values()
 		out = [standard_dict(content=object, type=type(object).__name__, id=object.id, field=key)
-			   for key, value in vars(object).items() if isinstance(value, class_)]
+		for key, value in vars(object).items() if isinstance(value, class_)]
 	else:
 		iterateOver = []
 		out = []
@@ -71,24 +77,90 @@ def build_database(standard_dict_list, get_value_from_content=True):
 	out = pd.DataFrame.from_dict(formatted_dict)
 	out.columns.names = columnNames
 	return out
-
 class Network:
-	'''
-	TODO: @TIM add description
-	Add description of Newtork class here
-	'''
+	"""
+	Class that is representing a power network for the simulation purposes.
+
+	Attributes:
+		id (int or None): Identifier for the network.
+		f_hz (float or None): Frequency of the network in Hertz.
+		sn_mva (float or None): Apparent power of the network in MVA.
+		totalInstalledPower (float): Total installed power in the network.
+		totalConventionalPower (float): Total conventional power in the network.
+		totalRenewablePower (float): Total renewable power in the network.
+		totalStoragePower (float): Total storage power in the network.
+		nodes (dict): Dictionary of nodes in the network.
+		generators (dict): Dictionary of generators in the network.
+		staticGenerators (dict): Dictionary of static generators in the network.
+		externalGenerators (dict): Dictionary of external generators in the network.
+		loads (dict): Dictionary of loads in the network.
+		transformers (dict): Dictionary of transformers in the network.
+		transformerTypes (dict): Dictionary of transformer types in the network.
+		lines (dict): Dictionary of lines in the network.
+		lineTypes (dict): Dictionary of line types in the network.
+		switches (dict): Dictionary of switches in the network.
+		crews (dict): Dictionary of crews in the network.
+		fragilityCurves (dict): Dictionary of fragility curves for the network.
+		event (Hazard): Hazard event associated with the network.
+		returnPeriods (dict): Dictionary of return periods for the network.
+		pp_network (pandapowerNet or None): Pandapower network object.
+		outagesSchedule (DataFrame or None): Schedule of outages in the network.
+		crewSchedule (DataFrame or None): Schedule of crews in the network.
+		switchesSchedule (DataFrame or None): Schedule of switches in the network.
+		metrics (list): List of metrics for the network.
+		mcVariables (list): List of Monte Carlo variables for the network.
+		powerElements (dict): Dictionary of power elements in the network.
+		calculationEngine (Engine): Calculation engine for the network.
+
+	Methods:
+		repackage_geodata(df): Repackages geodata columns in the DataFrame.
+		create_pandapower_df(df): Creates a pandapower DataFrame from the given DataFrame.
+		augment_element_with_typedata(df, df_type):	Augments elements with type data.
+		node_name_to_id(df, cols=[], bus_ids={}, line_ids={}, tr_ids={}, gen_ids={}, sgen_ids={}, ext_grid_ids={}, load_ids={}, dcline_ids={}, storage_ids={}, element_col=[]): Converts node names to IDs.
+		create_elements(df, create_function, network): Creates elements in the network.
+		build_network_parameters(networkFile): Builds network parameters from the given file.
+		build_nodes(networkFile): Builds nodes from the given file.
+		build_generators(networkFile): Builds generators from the given file.
+		build_loads(networkFile): Builds loads from the given file.
+		build_transformers(networkFile): Builds transformers from the given file.
+		build_lines(networkFile): Builds lines from the given file.
+		build_switches(networkFile): Builds switches from the given file.
+		build_crews(networkFile): Builds crews from the given file.
+		allocate_profiles(networkFile):	Allocates profiles from the given file.
+		build_network(networkFile, build_pp_network = True): Builds the network from the given file.
+		update_failure_probability(intensity=None, ref_return_period=None):
+		build_pp_network(df_network, df_bus, df_tr, df_tr_type, df_ln, df_ln_type, df_load, df_ex_gen, df_gen, df_sgen, df_switch, df_cost): Builds the pandapower network.
+		get_failure_candidates(): Gets the failure candidates in the network.
+		get_closest_available_crews(availableCrew, powerElements): Gets the closest available crews for the power elements.
+		get_crews_traveling_time(crew, powerElements): Gets the traveling time for the crews.
+		get_reparing_time(powerElementsID, powerElements): Gets the repairing time for the power elements.
+		calculate_outages_schedule(simulationTime, hazardTime): Calculates the outages schedule for the network.
+		get_switch_candidates(): Gets the switch candidates in the network.
+		calculate_switches_schedule(simulationTime): Calculates the switches schedule for the network.
+		get_powerelement(id): Gets the power element by ID.
+		propagate_schedules_to_network_elements(): Propagates schedules to network elements.
+		update_montecarlo_variables(standard_dict): Updates Monte Carlo variables.
+		update_grid(montecarlo_database, debug=None): Updates the grid with Monte Carlo database.
+		build_montecarlo_database(time): Builds the Monte Carlo database.
+		build_timeseries_database(time): Builds the timeseries database.
+		calculate_metrics(): Calculates the metrics for the network.
+		build_metrics_database(): Builds the metrics database.
+		run(time, debug=None, **kwargs): Runs the simulation for the given time period.
+		calc_stratas(data, ref_rp, xmin, xmax, cv=0.1, maxStrata=10): Calculates the stratas for the given data.
+	"""
 	def __init__(self, simulationName):
 		self.id = None
 		self.f_hz = None
 		self.sn_mva = None
 
-		self.totalInstalledPower = 0
+		self.totalInstalledPower = 0	# TODO is used?
 		self.totalConventionalPower = 0
 		self.totalRenewablePower = 0
 		self.totalStoragePower = 0
 
 		self.nodes = {}
 		self.generators = {}
+		self.staticGenerators = {}
 		self.externalGenerators = {}
 		self.loads = {}
 		self.transformers = {}
@@ -114,11 +186,12 @@ class Network:
 		self.build_network(config.path.networkFile(simulationName))
 		self.calculationEngine = engine.pandapower(self.pp_network)
 
-		self.powerElements = {**self.lines,
-								**self.generators,
-								**self.loads,
-								**self.transformers,
-								**self.nodes}
+		self.powerElements = {
+							**self.lines,
+							**self.generators,
+							**self.loads,
+							**self.transformers,
+							**self.nodes}
 		print(f"Network for study case <{simulationName}> initialized.")
 
 	def repackage_geodata(self, df):
@@ -152,11 +225,24 @@ class Network:
 		df = df.drop(STD_TYPE, axis=1)
 		return df
 	
-	def node_name_to_id(self, df, cols=[], bus_ids={}, line_ids={}, tr_ids={}, gen_ids={}, sgen_ids={}, ext_grid_ids={}, load_ids={}, dcline_ids={}, storage_ids={} ,element_col=[]):
+	def node_name_to_id(
+			self,
+			df,
+			cols=[],
+			bus_ids={},
+			line_ids={},
+			tr_ids={},
+			gen_ids={},
+			sgen_ids={},
+			ext_grid_ids={}, 
+			load_ids={},
+			dcline_ids={},
+			storage_ids={},
+			element_col=[]):
 		for col in cols:
 			df[col] = [bus_ids[row] for row in df[col]]
-		if len(element_col)>0:
-			for index ,row in df.iterrows():
+		if len(element_col) > 0:
+			for index, row in df.iterrows():
 				if row[element_col[1]] == 'b':
 					row[element_col[0]] = bus_ids[row[element_col[0]]]
 				elif row[element_col[1]] == 'l':
@@ -209,11 +295,12 @@ class Network:
 
 	def build_generators(self, networkFile):
 		df_gen = pd.read_excel(networkFile, sheet_name=config.get_input_sheetname('Generator'))
-		df_ex_gen = pd.read_excel(
-			networkFile, sheet_name=config.get_input_sheetname('External Generator'))
+		df_ex_gen = pd.read_excel(networkFile, sheet_name=config.get_input_sheetname('External Generator'))
+		df_sgen = pd.read_excel(networkFile, sheet_name=config.get_input_sheetname('Static Generator'))
 		self.generators = build_class_dict(df_gen, 'Generator')
 		self.externalGenerators = build_class_dict(df_ex_gen, 'Generator')
-		return df_gen, df_ex_gen
+		self.staticGenerators = build_class_dict(df_sgen, 'Generator')
+		return df_gen, df_ex_gen, df_sgen
 
 	def build_loads(self, networkFile):
 		df_load = pd.read_excel(networkFile, sheet_name=config.get_input_sheetname('Load'))
@@ -260,12 +347,11 @@ class Network:
 		df_network = self.build_network_parameters(networkFile)
 		df_nodes = self.build_nodes(networkFile)
 		df_load = self.build_loads(networkFile)
-		df_gen, df_ex_gen = self.build_generators(networkFile)
+		df_gen, df_ex_gen, df_sgen = self.build_generators(networkFile) 	# TODO: Try-Catch for Gen if missing -> sgen
 		df_transformers, df_tr_types = self.build_transformers(networkFile)
 		df_lines, df_ln_types = self.build_lines(networkFile)
 		df_switches = self.build_switches(networkFile)
-		df_cost = pd.read_excel(
-			networkFile, sheet_name=config.get_input_sheetname('Cost'))
+		df_cost = pd.read_excel(networkFile, sheet_name = config.get_input_sheetname('Cost'))
 		self.build_crews(networkFile)
 		self.allocate_profiles(networkFile)
 		if build_pp_network:
@@ -279,25 +365,44 @@ class Network:
 				df_load=df_load,
 				df_ex_gen=df_ex_gen,
 				df_gen=df_gen,
+				df_sgen=df_sgen, # TODO: DEBUG
 				df_switch=df_switches,
 				df_cost=df_cost
 			)
 
-	def update_failure_probability(self, intensity=None, ref_return_period=None):
-		'''
-		This function updates the failure probability of the power elements of the network.
-		The event object must be defined before calling this method.
-		If this method is called the failure probabilities entered in the excel file will not be considered.
-		'''
+	def update_failure_probability(self, intensity = None, ref_return_period = None):
+		"""
+		Updates the failure probability for all power elements.
+
+		This method iterates through all power elements and updates their failure 
+		probability based on the provided intensity and reference return period.
+
+		Args:
+			intensity (float, optional): The intensity value used to update the failure probability. If None, the default intensity is used.
+			ref_return_period (float, optional): The reference return period for the failure probability calculation. If None, the default return period is used.
+
+		Returns:
+			dict: A dictionary of power elements with updated failure probabilities.
+		"""	
 		for el in self.powerElements.values():
 			el.update_failure_probability(self, intensity=intensity, ref_return_period=ref_return_period)
 		return self.powerElements
 
-	def build_pp_network(self, df_network, df_bus, df_tr, df_tr_type, df_ln, df_ln_type, df_load, df_ex_gen, df_gen, df_switch, df_cost):
-		'''
-		This Function takes as imput the input file name without the extention
-		and gives as output the pandapower network object.
-		'''
+	def build_pp_network(
+						self,
+						df_network,
+						df_bus,
+						df_tr,
+						df_tr_type,
+						df_ln,
+						df_ln_type,
+						df_load,
+						df_ex_gen,
+						df_gen,
+						df_sgen,
+						df_switch,
+						df_cost):
+		# TODO: it seems this funciton is missplaced. Can it be moved to engine.pandapower?
 
 		# Creating the empty network
 		df_network_pp = self.create_pandapower_df(df_network)
@@ -339,16 +444,32 @@ class Network:
 		df_gen_pp = self.node_name_to_id(df_gen_pp, ['bus'], bus_ids)
 		gen_ids = self.create_elements(df_gen_pp, pp.create_gen, pp_network)
 
+		# Creating the static generator elements
+		df_sgen_pp = self.create_pandapower_df(df_sgen)
+		df_sgen_pp = self.node_name_to_id(df_sgen_pp, ['bus'], bus_ids)
+		sgen_ids = self.create_elements(df_sgen_pp, pp.create_sgen, pp_network)
+
 		# Creating the switch elements
 		df_switch_pp = self.create_pandapower_df(df_switch)
-		df_switch_pp = self.node_name_to_id(df_switch_pp, ['bus'], bus_ids, line_ids=line_ids, tr_ids=tr_ids, element_col=['element', 'et'])
-		switches_ids = self.create_elements(df_switch_pp, pp.create_switch, pp_network)
+		df_switch_pp = self.node_name_to_id(
+										df_switch_pp,
+										['bus'],
+										bus_ids,
+										line_ids = line_ids,
+										tr_ids = tr_ids,
+										element_col = ['element', 'et'])
+		switches_ids = self.create_elements(df_switch_pp, pp.create_switch, pp_network) # For future implementation
 
 		# Creating the cost function
 		df_cost_pp = self.create_pandapower_df(df_cost)
-		df_cost_pp = self.node_name_to_id(df_cost_pp, gen_ids=gen_ids, sgen_ids={}, ext_grid_ids=ex_gen_ids, load_ids=load_ids, element_col=['element', 'et'])
+		df_cost_pp = self.node_name_to_id(
+										df_cost_pp,
+										gen_ids=gen_ids,
+										sgen_ids=sgen_ids,
+										ext_grid_ids=ex_gen_ids,
+										load_ids=load_ids,
+										element_col=['element', 'et'])
 		self.create_elements(df_cost_pp, pp.create_poly_cost, pp_network)
-		
 		return pp_network
 
 	def get_failure_candidates(self):
@@ -376,19 +497,19 @@ class Network:
 		outagesSchedule = 1 if powerElement is available
 		'''
 		failureCandidates = self.get_failure_candidates()
-
 		failureProbability = np.array([x.failureProb for x in failureCandidates.values()])
-
 		randomNumber = np.random.rand(len(failureProbability))
 		failure = np.where((randomNumber <= failureProbability), 
 							np.random.randint(hazardTime.start, [hazardTime.stop]*len(failureCandidates)),
 							simulationTime.stop)
 
-		crewSchedule = pd.DataFrame([[1]*len(self.crews)]*simulationTime.maxduration,
-									columns=self.crews.keys(), index=simulationTime.interval)
+		crewSchedule = pd.DataFrame([[1]*len(self.crews)] * simulationTime.maxduration,
+									columns = self.crews.keys(),
+									index = simulationTime.interval)
 
-		outagesSchedule = pd.DataFrame([[STATUS['on']]*len(failureCandidates)] *
-									   simulationTime.maxduration, columns=failureCandidates.keys(), index=simulationTime.interval)
+		outagesSchedule = pd.DataFrame([[STATUS['on']]*len(failureCandidates)] * simulationTime.maxduration,
+									   columns = failureCandidates.keys(),
+									   index = simulationTime.interval)
 
 		for index, column in zip(failure, outagesSchedule):
 			outagesSchedule[column].loc[index:] = STATUS['off']
@@ -399,7 +520,10 @@ class Network:
 			elementsToRepair, repairingCrews = self.get_closest_available_crews(availableCrews, failureElements)
 			crewsTravelingTime = self.get_crews_traveling_time(repairingCrews, elementsToRepair)
 			repairingTime = self.get_reparing_time(elementsToRepair, failureCandidates)
+			# TODO Add user info for missing data that is necessary to execute code
 			for t_0, t_1, e, c in zip(crewsTravelingTime, repairingTime, elementsToRepair, repairingCrews):
+				if t_1 is None:
+					raise ValueError("No time to repair (TTR) defined for power element that fails.")
 				outagesSchedule.loc[index+1:index + t_0, e] = STATUS['waiting']
 				outagesSchedule.loc[index+t_0+1:index + t_0 + t_1, e] = STATUS['reparing']
 				# Following line can be removed if outagesSchedule is set to 1 on at failure time
@@ -429,8 +553,7 @@ class Network:
 		
 		switchesSchedule.index = simulationTime.interval
 		for switch_id in switchesSchedule:
-			filter = self.outagesSchedule.columns.intersection(
-				self.switches[switch_id].associated_elements)
+			filter = self.outagesSchedule.columns.intersection(self.switches[switch_id].associated_elements)
 			switchesSchedule[switch_id] = (switchesSchedule[switch_id] == (self.outagesSchedule[filter] > 0).all(axis=1))*1 #XNOR
 		self.switchesSchedule = switchesSchedule
 
@@ -450,8 +573,11 @@ class Network:
 			for elementId in y:
 				element = self.get_powerelement(elementId)
 				setattr(element, field, y[elementId])
-				self.update_montecarlo_variables(standard_dict(content=element, type=type(
-					element).__name__, id=elementId, field=field))  # elements are pointers
+				self.update_montecarlo_variables(standard_dict(
+					content = element,
+					type = type(element).__name__,
+					id = elementId,
+					field = field))  # elements are pointers
 
 	def update_montecarlo_variables(self, standard_dict):
 		element = find_element_in_standard_dict_list(
@@ -469,6 +595,8 @@ class Network:
 				print(f'after update_grid {debug} is {self.get_powerelement(id).in_service}')
 
 	def build_montecarlo_database(self, time):
+		if not self.mcVariables:
+			print("No montecarlo variables to build database.")
 		return build_database(self.mcVariables).loc[time.start: time.stop-1]
 
 	def build_timeseries_database(self, time):
@@ -476,7 +604,11 @@ class Network:
 		From the list [loads, generators, transformers, lines, switches] it creates a database with all the fields corresponding to timeseries
 		TODO: Replace list by a function that will recognise powerElement-type instances
 		"""
-		return build_database(get_datatype_elements([self.loads, self.generators, self.transformers, self.lines, self.switches, self.nodes], TIMESERIES_CLASS)).loc[time.start: time.stop-1]
+		elements = [
+			self.loads, self.generators, self.staticGenerators, self.externalGenerators,
+			self.transformers, self.lines, self.switches, self.nodes
+		]
+		return build_database(get_datatype_elements(elements, TIMESERIES_CLASS)).loc[time.start: time.stop-1]  # TODO Check Time
 
 	def calculate_metrics(self):
 		# DEPRECATED
@@ -510,7 +642,8 @@ class Network:
 		return pd.concat(out, axis=1)
 
 	def run(self, time, debug=None, **kwargs):
-		# TODO: to include an argument to choose which elements will not be considered in the timeseries simulation. For instance, running a simulation with/without switches
+		# TODO: to include an argument to choose which elements will not be considered in the timeseries simulation.
+		# For instance, running a simulation with/without switches
 		return self.calculationEngine.run(self.build_timeseries_database(time), debug=debug, **kwargs)
 
 	def calc_stratas(self, data, ref_rp, xmin, xmax, cv=0.1, maxStrata=10):
@@ -531,10 +664,12 @@ class Network:
 
 			fc_rp_list = []
 			for _, value in self.powerElements.items():
-				if value.fragilityCurve != None and value.return_period != None:
+				if value.fragilityCurve and value.return_period:
 					temp = [value.fragilityCurve, value.return_period]
 					if temp not in fc_rp_list:
 						fc_rp_list.append(temp)
+			if not fc_rp_list:
+				raise ValueError("No power element with fragility curve and return periods found. Check the power elements.")
 
 			n = 1
 			for fc_rp in fc_rp_list:
@@ -550,48 +685,56 @@ class Network:
 			CV_.append("domainvalue")
 
 			df = pd.DataFrame(np.transpose(np.array(y)), columns=Y)
-
-			frame = stratify.buildFrameDF(df=robjects.conversion.py2rpy(df),
-											id = "id", X = ["x"], Y = Y[1:-2],
-											domainvalue = "domain")
+			frame = stratify.buildFrameDF(
+										df=robjects.conversion.py2rpy(df),
+										id = "id",
+										X = ["x"],
+										Y = Y[1:-2],
+										domainvalue = "domain")
 
 			df_cv = base.as_data_frame(rlc.TaggedList(cv_, tags=tuple(CV_)))
-
-			kmean = stratify.KmeansSolution2(frame=frame,
-												errors=df_cv,
-												maxclusters = maxStrata,
-												showPlot = False)
+			kmean = stratify.KmeansSolution2(
+										frame = frame,
+										errors = df_cv,
+										maxclusters = maxStrata,
+										showPlot = False) # TODO: Adjust UI Feedback
 			try:
 				if maxStrata == 1:
 					nstrat = 1
 				else:
 					nstrat = np.unique(robjects.conversion.rpy2py(kmean)["suggestions"].values).size
-				sugg = stratify.prepareSuggestion(kmean=kmean, frame=frame, nstrat=nstrat)
-				solution = stratify.optimStrata(method= "continuous", errors = df_cv,
-                                    framesamp = frame, iter = 50,
-                                    pops = 20, nStrata = nstrat,
+				sugg = stratify.prepareSuggestion(kmean=kmean, frame=frame, nstrat=nstrat) # TODO: Adjust UI Feedback
+				solution = stratify.optimStrata(
+									method= "continuous",
+									errors = df_cv,
+                                    framesamp = frame,
+									iter = 50,
+                                    pops = 20,
+									nStrata = nstrat,
 									suggestions = sugg,
                                     showPlot = False,
                                     parallel=True)
 			except:
-				warnings.warn(
-				    f'Cannot find optimal number of stratas... Please try with a different reference return period. Continuing with 5 stratas')
-				solution = stratify.optimStrata(method= "continuous", errors = df_cv,
-                                    framesamp = frame, iter = 50,
-											pops = 20, nStrata = 5,
+				warnings.warn(f'Cannot find optimal number of stratas. Try with a different reference return period. Continuing with 5 stratas.')
+				solution = stratify.optimStrata(
+									method= "continuous",
+									errors = df_cv,
+                                    framesamp = frame,
+									iter = 50,
+									pops = 20,
+									nStrata = 5,
                                     showPlot = False,
-                                    parallel=True)
-			strataStructure = stratify.summaryStrata(robjects.conversion.rpy2py(solution)[2],
-                                            robjects.conversion.rpy2py(solution)[1],
-                            progress=False)
+                                    parallel = False) # CHECK THIS OUTPUT TOO
+			strataStructure = stratify.summaryStrata(
+										robjects.conversion.rpy2py(solution)[2],
+                                        robjects.conversion.rpy2py(solution)[1],
+                            			progress=False) # Why calling function 2 times?
 			return (robjects.conversion.rpy2py(strataStructure))
-
 class MonteCarloVariable:
 	def __init__(self, element, id, field):
 		self.element = element
 		self.id = id
 		self.field = field
-
 class Metric:
 	# TODO: delete
 	def __init__(self, network_element, field, value, subfield=None, unit=None):
@@ -600,24 +743,87 @@ class Metric:
 		self.value = value
 		self.subfield = subfield
 		self.unit = unit
+class History:
+	"""
+	A class to represent the history of a network's performance metrics.
 
+	Attributes:
+		label (str): A label for the history instance.
+		ENS (list): A list to store Energy Not Supplied (ENS) values.
+		lineLoading (list): A list to store line loading values.
+		minPower (int): The minimum power value.
+		loadPower (int): The load power value.
+		lineOutages (list): A list to store line outage events.
+		transformerOutages (list): A list to store transformer outage events.
+		busOutages (list): A list to store bus outage events.
+		generatorOutages (list): A list to store generator outage events.
+		LOEF (int): The Line Outage Event Frequency (LOEF).
+		totENS (int): The total Energy Not Supplied (ENS).
+		plot(): Placeholder method to plot the history data.
+		export(): Placeholder method to export the history data.
+		print(): Placeholder method to print the history data.
+
+	Methods:
+		__init__(label): Initializes the History object with the given label.
+		plot():	Placeholder method to plot the history data.
+		export(): Placeholder method to export the history data.
+		print(): Placeholder method to print the history data.
+	"""
+	def __init__(self, label):
+		self.label = label
+		self.ENS = []
+		self.lineLoading = []
+		self.minPower = 0
+		self.loadPower = 0
+		self.lineOutages = []
+		self.transformerOutages = []
+		self.busOutages = []
+		self.generatorOutages = []
+		self.LOEF = 0
+		self.totENS = 0
+
+	def plot(self):
+		pass
+
+	def export(self):
+		pass
+
+	def print(self):
+		pass
 class GeoData:
-	'''
-	TODO: @TIM add description
-	Add description of GeoData class
-	'''
+	"""
+	A class to represent geographical data with latitude and longitude.
+
+	Attributes:
+		latitude (float): The latitude of the geographical location.
+		longitude (float): The longitude of the geographical location.
+
+	Methods:
+		__init__(latitude, longitude):
+			Initializes the GeoData object with the given latitude and longitude.
+	"""
 	def __init__(self, latitude, longitude):
 		self.latitude = latitude
 		self.longitude = longitude
-
-
 class PowerElement:
-	'''
-	TODO: @TIM add description
-	Add description of PowerElement class here
+	"""
+	A class to represent a power element in a network.
 
-	:attribute fragilityCurve: string, the type of the fragility curve
-	'''
+	Attributes:
+		id (int): Unique identifier for the power element.
+		node (int): Node identifier in the network.
+		failureProb (float): Probability of failure of the power element.
+		in_service (bool): Indicates if the power element is in service.
+		fragilityCurve (str): Identifier for the fragility curve associated with the power element.
+		return_period (float): Return period for the power element.
+		normalTTR (float): Normal time to repair for the power element.
+		priority (int): Priority of the power element.
+		i_montecarlo (bool): Indicates if Monte Carlo simulation should be ignored.	# TODO CHECK IF BOOL OR INT
+
+	Methods:
+		__init__(**kwargs): Initializes the PowerElement with optional keyword arguments.
+		update_failure_probability(network, intensity=None, ref_return_period=None): Updates the failure probability of the power element based on the network and intensity.
+	"""
 	def __init__(self, **kwargs):
 		self.id = None
 		self.node = None
@@ -645,28 +851,36 @@ class PowerElement:
 			self.failureProb = None
 		else:
 			node = network.nodes[self.node]
-			if intensity == None and network.event.intensity is not None:
-				_, event_intensity = network.event.get_intensity(node.longitude, node.latitude)
-				intensity = event_intensity.max()
-			elif network.event.intensity is None:
-				warnings.warn(f'Hazard event is not defined')
-
+			if intensity is None:
+				if network.event.intensity is None:
+					warnings.warn(f'Hazard event is not defined')
+				else:
+					_, event_intensity = network.event.get_intensity(node.longitude, node.latitude)
+					intensity = event_intensity.max()
 			if self.return_period != None and ref_return_period != None:
-				self.failureProb = network.fragilityCurves[self.fragilityCurve].projected_fc(rp=network.returnPeriods[self.return_period],
-																							ref_rp=network.returnPeriods[ref_return_period],
-																							xnew=intensity)[0]
+				self.failureProb = network.fragilityCurves[self.fragilityCurve].projected_fc(
+					rp = network.returnPeriods[self.return_period],
+					ref_rp = network.returnPeriods[ref_return_period],
+					xnew = intensity)[0]
 			else:
 				self.failureProb = network.fragilityCurves[self.fragilityCurve].interpolate(intensity)[0]
-
-
 class Bus(PowerElement):
-	'''
-	TODO: @TIM add description
-	Class Bus: Parent Class PowerElement
+	"""
+	Represents a bus in a power network.
 
-	:attribute longitude: float, longitude in degrees
-	:attribute latitude: float, latitude in degrees
-	'''
+	Attributes:
+		vn_kv (float): Voltage level in kV.
+		min_vm_pu (float): Minimum voltage magnitude in per unit.
+		max_vm_pu (float): Maximum voltage magnitude in per unit.
+		zone (str): Zone in which the bus is located.
+		type (str): Type of the bus.
+		longitude (float): Longitude of the bus location.
+		latitude (float): Latitude of the bus location.
+
+	Methods:
+		__init__(kwargs): Initializes the Bus with optional keyword arguments.
+		update_failure_probability(network, intensity=None, ref_return_period=None): Updates the failure probability of the bus based on the given network, intensity, and reference return period.
+	"""
 	def __init__(self, kwargs):
 		self.vn_kv = None
 		self.min_vm_pu = None
@@ -675,7 +889,6 @@ class Bus(PowerElement):
 		self.type = None
 		self.longitude = None
 		self.latitude = None
-		
 		super().__init__(**kwargs)
 
 	def update_failure_probability(self, network, intensity=None, ref_return_period=None):		
@@ -686,14 +899,39 @@ class Bus(PowerElement):
 				_, event_intensity = network.event.get_intensity(self.longitude, self.latitude)
 				intensity = event_intensity.max()
 			if self.return_period != None and ref_return_period != None:
-				self.failureProb = network.fragilityCurves[self.fragilityCurve].projected_fc(rp=network.returnPeriods[self.return_period],
-																							ref_rp=network.returnPeriods[ref_return_period],
-																							xnew=intensity)[0]
+				self.failureProb = network.fragilityCurves[self.fragilityCurve].projected_fc(
+					rp = network.returnPeriods[self.return_period],
+					ref_rp = network.returnPeriods[ref_return_period],
+					xnew = intensity)[0]
 			else:
 				self.failureProb = network.fragilityCurves[self.fragilityCurve].interpolate(intensity)[0]
-
 class Switch(PowerElement):
-	# TODO: @TIM add description
+	"""
+	Initializes a Switch instance.
+
+	A switch represents a connection between electrical elements like buses, lines, or transformers.
+	The switch can be associated with specific elements and can have various attributes such as 
+	current capacity, type, and state.
+
+	Args:
+		kwargs (dict): A dictionary of keyword arguments to initialize the switch attributes. 
+			Expected keys include:
+			- et (str): Element type ('l' = line, 't' = transformer, 't3' = transformer3w, 'b' = bus-to-bus).
+			- element (str): The name or identifier of the connected element.
+			- closed (bool): Indicates whether the switch is closed (True) or open (False).
+			- in_ka (float): The rated current in kiloamperes.
+			- type (str): The type of switch.
+			- associated_elements (str): Comma-separated list of associated element names.
+
+	Attributes:
+		et (str): Type of element connection.
+		element (str): Connected element name.
+		closed (bool): Switch state.
+		in_ka (float): Rated current in kA.
+		type (str): Switch type.
+		associated_elements (list): List of associated elements.
+		closed_ (bool): Copy of the initial state of the switch.
+	"""
 	def __init__(self, kwargs):
 		# element type: “l” = switch between bus and line, “t” = switch between bus and transformer, “t3” = switch between bus and transformer3w, “b” = switch between two buses'
 		self.et = None
@@ -707,12 +945,29 @@ class Switch(PowerElement):
 		if self.associated_elements:
 			self.associated_elements = [
 				x.strip() for x in self.associated_elements.split(',')]
-
 class Generator(PowerElement):
-	'''
-	TODO: @TIM add description
-	Add description of Generator class here
-	'''
+	"""
+	p_mw (float, optional): Active power in MW.
+	q_mvar (float, optional): Reactive power in MVAr.
+	vm_pu (float, optional): Voltage magnitude in per unit.
+	controllable (bool, optional): Indicates if the generator is controllable.
+	max_p_mw (float, optional): Maximum active power in MW.
+	min_p_mw (float, optional): Minimum active power in MW.
+	max_q_mvar (float, optional): Maximum reactive power in MVAr.
+	min_q_mvar (float, optional): Minimum reactive power in MVAr.
+	slack (bool, optional): Indicates if the generator is a slack bus.
+	slack_weight (float, optional): Weight of the slack bus.
+	sn_mva (float, optional): Apparent power in MVA.
+	scaling (float, optional): Scaling factor.
+	type (str, optional): Type of the generator.
+	vn_kv (float, optional): Nominal voltage in kV.
+	xdss_pu (float, optional): Subtransient reactance in per unit.
+	rdss_ohm (float, optional): Subtransient resistance in ohms.
+	cos_phi (float, optional): Power factor.
+	pg_percent (float, optional): Percentage of active power generation.
+	power_station_trafo (bool, optional): Indicates if the generator is connected to a power station transformer.
+	va_degree (float, optional): Voltage angle in degrees.
+	"""
 	def __init__(self, kwargs):
 		self.p_mw=None
 		self.q_mvar=None
@@ -735,12 +990,27 @@ class Generator(PowerElement):
 		self.power_station_trafo=None
 		self.va_degree=None
 		super().__init__(**kwargs)
-
 class Load(PowerElement):
-	'''
-	TODO: @TIM add description
-	Add description of Generator class here
-	'''
+	"""
+	Represents a load in a power network.
+
+	Attributes:
+		p_mw (float): Active power in megawatts.
+		q_mvar (float): Reactive power in megavars.
+		controllable (bool): Indicates if the load is controllable.
+		max_p_mw (float): Maximum active power in megawatts.
+		min_p_mw (float): Minimum active power in megawatts.
+		max_q_mvar (float): Maximum reactive power in megavars.
+		min_q_mvar (float): Minimum reactive power in megavars.
+		const_z_percent (float): Constant impedance percentage.
+		const_i_percent (float): Constant current percentage.
+		sn_mva (float): Apparent power in megavolt-amperes.
+		scaling (float): Scaling factor for the load.
+		type (str): Type of the load.
+	
+	Args:
+		kwargs: Additional keyword arguments to initialize the load.
+	"""
 	def __init__(self, kwargs):
 		self.p_mw = None
 		self.q_mvar = None
@@ -749,19 +1019,48 @@ class Load(PowerElement):
 		self.min_p_mw = None
 		self.max_q_mvar = None
 		self.min_q_mvar = None
-		self.const_z_percent=None
-		self.const_i_percent=None
-		self.sn_mva=None
-		self.scaling=None
-		self.type=None
+		self.const_z_percent = None
+		self.const_i_percent = None
+		self.sn_mva = None
+		self.scaling = None
+		self.type = None
 		super().__init__(**kwargs)
-
-
 class Transformer(PowerElement):
-	'''
-	TODO: @TIM add description
-	Add description of Transformer class here
-	'''
+	"""
+	node_p (str or None): Primary node identifier.
+	node_s (str or None): Secondary node identifier.
+	std_type (str or None): Standard type of the transformer.
+	vn_hv_kv (float or None): Nominal voltage on the high voltage side in kV.
+	vn_lv_kv (float or None): Nominal voltage on the low voltage side in kV.
+	sn_mva (float or None): Nominal apparent power in MVA.
+	vk_percent (float or None): Short-circuit voltage in percent.
+	vkr_percent (float or None): Short-circuit resistance in percent.
+	pfe_kw (float or None): Iron losses in kW.
+	i0_percent (float or None): Open-circuit current in percent.
+	shift_degree (float or None): Phase shift angle in degrees.
+	tap_side (str or None): Tap changer side.
+	tap_neutral (int or None): Neutral tap position.
+	tap_min (int or None): Minimum tap position.
+	tap_max (int or None): Maximum tap position.
+	tap_step_percent (float or None): Tap step size in percent.
+	tap_step_degree (float or None): Tap step size in degrees.
+	tap_phase_shifter (bool or None): Indicates if the transformer is a phase shifter.
+	max_loading_percent (float or None): Maximum loading in percent.
+	tap_pos (int or None): Current tap position.
+	parallel (int or None): Number of parallel transformers.
+	df (float or None): Derating factor.
+	tap2_pos (int or None): Secondary tap position.
+	xn_ohm (float or None): Reactance in ohms.
+	tap_dependent_impedance (bool or None): Indicates if the impedance is tap dependent.
+	vk_percent_characteristic (list or None): List of short-circuit voltage characteristics.
+	vkr_percent_characteristic (list or None): List of short-circuit resistance characteristics.
+	vector_group (str or None): Vector group of the transformer.
+	vk0_percent (float or None): Zero-sequence short-circuit voltage in percent.
+	vkr0_percent (float or None): Zero-sequence short-circuit resistance in percent.
+	mag0_percent (float or None): Zero-sequence magnetizing current in percent.
+	mag0_rx (float or None): Zero-sequence magnetizing reactance.
+	si0_hv_partial (float or None): Zero-sequence impedance on the high voltage side.
+	"""
 	def __init__(self, kwargs):
 		self.node_p = None
 		self.node_s = None
@@ -795,7 +1094,7 @@ class Transformer(PowerElement):
 		self.vkr0_percent = None
 		self.mag0_percent = None
 		self.mag0_rx = None
-		self.si0_hv_partial= None
+		self.si0_hv_partial = None
 		super().__init__(**kwargs)
 
 	def update_failure_probability(self, network, intensity=None, ref_return_period=None):
@@ -807,16 +1106,51 @@ class Transformer(PowerElement):
 				_, event_intensity = network.event.get_intensity(node.longitude, node.latitude)
 				intensity = event_intensity.max()
 			if self.return_period != None and ref_return_period != None:
-				self.failureProb = network.fragilityCurves[self.fragilityCurve].projected_fc(rp=network.returnPeriods[self.return_period],
-																							ref_rp=network.returnPeriods[ref_return_period],
-																							xnew=intensity)[0]
+				self.failureProb = network.fragilityCurves[self.fragilityCurve].projected_fc(
+					rp = network.returnPeriods[self.return_period],
+					ref_rp = network.returnPeriods[ref_return_period],
+					xnew = intensity)[0]
 			else:
 				self.failureProb = network.fragilityCurves[self.fragilityCurve].interpolate(intensity)[0]
-
 class Line(PowerElement):
 	'''
-	TODO: @TIM add description
-	Add description of Line class here
+	Represents a power line in the network.
+	Attributes:
+		from_bus (str): The starting bus of the line.
+		to_bus (str): The ending bus of the line.
+		length_km (float): The length of the line in kilometers.
+		r_ohm_per_km (float): The resistance per kilometer in ohms.
+		x_ohm_per_km (float): The reactance per kilometer in ohms.
+		c_nf_per_km (float): The capacitance per kilometer in nanofarads.
+		r0_ohm_per_km (float): The zero-sequence resistance per kilometer in ohms.
+		x0_ohm_per_km (float): The zero-sequence reactance per kilometer in ohms.
+		c0_nf_per_km (float): The zero-sequence capacitance per kilometer in nanofarads.
+		max_i_ka (float): The maximum current in kiloamperes.
+		g_us_per_km (float): The conductance per kilometer in microsiemens.
+		g0_us_per_km (float): The zero-sequence conductance per kilometer in microsiemens.
+		std_type (str): The standard type of the line.
+		max_loading_percent (float): The maximum loading percentage.
+		df (float): The derating factor.
+		parallel (int): The number of parallel lines.
+		alpha (float): The temperature coefficient of resistance.
+		temperature_degree_celsius (float): The temperature in degrees Celsius.
+		tdpf (float): The thermal dynamic performance factor.
+		wind_speed_m_per_s (float): The wind speed in meters per second.
+		wind_angle_degree (float): The wind angle in degrees.
+		conductor_outer_diameter_m (float): The outer diameter of the conductor in meters.
+		air_temperature_degree_celsius (float): The air temperature in degrees Celsius.
+		reference_temperature_degree_celsius (float): The reference temperature in degrees Celsius.
+		solar_radiation_w_per_sq_m (float): The solar radiation in watts per square meter.
+		solar_absorptivity (float): The solar absorptivity.
+		emissivity (float): The emissivity.
+		r_theta_kelvin_per_mw (float): The thermal resistance in Kelvin per megawatt.
+		mc_joule_per_m_k (float): The heat capacity in joules per meter per Kelvin.
+		lineSpan (float): The span of the line in kilometers.
+		type (str): The type of the line.
+		failureProb (float): The probability of failure of the line.
+	Methods:
+		update_failure_probability(network, intensity=None, ref_return_period=None):
+			Updates the failure probability of the line based on the network and event intensity.
 	'''
 	def __init__(self, kwargs):
 		self.from_bus = None
@@ -833,22 +1167,23 @@ class Line(PowerElement):
 		self.g0_us_per_km = None
 		self.std_type = None
 		self.max_loading_percent = None
-		self.df=None
-		self.parallel=None
-		self.alpha=None
-		self.temperature_degree_celsius=None
-		self.tdpf=None
-		self.wind_speed_m_per_s=None
-		self.wind_angle_degree=None
-		self.conductor_outer_diameter_m=None
-		self.air_temperature_degree_celsius=None
-		self.reference_temperature_degree_celsius=None
-		self.solar_radiation_w_per_sq_m=None
-		self.solar_absorptivity=None
-		self.emissivity=None
-		self.r_theta_kelvin_per_mw=None
-		self.mc_joule_per_m_k=None
+		self.df = None
+		self.parallel = None
+		self.alpha = None
+		self.temperature_degree_celsius = None
+		self.tdpf = None
+		self.wind_speed_m_per_s = None
+		self.wind_angle_degree = None
+		self.conductor_outer_diameter_m = None
+		self.air_temperature_degree_celsius = None
+		self.reference_temperature_degree_celsius = None
+		self.solar_radiation_w_per_sq_m = None
+		self.solar_absorptivity = None
+		self.emissivity = None
+		self.r_theta_kelvin_per_mw = None
+		self.mc_joule_per_m_k = None
 		self.lineSpan = None
+		self.type = None
 		super().__init__(**kwargs)
 
 	def update_failure_probability(self, network, intensity=None, ref_return_period=None):
@@ -857,6 +1192,11 @@ class Line(PowerElement):
 		else:
 			node1 = network.nodes[self.from_bus]
 			node2 = network.nodes[self.to_bus]
+			if self.lineSpan == None:
+				warnings.warn(f'No lineSpan defined for element {self.id}. Defaulting to 0.2 km.')
+				self.lineSpan = 0.2
+			if self.length_km == None:
+				ValueError(f'No length_km defined for element {self.id}.')
 			nb_segments = math.ceil(self.length_km/self.lineSpan)
 			probFailure = []
 			for i_segment in range(nb_segments+1):
@@ -866,17 +1206,23 @@ class Line(PowerElement):
 					_, event_intensity = network.event.get_intensity(lon, lat)
 					intensity = event_intensity.max()
 				if self.return_period != None and ref_return_period != None:
-					probFailure.append(network.fragilityCurves[self.fragilityCurve].projected_fc(rp=network.returnPeriods[self.return_period],
-																								ref_rp=network.returnPeriods[ref_return_period],
-																								xnew=intensity))
+					probFailure.append(network.fragilityCurves[self.fragilityCurve].projected_fc(
+						rp = network.returnPeriods[self.return_period],
+						ref_rp = network.returnPeriods[ref_return_period],
+						xnew = intensity))
 				else:
 					probFailure.append(network.fragilityCurves[self.fragilityCurve].interpolate(intensity))
 			self.failureProb = 1-np.prod(1-np.array(probFailure))
-
 class Crew:
 	'''
-	TODO: @TIM add description
-	Add description of Crew class here
+	Represents a crew with specific attributes.
+
+	Attributes:
+		id (int): The unique identifier for the crew.
+		geodata (GeoData): The geographical data associated with the crew.
+
+	Methods:
+		__init__(kwargs): Initializes the Crew instance with given keyword arguments.
 	'''
 	def __init__(self, kwargs):
 		self.id = None
@@ -885,6 +1231,240 @@ class Crew:
 			if hasattr(self, key):
 				setattr(self, key, value)
 			else:
-				warnings.warn(f'Input parameter "{key}" unknown in {kwargs} .')
+				warnings.warn(f'Input parameter <{key}> unknown in {kwargs}.')
 		if self.geodata is None:
 			self.geodata = GeoData(0, 0)
+
+### network import from pandapower functions ###
+
+def style_formatting(ws):
+    for column in ws.columns:
+        max_length = 0
+        for cell in column:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(cell.value)
+            except:
+                pass
+        adjusted_width = (max_length + 3)
+        ws.column_dimensions[column[0].column_letter].width = adjusted_width
+
+    font = Font(bold=True)
+    border = Border(bottom=Side(border_style="thick"))
+    for cell in ws[1]:
+        cell.font = font
+        cell.border = border
+
+    font = Font(bold=True)
+    border = Border(bottom=Side(border_style="thick"))
+    for cell in ws[1]:
+        cell.font = font
+        cell.border = border
+
+def rename_element(sheet, column, values, net, rename = False):
+    # TODO: Implement code for rename option!
+    if values.empty:
+        pass
+
+    elif values.dtype == bool:
+        values = values.astype('object').map({True: 'True', False: 'False'})
+
+    elif column == 'name':
+        if sheet == 'ln_type':
+            values = getattr(net, 'line')['std_type']
+        elif sheet == 'tr_type':
+            values = getattr(net, 'trafo')['std_type']
+        elif rename or values.isna().any() or values.apply(lambda x: isinstance(x, (int, float))).all():
+            if sheet == 'nodes':
+                for number in values.index:
+                    values[number] = 'bus' + str(number + 1)
+            else:
+                values.reset_index(drop=True, inplace=True)
+                for number in values.index:
+                    values[number] = config.get_sheetname_from_input_to_pandapower(sheet) + str(number + 1)
+    
+    elif column == 'std_type':
+        if values.isna().any():
+            values = getattr(net, config.get_sheetname_from_input_to_pandapower(sheet))['std_type']
+            values.reset_index(drop=True, inplace=True)
+            for number in values.index:
+                if sheet == 'lines':
+                    values[number] = 'line_type' + str(number + 1)
+                elif sheet == 'transformers':
+                    values[number] = 'trafo_type' + str(number + 1)
+            
+    elif column in ['node', 'node_p', 'node_s', 'from_bus', 'to_bus']: 
+        if isinstance(net, pp.auxiliary.pandapowerNet):              
+            bus_column = getattr(net, config.get_sheetname_from_input_to_pandapower(sheet))[config.get_pandapower_object(column)]
+            bus_names = net.bus.loc[bus_column.tolist(), 'name']
+            values = bus_names.reset_index(drop=True)
+            values = values.rename(column)
+        else:
+            raise TypeError('Provided datatype of network is not compliant')
+    
+    elif column == 'element':
+        values = values.astype('object')
+        element_type = getattr(net, config.get_sheetname_from_input_to_pandapower(sheet))['et']
+        for index in range(len(element_type)):
+            if element_type.iloc[index] == 'l':
+                values.at[index] = getattr(net, config.get_sheetname_from_input_to_pandapower('lines'))['name'].loc[values.iloc[index]]
+            elif element_type.iloc[index] == 'b':
+                values.at[index] = getattr(net, config.get_sheetname_from_input_to_pandapower('nodes'))['name'].loc[values.iloc[index]]
+            elif element_type.iloc[index] == 't':
+                values.at[index] = getattr(net, config.get_sheetname_from_input_to_pandapower('transformers'))['name'].loc[values.iloc[index]]
+            elif element_type.iloc[index] == 't3': # TODO Check if is working correctly
+                values.at[index] = getattr(net, config.get_sheetname_from_input_to_pandapower('transformers_3w'))['name'].loc[values.iloc[index]]
+            else:
+                raise ValueError("Given element type of switch is unknown.")
+    
+    else:
+        pass    
+        # print(f"No need to rename for: [{sheet}] - [{column}]") # For debugging
+    
+    return values
+
+def from_pp(net, profiles = None, rename = False):
+    """
+	Creates a reXplan compliant network as excel file from pandapower.
+    Resilience parameters are not considered in this function.
+
+    INPUT:
+		net (dict) - pandapower formatted network
+        profiles (dict) - pandapower formatted profiles
+        rename (bool) - False: Naming as provided in pandapower net; True: Elements renamed with respective naming of network (under implementation)
+
+    EXAMPLE:
+		>>> from_pp(net)
+		>>> from_pp(pn.case14(), rename = False)
+    """
+    # TODO: FOR profiles = VALUE:-----------------------------------
+    # TODO: - First column add timesteps -> discuss automation (tab: simulation?)
+
+    # TODO: FOR rename = FALSE:-------------------------------------
+    # TODO: - [lines] geodata missing -> first and last location
+    # TODO: - [nodes] geodata handling for bus with multiple entries
+    # TODO: - Better solution for necessary empty tabs in network.xlsx?
+
+    # TODO: FOR rename = TRUE:--------------------------------------
+    # TODO: - Validate same Functionality
+
+    df_sheets_map = pd.read_csv(config.INPUT_SHEETS_MAP_FILE)
+    rename_sheet = df_sheets_map.set_index('input file field')['pandapower field']
+    dfs_dict = pd.read_excel('template.xlsx', sheet_name=None)
+
+    for sheet in dfs_dict.keys():
+
+        if sheet == 'cost':
+            df_cost = getattr(net, config.get_sheetname_from_input_to_pandapower(sheet))
+            df_cost = df_cost.sort_values(by='et')
+
+            name_array = np.array([])
+            for index in range(len(df_cost.index)):
+                if df_cost.iloc[index].et == 'ext_grid':
+                    from_sheet = 'external_gen'
+                elif df_cost.iloc[index].et == 'gen':
+                    from_sheet = 'generators'
+                elif df_cost.iloc[index].et == 'sgen':
+                    from_sheet = 'static_generators'
+                name = dfs_dict[from_sheet].name[df_cost.iloc[index].element] # Extracted name!
+                name_array = np.append(name_array, name)
+
+            dfs_dict[sheet] = df_cost
+            dfs_dict[sheet]['element'] = name_array         
+
+        elif sheet == 'profiles':
+            if profiles:
+                if isinstance(profiles, dict):
+                    profiles_df = pd.DataFrame()
+                    columns_list = pd.DataFrame()
+                    field_row = pd.Series(dtype='object')
+                    for profile_keys in profiles.keys():
+                        if not profiles[profile_keys].empty:
+                            df = profiles[profile_keys]
+                            value = getattr(net, profile_keys[0])['name']
+                            columns_list = pd.concat([columns_list, value], ignore_index=True)
+                            profiles_df = pd.concat([profiles_df, df], ignore_index=True, axis=1)
+                            field_row_add = pd.Series(["max_" + profile_keys[1]] * len(value), index=range(len(value)))
+                            field_row = pd.concat([field_row, field_row_add])
+                    if columns_list.T.shape[1] == profiles_df.shape[1]:
+                        profiles_df.columns = columns_list.squeeze().tolist()
+                    else:
+                        raise ValueError ("Length of column name list do not match profile entries.")
+                    
+                    profiles_df.loc[-1] = pd.Series(dtype='object')
+                    profiles_df.index = profiles_df.index + 1
+                    profiles_df = profiles_df.sort_index()
+                    field_row = field_row.reset_index(drop=True)
+                    profiles_df.loc[0] = field_row.values
+                    profiles_df = pd.concat([pd.Series('', index=profiles_df.index, name='asset'), profiles_df], axis=1)
+                    profiles_df.iloc[0, 0] = "field"
+
+                    dfs_dict[sheet] = profiles_df
+                else:
+                    raise TypeError('Provided datatype of profiles is not compliant')
+
+        elif sheet == 'ln_type' or sheet == 'tr_type':
+            if sheet == 'ln_type':
+                var = 'line'
+            else:
+                var = 'trafo'
+            columns = getattr(net, var).columns
+            for column in columns:
+                    if column in dfs_dict[sheet].keys():
+                        old_values = getattr(net, var)[column]
+                        values = rename_element(sheet, column, old_values, net, rename)
+                        dfs_dict[sheet][column] = values.values # .values?
+            dfs_dict[sheet] = dfs_dict[sheet].drop_duplicates()
+
+        else:
+            try:
+                columns = getattr(net, config.get_sheetname_from_input_to_pandapower(sheet)).columns
+                for column in columns:
+                    if column in dfs_dict[sheet].keys() and not (sheet == 'lines' and column == 'type'):
+                        old_values = getattr(net, config.get_sheetname_from_input_to_pandapower(sheet))[column]
+                        values = rename_element(sheet, column, old_values, net, rename)
+                        dfs_dict[sheet][column] = values.values
+
+                    elif column in config.INPUT_FIELD_MAP['pandapower field'].values and (column in dfs_dict[sheet].keys() or column in ['bus', 'hv_bus', 'lv_bus']):
+                        column_update = next((key for key, value in config.INPUT_FIELD_MAP['pandapower field'].items() if value == column), None)
+                        if column_update is not None:
+                            old_values = getattr(net, config.get_sheetname_from_input_to_pandapower(sheet))[column]
+                            values = rename_element(sheet, column_update, old_values, net, rename)
+                            dfs_dict[sheet][column_update] = values.values
+
+                    elif column == 'std_type':
+                        old_values = getattr(net, config.get_sheetname_from_input_to_pandapower(sheet))[column]
+                        values = rename_element(sheet, column, old_values, net, rename)
+                        dfs_dict[sheet]['type'] = values.values
+
+                    else:
+                        pass
+                        # print(f"\nSheet: {config.get_sheetname_from_input_to_pandapower(sheet)}; Column: {column} is NOT used in template sheet") # For Debugging
+            except:
+                # print(f"[{sheet},{column}]") # For Debugging
+                pass
+
+    if net.bus_geodata.index.max() == net.bus.index.max():
+        net.bus_geodata = net.bus_geodata.sort_index()
+        dfs_dict['nodes']['longitude'] = net.bus_geodata.x
+        dfs_dict['nodes']['latitude'] = net.bus_geodata.y
+
+    dfs_dict['network']['sn_mva'] = pd.Series(net.sn_mva)
+    dfs_dict['network']['f_hz'] = pd.Series(net.f_hz)
+    dfs_dict['network']['name'] = pd.Series(net.name)
+
+    wb = Workbook()
+    wb.remove(wb['Sheet'])
+
+    nec_sheet_names = ['switches', 'cost', 'tr_type', 'static_generators', 'transformers', 'generators', 'lines']
+    for sheet_name, df in dfs_dict.items():
+        if not df.empty or sheet_name in nec_sheet_names: 
+            ws = wb.create_sheet(sheet_name)
+            for row in dataframe_to_rows(df, index=False, header=True):
+                ws.append(row)
+        else:
+            pass
+        style_formatting(ws)
+
+    wb.save(os.path.join(config.path.inputFolder, 'network.xlsx'))
+    print(f'Network file successfully created: {config.path.inputFolder}')
