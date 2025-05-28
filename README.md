@@ -84,4 +84,4 @@ In development. Contact reXplan@proton.me for further information.
 [Become a Contributor on GitHub!](https://github.com/Tractebel-Engineering/reXplan-repo)
 
 ## License
-tba
+MIT
