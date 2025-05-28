@@ -78,7 +78,7 @@ julia> add PandaModels@0.7.1
 ```
 
 ## Documentation
-In development. Contact reXplan@tractebel.engie.com for further information.
+In development. Contact reXplan@proton.me for further information.
 
 ## Contribute
 [Become a Contributor on GitHub!](https://github.com/Tractebel-Engineering/reXplan-repo)
